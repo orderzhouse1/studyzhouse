@@ -1,0 +1,29 @@
+{
+  "name": "studyhouse",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "concurrently -n web,api -c cyan,magenta \"pnpm dev:web\" \"pnpm dev:api\"",
+    "dev:web": "pnpm --filter @studyhouse/web dev",
+    "dev:api": "pnpm --filter @studyhouse/api dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run typecheck",
+    "typecheck": "pnpm -r run typecheck",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "devDependencies": {
+    "@prisma/client": "6.19.3",
+    "argon2": "^0.41.1",
+    "concurrently": "^9.1.2",
+    "prisma": "6.19.3",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3"
+  }
+}

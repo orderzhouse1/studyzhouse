@@ -1,0 +1,324 @@
+// Studyhouse — Neon PostgreSQL (Prisma)
+// Relations kept minimal; expand in later phases as needed.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  STUDENT
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum PricingType {
+  FREE
+  PAID
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  ALL_LEVELS
+}
+
+enum LessonStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum EnrollmentSource {
+  MANUAL
+  ACTIVATION_CODE
+  PAYMENT
+  FREE
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  REVOKED
+  COMPLETED
+}
+
+enum ActivationCodeStatus {
+  ACTIVE
+  DISABLED
+  EXPIRED
+}
+
+enum PaymentRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PaymentMethod {
+  CLIQ
+}
+
+model User {
+  id              String      @id @default(cuid())
+  fullName        String
+  email           String      @unique
+  phone           String?
+  passwordHash    String
+  role            UserRole
+  status          UserStatus  @default(ACTIVE)
+  avatarUrl       String?
+  emailVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  adminProfile AdminProfile?
+  coursesCreated Course[]    @relation("CourseCreator")
+  enrollments  Enrollment[] @relation("StudentEnrollments")
+  enrollmentsAdded Enrollment[] @relation("EnrollmentAddedBy")
+
+  activationCodesCreated ActivationCode[]
+  paymentRequestsAsStudent PaymentRequest[] @relation("PaymentStudent")
+  paymentRequestsReviewed PaymentRequest[] @relation("PaymentReviewer")
+  codeRedemptions       CodeRedemption[]
+  lessonProgressRecords LessonProgress[]
+  auditLogs             AuditLog[]
+}
+
+model AdminProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  jobTitle         String?
+  permissionsJson  Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  courses Course[]
+}
+
+model Course {
+  id               String        @id @default(cuid())
+  title            String
+  slug             String        @unique
+  subtitle         String?
+  description      String
+  coverImageUrl    String?
+  trailerYoutubeId String?
+  estimatedDurationMinutes Int?
+  status           CourseStatus  @default(DRAFT)
+  pricingType      PricingType
+  price            Decimal?      @db.Decimal(12, 2)
+  currency         String        @default("JOD")
+  level            CourseLevel   @default(ALL_LEVELS)
+  categoryId       String?
+  createdById      String
+  publishedAt      DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  category   Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdBy  User           @relation("CourseCreator", fields: [createdById], references: [id])
+  sections   CourseSection[]
+  lessons    Lesson[]
+  enrollments Enrollment[]
+  activationCodes ActivationCode[]
+  paymentRequests PaymentRequest[]
+
+  @@index([status])
+  @@index([createdById])
+}
+
+model CourseSection {
+  id        String   @id @default(cuid())
+  courseId  String
+  title     String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@index([courseId])
+}
+
+model Lesson {
+  id               String       @id @default(cuid())
+  courseId         String
+  sectionId        String?
+  title            String
+  description      String?
+  youtubeVideoId   String
+  youtubeUrl       String
+  durationSeconds  Int?
+  sortOrder        Int          @default(0)
+  isPreview        Boolean      @default(false)
+  isRequired       Boolean      @default(true)
+  status           LessonStatus @default(DRAFT)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  course         Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  section        CourseSection?  @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  lessonProgress LessonProgress[]
+
+  @@index([courseId])
+  @@index([sectionId])
+}
+
+model Enrollment {
+  id               String            @id @default(cuid())
+  studentId        String
+  courseId         String
+  source           EnrollmentSource
+  status           EnrollmentStatus  @default(ACTIVE)
+  progressPercent  Int               @default(0)
+  startedAt        DateTime?
+  completedAt      DateTime?
+  enrolledById     String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  student    User @relation("StudentEnrollments", fields: [studentId], references: [id], onDelete: Cascade)
+  course     Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  enrolledBy User?  @relation("EnrollmentAddedBy", fields: [enrolledById], references: [id], onDelete: SetNull)
+  lessonProgress LessonProgress[]
+
+  @@unique([studentId, courseId])
+  @@index([studentId])
+  @@index([courseId])
+}
+
+model LessonProgress {
+  id             String    @id @default(cuid())
+  enrollmentId   String
+  studentId      String
+  courseId       String
+  lessonId       String
+  watchedSeconds Int       @default(0)
+  isCompleted    Boolean   @default(false)
+  completedAt    DateTime?
+  lastWatchedAt  DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  student    User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lesson     Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, lessonId])
+  @@index([studentId])
+  @@index([courseId])
+}
+
+model ActivationCode {
+  id          String               @id @default(cuid())
+  codeHash    String               @unique
+  courseId    String
+  status      ActivationCodeStatus @default(ACTIVE)
+  maxUses     Int                  @default(1)
+  usedCount   Int                  @default(0)
+  expiresAt   DateTime?
+  createdById String
+  notes       String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  course       Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdBy    User             @relation(fields: [createdById], references: [id])
+  redemptions  CodeRedemption[]
+}
+
+model CodeRedemption {
+  id               String   @id @default(cuid())
+  activationCodeId String
+  studentId        String
+  courseId         String
+  redeemedAt       DateTime @default(now())
+  ipAddress        String?
+  userAgent        String?
+
+  activationCode ActivationCode @relation(fields: [activationCodeId], references: [id], onDelete: Cascade)
+  student        User           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([courseId])
+}
+
+model PaymentRequest {
+  id                    String               @id @default(cuid())
+  studentId             String
+  courseId              String
+  amount                Decimal              @db.Decimal(12, 2)
+  currency              String               @default("JOD")
+  method                PaymentMethod        @default(CLIQ)
+  status                PaymentRequestStatus @default(PENDING)
+  transactionReference  String?
+  proofImageUrl         String?
+  studentNote           String?
+  adminNote             String?
+  reviewedById          String?
+  reviewedAt            DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  student    User   @relation("PaymentStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  course     Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  reviewedBy User?  @relation("PaymentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([studentId])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorId      String?
+  action       String
+  entityType   String
+  entityId     String?
+  metadataJson Json?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([createdAt])
+}
+
+model AppSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  valueJson Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
