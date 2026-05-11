@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+
+import { Button } from "@/components/ui/button";
 
 import { EditCourseShell } from "./edit-course-shell";
 
@@ -23,6 +26,12 @@ export default async function EditCoursePage({
         <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
           بعد الحفظ يمكنك النشر أو الأرشفة من الشريط العلوي — يُحدَّث النموذج تلقائيًا.
         </p>
+        <Button
+          asChild
+          className="mt-2 w-fit rounded-xl bg-orange-500 text-white hover:bg-orange-600"
+        >
+          <Link href={`/admin/courses/${id}/builder`}>بناء محتوى الكورس</Link>
+        </Button>
       </header>
 
       <EditCourseShell courseId={id} />

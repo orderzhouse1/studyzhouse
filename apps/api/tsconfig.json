@@ -6,7 +6,7 @@
     "moduleResolution": "Bundler",
     "rootDir": "./src",
     "outDir": "./dist",
-    "noEmit": false,
+    "noEmit": true,
     "declaration": false,
     "sourceMap": true,
     "types": ["node"]

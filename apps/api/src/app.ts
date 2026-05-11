@@ -28,6 +28,7 @@ export function createApp(): Express {
     }),
   );
 
+  /** CORS: أصل واحد صريح (CLIENT_ORIGIN) + credentials للكوكي — لا تستخدم wildcard مع credentials. */
   app.use(
     cors({
       origin: env.CLIENT_ORIGIN,

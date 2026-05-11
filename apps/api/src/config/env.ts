@@ -8,11 +8,18 @@ const envSchema = z.object({
   REDIS_URL: z.string().optional(),
   JWT_ACCESS_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().default("12h"),
+  /** سرّ لاشتقاق بصمة أكواد التفعيل (يفضّل مفتاحًا مستقلًا؛ يُستخدم JWT كاحتياط عند الغياب) */
+  ACTIVATION_CODE_PEPPER: z.string().min(32).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
 
 let cached: Env | null = null;
+
+/** Clears cached env (for tests when `process.env` is set after first `loadEnv`). */
+export function resetEnvCache(): void {
+  cached = null;
+}
 
 export function loadEnv(): Env {
   if (cached) return cached;

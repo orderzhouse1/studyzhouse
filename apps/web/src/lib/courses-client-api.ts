@@ -1,7 +1,23 @@
 type ApiErrorJson = {
   success?: boolean;
-  error?: { message?: string; code?: string };
+  error?: {
+    message?: string;
+    code?: string;
+    details?: unknown;
+  };
 };
+
+/** خطأ API مع تفاصيل اختيارية (مثل قائمة النشر الناقصة) */
+export class AdminApiError extends Error {
+  constructor(
+    message: string,
+    public readonly code?: string,
+    public readonly details?: unknown,
+  ) {
+    super(message);
+    this.name = "AdminApiError";
+  }
+}
 
 async function parseJson(res: Response): Promise<unknown> {
   try {
@@ -35,7 +51,21 @@ export async function adminFetchJson<T>(
       typeof json.error.message === "string"
         ? json.error.message
         : "تعذّر تنفيذ الطلب.";
-    throw new Error(msg);
+    const code =
+      typeof json === "object" &&
+      json !== null &&
+      json.error &&
+      typeof json.error.code === "string"
+        ? json.error.code
+        : undefined;
+    const details =
+      typeof json === "object" &&
+      json !== null &&
+      json.error &&
+      "details" in json.error
+        ? json.error.details
+        : undefined;
+    throw new AdminApiError(msg, code, details);
   }
 
   return json as T;

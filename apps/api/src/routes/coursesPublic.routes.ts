@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import * as courseController from "../controllers/course.controller.js";
+import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { validateParams, validateQuery } from "../validators/validate.js";
 import {
   courseSlugParamsSchema,
@@ -12,11 +13,11 @@ export const coursesPublicRouter = Router();
 coursesPublicRouter.get(
   "/",
   validateQuery(publicCoursesQuerySchema),
-  courseController.listCoursesPublic,
+  asyncHandler(courseController.listCoursesPublic),
 );
 
 coursesPublicRouter.get(
   "/:slug",
   validateParams(courseSlugParamsSchema),
-  courseController.getCourseBySlugPublic,
+  asyncHandler(courseController.getCourseBySlugPublic),
 );

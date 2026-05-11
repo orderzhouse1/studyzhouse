@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import type { Course } from "@prisma/client";
 import {
   CourseStatus,
   LessonStatus,
@@ -17,6 +18,7 @@ import { prismaSkipTake } from "../lib/pagination.js";
 import { prisma } from "../lib/prisma.js";
 import { slugFromTitle } from "../lib/slug.js";
 import { writeAuditLog } from "../services/audit.service.js";
+import { enforcePublishReadinessForAdminCourse } from "../services/coursePublishGuard.service.js";
 import type {
   CourseCreateBody,
   CourseUpdateBody,
@@ -25,6 +27,25 @@ import {
   adminCoursesQuerySchema,
   publicCoursesQuerySchema,
 } from "@studyhouse/shared";
+
+/** حالة الكورس بعد تطبيق حقول التحديث — للتحقق من الجاهزية عند النشر عبر PATCH */
+function previewCourseAfterUpdate(
+  existing: Course,
+  body: CourseUpdateBody,
+  nextStatus: CourseStatus,
+): Course {
+  return {
+    ...existing,
+    title: body.title !== undefined ? body.title.trim() : existing.title,
+    description:
+      body.description !== undefined
+        ? body.description.trim()
+        : existing.description,
+    categoryId:
+      body.categoryId !== undefined ? body.categoryId : existing.categoryId,
+    status: nextStatus,
+  };
+}
 
 async function uniqueCourseSlug(
   base: string,
@@ -372,6 +393,18 @@ export async function updateCourseAdmin(req: Request, res: Response): Promise<vo
 
   const nextStatus = body.status ?? existing.status;
 
+  const becomingPublished =
+    nextStatus === CourseStatus.PUBLISHED &&
+    existing.status !== CourseStatus.PUBLISHED;
+
+  if (becomingPublished) {
+    await enforcePublishReadinessForAdminCourse({
+      course: previewCourseAfterUpdate(existing as Course, body, nextStatus),
+      actorId: auth.userId,
+      req,
+    });
+  }
+
   let publishedAt = existing.publishedAt;
   if (nextStatus === CourseStatus.PUBLISHED && !publishedAt) {
     publishedAt = new Date();
@@ -444,6 +477,12 @@ export async function publishCourseAdmin(req: Request, res: Response): Promise<v
     throw new AppError("NOT_FOUND", "الكورس غير موجود.", 404);
   }
   assertCanManageCourse(req, existing);
+
+  await enforcePublishReadinessForAdminCourse({
+    course: existing,
+    actorId: auth.userId,
+    req,
+  });
 
   const updated = await prisma.course.update({
     where: { id },

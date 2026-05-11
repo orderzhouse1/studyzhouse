@@ -9,8 +9,11 @@
     "build": "pnpm -r run build",
     "lint": "pnpm -r run typecheck",
     "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm test:api",
+    "test:api": "pnpm --filter @studyhouse/api test",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts"
