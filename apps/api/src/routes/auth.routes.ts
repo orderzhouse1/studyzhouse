@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import * as authController from "../controllers/auth.controller.js";
+import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { loginRateLimiter } from "../middlewares/loginRateLimiter.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
 import { validateBody } from "../validators/validate.js";
@@ -12,9 +13,9 @@ authRouter.post(
   "/login",
   loginRateLimiter,
   validateBody(loginBodySchema),
-  authController.login,
+  asyncHandler(authController.login),
 );
 
-authRouter.post("/logout", authController.logout);
+authRouter.post("/logout", asyncHandler(authController.logout));
 
-authRouter.get("/me", requireAuth, authController.me);
+authRouter.get("/me", requireAuth, asyncHandler(authController.me));

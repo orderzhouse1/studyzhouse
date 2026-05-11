@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { AppError } from "../lib/AppError.js";
@@ -7,7 +8,10 @@ import { slugFromTitle } from "../lib/slug.js";
 import { prismaSkipTake } from "../lib/pagination.js";
 import { writeAuditLog } from "../services/audit.service.js";
 import type { CategoryCreateBody, CategoryUpdateBody } from "@studyhouse/shared";
-import { publicCategoriesQuerySchema } from "@studyhouse/shared";
+import {
+  adminCategoriesQuerySchema,
+  publicCategoriesQuerySchema,
+} from "@studyhouse/shared";
 
 function mapCategory(c: {
   id: string;
@@ -45,6 +49,44 @@ async function uniqueCategorySlug(
     n += 1;
     candidate = `${base}-${n}`;
   }
+}
+
+export async function listCategoriesAdmin(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const query = adminCategoriesQuerySchema.parse(
+    req.validatedQuery ?? req.query,
+  );
+  const { skip, take } = prismaSkipTake(query.page, query.pageSize);
+
+  let where: Prisma.CategoryWhereInput = {};
+  if (query.scope === "active") {
+    where = { archivedAt: null };
+  } else if (query.scope === "archived") {
+    where = { archivedAt: { not: null } };
+  }
+
+  const [total, rows] = await prisma.$transaction([
+    prisma.category.count({ where }),
+    prisma.category.findMany({
+      where,
+      orderBy: [{ name: "asc" }],
+      skip,
+      take,
+    }),
+  ]);
+
+  res.status(200).json({
+    success: true,
+    data: { items: rows.map(mapCategory) },
+    meta: {
+      page: query.page,
+      pageSize: query.pageSize,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
+    },
+  });
 }
 
 export async function listCategoriesPublic(

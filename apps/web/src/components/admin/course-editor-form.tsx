@@ -331,6 +331,22 @@ export function CourseEditorForm({
                     </option>
                   ))}
                 </select>
+                {loadingCats ? (
+                  <p className="text-xs text-muted-foreground">
+                    جارٍ تحميل التصنيفات النشطة…
+                  </p>
+                ) : categories.length === 0 ? (
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    لا توجد تصنيفات نشطة في الكتالوج.{" "}
+                    <Link
+                      href="/admin/categories"
+                      className="font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                      أضف تصنيفًا من هنا
+                    </Link>
+                    .
+                  </p>
+                ) : null}
               </div>
             </CardContent>
           </Card>

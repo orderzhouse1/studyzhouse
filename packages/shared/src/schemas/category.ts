@@ -31,3 +31,12 @@ export const categoryIdParamsSchema = z.object({
 });
 
 export const publicCategoriesQuerySchema = paginationQuerySchema;
+
+/** لوحة الإدارة: نشط فقط، مؤرشف فقط، أو الكل */
+export const adminCategoriesScopeSchema = z.enum(["active", "archived", "all"]);
+
+export const adminCategoriesQuerySchema = paginationQuerySchema.extend({
+  scope: adminCategoriesScopeSchema.optional().default("all"),
+});
+
+export type AdminCategoriesQuery = z.infer<typeof adminCategoriesQuerySchema>;

@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
+import { BookOpen } from "lucide-react";
 import Link from "next/link";
 
-import { CourseCard, type CourseCardCourse } from "@/components/courses/course-card";
+import {
+  CourseCard,
+  type CourseCardCourse,
+} from "@/components/courses/course-card";
+import { EmptyState } from "@/components/layout/empty-state";
+import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { fetchPublicApi } from "@/lib/server-api";
 import { APP_NAME_AR } from "@studyhouse/shared";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "استكشف الكورسات",
@@ -21,6 +29,22 @@ type CoursesJson = {
   };
 };
 
+type CategoriesJson = {
+  success: true;
+  data: { items: { id: string; name: string; slug: string }[] };
+};
+
+async function loadCategories(): Promise<{ name: string; slug: string }[]> {
+  try {
+    const json = (await fetchPublicApi(
+      "/api/v1/categories?page=1&pageSize=40",
+    )) as CategoriesJson;
+    return json.data.items.map((c) => ({ name: c.name, slug: c.slug }));
+  } catch {
+    return [];
+  }
+}
+
 export default async function CoursesPage({
   searchParams,
 }: {
@@ -35,9 +59,23 @@ export default async function CoursesPage({
   if (sp.search?.trim()) qs.set("search", sp.search.trim());
   if (sp.categorySlug?.trim()) qs.set("categorySlug", sp.categorySlug.trim());
 
-  const json = (await fetchPublicApi(
-    `/api/v1/courses?${qs.toString()}`,
-  )) as CoursesJson;
+  let json: CoursesJson;
+  let categoryChips: { name: string; slug: string }[];
+  try {
+    const results = await Promise.all([
+      fetchPublicApi(`/api/v1/courses?${qs.toString()}`) as Promise<CoursesJson>,
+      loadCategories(),
+    ]);
+    json = results[0];
+    categoryChips = results[1];
+  } catch {
+    json = {
+      success: true,
+      data: { items: [] },
+      meta: { page: 1, pageSize: 12, total: 0, totalPages: 1 },
+    };
+    categoryChips = [];
+  }
 
   const items = json.data.items;
   const meta = json.meta;
@@ -58,62 +96,102 @@ export default async function CoursesPage({
         }).toString()}`
       : null;
 
+  const activeSlug = sp.categorySlug?.trim() ?? "";
+
   return (
     <div className="relative">
       <div className="hero-mesh noise-soft absolute inset-0 -z-10" aria-hidden />
 
-      <header className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10 md:flex-row md:items-end md:justify-between md:px-8 md:py-14">
-        <div className="space-y-3">
-          <p className="text-xs font-semibold text-primary">كتالوج عام</p>
-          <h1 className="text-balance text-3xl font-semibold tracking-tight md:text-4xl">
-            الكورسات المنشورة
-          </h1>
-          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
-            قائمة نظيفة وبمساحات واسعة — جاهزة لاحقًا للفلترة المتقدمة. ما يزال
-            المشغّل ووضع الدرس يأتي في مرحلة لاحقة.
-          </p>
-        </div>
-        <Button asChild variant="outline" className="rounded-xl">
-          <Link href="/">{APP_NAME_AR} — الرئيسية</Link>
-        </Button>
-      </header>
+      <main className="mx-auto w-full max-w-6xl space-y-8 px-6 pb-16 pt-8 md:px-8 md:pt-10">
+        <PageHeader
+          eyebrow="كتالوج عام"
+          title="الكورسات المنشورة"
+          description="صفحة استكشاف واسعة وبطاقات بيضاء ناعمة — فلتر تصنيف خفيف عند توفر البيانات، مع ترقيم صفحات واضح."
+          actions={
+            <Button asChild variant="outline">
+              <Link href="/">{APP_NAME_AR} — الرئيسية</Link>
+            </Button>
+          }
+        />
 
-      <main className="mx-auto w-full max-w-6xl space-y-10 px-6 pb-20 md:px-8">
-        {items.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border/80 bg-card/50 p-12 text-center shadow-sm">
-            <p className="text-sm font-medium text-foreground">لا كورسات منشورة بعد</p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              يمكن للمسؤول إنشاء كورس جديد من لوحة الإدارة ثم نشره هنا.
-            </p>
+        {categoryChips.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border/70 bg-card/80 px-3 py-3 shadow-sm backdrop-blur md:px-5">
+            <span className="text-xs font-semibold text-muted-foreground">
+              التصنيفات:
+            </span>
+            <Link
+              href={
+                sp.search?.trim()
+                  ? `/courses?search=${encodeURIComponent(sp.search.trim())}`
+                  : "/courses"
+              }
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                activeSlug === ""
+                  ? "bg-primary text-primary-foreground shadow-brand"
+                  : "bg-muted/40 text-muted-foreground hover:bg-secondary hover:text-secondary-foreground"
+              }`}
+            >
+              الكل
+            </Link>
+            {categoryChips.map((c) => {
+              const nextQs = new URLSearchParams();
+              if (sp.search?.trim()) nextQs.set("search", sp.search.trim());
+              nextQs.set("categorySlug", c.slug);
+              const href = `/courses?${nextQs.toString()}`;
+              const active = activeSlug === c.slug;
+              return (
+                <Link
+                  key={c.slug}
+                  href={href}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                    active
+                      ? "bg-primary text-primary-foreground shadow-brand"
+                      : "border border-border/80 bg-card text-heading hover:border-secondary hover:bg-secondary/50"
+                  }`}
+                >
+                  {c.name}
+                </Link>
+              );
+            })}
           </div>
+        ) : null}
+
+        {items.length === 0 ? (
+          <EmptyState
+            icon={<BookOpen className="h-6 w-6" aria-hidden />}
+            title="لا كورسات منشورة بعد"
+            description="يمكن للمسؤول إنشاء كورس من لوحة الإدارة ثم نشره ليظهر هنا تلقائيًا."
+            actionLabel="العودة للرئيسية"
+            actionHref="/"
+          />
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {items.map((course) => (
               <CourseCard key={course.id} course={course} />
             ))}
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-4 rounded-2xl border border-border/70 bg-card/60 px-4 py-3 text-sm text-muted-foreground shadow-sm backdrop-blur">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/70 bg-card px-4 py-3 text-sm text-muted-foreground shadow-card">
           <span>
             صفحة {meta.page} من {meta.totalPages} — إجمالي {meta.total} كورسًا
           </span>
           <div className="flex items-center gap-2">
             {prevHref ? (
-              <Button asChild variant="outline" size="sm" className="rounded-xl">
+              <Button asChild variant="outline" size="sm">
                 <Link href={prevHref}>السابق</Link>
               </Button>
             ) : (
-              <Button variant="outline" size="sm" className="rounded-xl" disabled>
+              <Button variant="outline" size="sm" disabled>
                 السابق
               </Button>
             )}
             {nextHref ? (
-              <Button asChild variant="outline" size="sm" className="rounded-xl">
+              <Button asChild variant="outline" size="sm">
                 <Link href={nextHref}>التالي</Link>
               </Button>
             ) : (
-              <Button variant="outline" size="sm" className="rounded-xl" disabled>
+              <Button variant="outline" size="sm" disabled>
                 التالي
               </Button>
             )}

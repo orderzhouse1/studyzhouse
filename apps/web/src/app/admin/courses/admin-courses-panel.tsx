@@ -1,6 +1,6 @@
 "use client";
 
-import { Filter, Plus, Search } from "lucide-react";
+import { Filter, FolderTree, Hammer, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -41,9 +41,15 @@ const STATUS_LABEL: Record<AdminCourseRow["status"], string> = {
 function statusVariant(
   s: AdminCourseRow["status"],
 ): React.ComponentProps<typeof Badge>["variant"] {
-  if (s === "PUBLISHED") return "success";
-  if (s === "ARCHIVED") return "warning";
-  return "muted";
+  if (s === "PUBLISHED") return "published";
+  if (s === "ARCHIVED") return "archived";
+  return "draft";
+}
+
+function pricingVariant(
+  p: AdminCourseRow["pricingType"],
+): React.ComponentProps<typeof Badge>["variant"] {
+  return p === "FREE" ? "free" : "paid";
 }
 
 export function AdminCoursesPanel(): React.ReactElement {
@@ -98,27 +104,39 @@ export function AdminCoursesPanel(): React.ReactElement {
   }, [search, status, pricing]);
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 shadow-sm backdrop-blur md:flex-row md:items-end md:justify-between">
-        <div className="space-y-2">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 rounded-3xl border border-border/70 bg-card p-5 shadow-card backdrop-blur md:flex-row md:items-end md:justify-between">
+        <div className="space-y-1">
           <p className="text-xs font-semibold text-primary">إدارة الكورسات</p>
-          <h2 className="text-2xl font-semibold tracking-tight">قائمة ذكية وهادئة</h2>
+          <h2 className="text-xl font-semibold tracking-tight">قائمة ذكية وهادئة</h2>
           <p className="max-w-2xl text-sm text-muted-foreground">
             بحث لحظي، فلاتر حالة وتسعير، وتصفح صفحات — بدون شعور &quot;لوحة رمادية&quot;.
           </p>
         </div>
-        <Button
-          asChild
-          className="rounded-xl px-6 py-6 text-base shadow-sm [&>a]:inline-flex [&>a]:items-center [&>a]:gap-2"
-        >
-          <Link href="/admin/courses/new">
-            <Plus className="h-4 w-4" aria-hidden />
-            كورس جديد
-          </Link>
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Button
+            asChild
+            variant="outline"
+            className="rounded-xl [&>a]:inline-flex [&>a]:items-center [&>a]:gap-2"
+          >
+            <Link href="/admin/categories">
+              <FolderTree className="h-4 w-4" aria-hidden />
+              التصنيفات
+            </Link>
+          </Button>
+          <Button
+            asChild
+            className="rounded-xl shadow-sm [&>a]:inline-flex [&>a]:items-center [&>a]:gap-2"
+          >
+            <Link href="/admin/courses/new">
+              <Plus className="h-4 w-4" aria-hidden />
+              كورس جديد
+            </Link>
+          </Button>
+        </div>
       </div>
 
-      <div className="grid gap-4 rounded-2xl border border-border/70 bg-card/40 p-4 shadow-sm md:grid-cols-[1.3fr_0.7fr_0.7fr] md:items-end">
+      <div className="grid gap-3 rounded-3xl border border-border/70 bg-card/90 p-4 shadow-card md:grid-cols-[1.3fr_0.7fr_0.7fr] md:items-end">
         <div className="space-y-2">
           <label className="text-xs font-medium text-muted-foreground" htmlFor="q">
             بحث
@@ -141,7 +159,7 @@ export function AdminCoursesPanel(): React.ReactElement {
           </label>
           <select
             id="st"
-            className="flex h-11 w-full rounded-xl border border-input bg-background px-3 text-sm shadow-sm"
+            className="flex h-10 w-full rounded-xl border border-input bg-card px-3 text-sm shadow-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
             value={status}
             onChange={(e) =>
               setStatus((e.target.value || "") as typeof status)
@@ -160,7 +178,7 @@ export function AdminCoursesPanel(): React.ReactElement {
           </label>
           <select
             id="pr"
-            className="flex h-11 w-full rounded-xl border border-input bg-background px-3 text-sm shadow-sm"
+            className="flex h-10 w-full rounded-xl border border-input bg-card px-3 text-sm shadow-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
             value={pricing}
             onChange={(e) =>
               setPricing((e.target.value || "") as typeof pricing)
@@ -179,9 +197,9 @@ export function AdminCoursesPanel(): React.ReactElement {
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-border/70 bg-card shadow-sm">
+      <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-card">
         {loading ? (
-          <div className="space-y-3 p-6">
+          <div className="space-y-2.5 p-5">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={String(i)}
@@ -190,7 +208,7 @@ export function AdminCoursesPanel(): React.ReactElement {
             ))}
           </div>
         ) : rows.length === 0 ? (
-          <div className="p-12 text-center">
+          <div className="px-4 py-10 text-center md:py-8">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
               <Filter className="h-6 w-6" aria-hidden />
             </div>
@@ -203,24 +221,25 @@ export function AdminCoursesPanel(): React.ReactElement {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[880px] border-collapse text-sm">
+            <table className="w-full min-w-[960px] border-collapse text-sm">
               <thead>
-                <tr className="border-b border-border/70 bg-muted/20 text-right text-xs text-muted-foreground">
-                  <th className="px-6 py-4 font-medium">الكورس</th>
-                  <th className="px-6 py-4 font-medium">التصنيف</th>
-                  <th className="px-6 py-4 font-medium">التسعير</th>
-                  <th className="px-6 py-4 font-medium">الحالة</th>
-                  <th className="px-6 py-4 font-medium">آخر تحديث</th>
-                  <th className="px-6 py-4 font-medium">إجراء</th>
+                <tr className="border-b border-border/70 bg-secondary/40 text-right text-xs text-muted-foreground">
+                  <th className="px-4 py-2.5 font-medium md:px-5">الكورس</th>
+                  <th className="px-4 py-2.5 font-medium md:px-5">التصنيف</th>
+                  <th className="px-4 py-2.5 font-medium md:px-5">التسعير</th>
+                  <th className="px-4 py-2.5 font-medium md:px-5">الحالة</th>
+                  <th className="px-4 py-2.5 font-medium md:px-5">آخر تحديث</th>
+                  <th className="px-4 py-2.5 font-medium md:px-5">المحتوى</th>
+                  <th className="px-4 py-2.5 font-medium md:px-5">إجراء</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row) => (
                   <tr
                     key={row.id}
-                    className="border-b border-border/60 transition-colors hover:bg-muted/15"
+                    className="border-b border-border/60 transition-colors hover:bg-secondary/25"
                   >
-                    <td className="px-6 py-5 align-top">
+                    <td className="px-4 py-3.5 align-top md:px-5">
                       <div className="space-y-1">
                         <p className="font-semibold text-foreground">{row.title}</p>
                         <p className="text-xs text-muted-foreground" dir="ltr">
@@ -228,25 +247,48 @@ export function AdminCoursesPanel(): React.ReactElement {
                         </p>
                       </div>
                     </td>
-                    <td className="px-6 py-5 align-top text-muted-foreground">
+                    <td className="px-4 py-3.5 align-top md:px-5 text-muted-foreground">
                       {row.category?.name ?? "—"}
                     </td>
-                    <td className="px-6 py-5 align-top">
-                      <span className="font-medium text-foreground">
-                        {row.pricingType === "FREE"
-                          ? "مجاني"
-                          : `${row.priceAmount ?? "—"} ${row.currency}`}
-                      </span>
+                    <td className="px-4 py-3.5 align-top md:px-5">
+                      <div className="flex flex-col items-start gap-2">
+                        <Badge variant={pricingVariant(row.pricingType)}>
+                          {row.pricingType === "FREE"
+                            ? "مجاني"
+                            : "مدفوع"}
+                        </Badge>
+                        {row.pricingType === "PAID" ? (
+                          <span className="text-xs font-medium text-foreground" dir="ltr">
+                            {row.priceAmount ?? "—"} {row.currency}
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
-                    <td className="px-6 py-5 align-top">
+                    <td className="px-4 py-3.5 align-top md:px-5">
                       <Badge variant={statusVariant(row.status)}>
                         {STATUS_LABEL[row.status]}
                       </Badge>
                     </td>
-                    <td className="px-6 py-5 align-top text-muted-foreground">
+                    <td className="px-4 py-3.5 align-top md:px-5 text-muted-foreground">
                       {new Date(row.updatedAt).toLocaleString("ar")}
                     </td>
-                    <td className="px-6 py-5 align-top">
+                    <td className="px-4 py-3.5 align-top md:px-5">
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="mb-2 w-full rounded-xl border-primary/30 text-primary hover:bg-primary/10 sm:mb-0 sm:w-auto"
+                      >
+                        <Link
+                          className="inline-flex items-center gap-2"
+                          href={`/admin/courses/${row.id}/builder`}
+                        >
+                          <Hammer className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                          البناء
+                        </Link>
+                      </Button>
+                    </td>
+                    <td className="px-4 py-3.5 align-top md:px-5">
                       <Button asChild variant="outline" size="sm" className="rounded-xl">
                         <Link href={`/admin/courses/${row.id}`}>تعديل</Link>
                       </Button>
@@ -260,7 +302,7 @@ export function AdminCoursesPanel(): React.ReactElement {
       </div>
 
       {meta && meta.totalPages > 1 ? (
-        <div className="flex items-center justify-between rounded-2xl border border-border/70 bg-card/60 px-4 py-3 text-sm text-muted-foreground">
+        <div className="flex items-center justify-between rounded-2xl border border-border/70 bg-card px-4 py-2.5 text-sm text-muted-foreground shadow-card">
           <span>
             صفحة {meta.page} من {meta.totalPages}
           </span>

@@ -1,6 +1,15 @@
+import { createHmac, randomBytes } from "node:crypto";
+
 import {
+  ActivationCodeStatus,
   CourseLevel,
   CourseStatus,
+  EnrollmentSource,
+  EnrollmentStatus,
+  LessonStatus,
+  PaymentMethod,
+  PaymentRequestStatus,
+  Prisma,
   PrismaClient,
   PricingType,
   UserRole,
@@ -11,6 +20,9 @@ import argon2 from "argon2";
 const prisma = new PrismaClient();
 
 async function main(): Promise<void> {
+  console.log(
+    "[seed] Local development only — passwords are fixed in this file; never use seed accounts or these passwords in production.",
+  );
   const superAdminPassword = await argon2.hash("SuperAdmin123!");
   const adminPassword = await argon2.hash("Admin123456!");
   const studentPassword = await argon2.hash("Student123!");
@@ -75,6 +87,23 @@ async function main(): Promise<void> {
     },
   });
 
+  await prisma.user.upsert({
+    where: { email: "student2@example.com" },
+    update: {
+      fullName: "خالد — طالب تجريبي",
+      passwordHash: studentPassword,
+      role: UserRole.STUDENT,
+      status: UserStatus.ACTIVE,
+    },
+    create: {
+      email: "student2@example.com",
+      fullName: "خالد — طالب تجريبي",
+      passwordHash: studentPassword,
+      role: UserRole.STUDENT,
+      status: UserStatus.ACTIVE,
+    },
+  });
+
   const catProgramming = await prisma.category.upsert({
     where: { slug: "programming" },
     update: {
@@ -103,7 +132,7 @@ async function main(): Promise<void> {
     },
   });
 
-  await prisma.course.upsert({
+  const demoCourse = await prisma.course.upsert({
     where: { slug: "arabic-web-basics" },
     update: {
       title: "أساسيات الويب للمبتدئين",
@@ -140,10 +169,223 @@ async function main(): Promise<void> {
     },
   });
 
+  const lessonCount = await prisma.lesson.count({
+    where: { courseId: demoCourse.id },
+  });
+  if (lessonCount === 0) {
+    const section = await prisma.courseSection.create({
+      data: {
+        courseId: demoCourse.id,
+        title: "الوحدة الأولى — ولادة الويب",
+        description: "دروس أساسية مع فيديوهات حقيقية للتجربة.",
+        sortOrder: 0,
+      },
+    });
+    await prisma.lesson.createMany({
+      data: [
+        {
+          courseId: demoCourse.id,
+          sectionId: section.id,
+          title: "أول فيديو على يوتيوب — لمحة تاريخية",
+          description:
+            "درس قصير للتعرّف على أسلوب التعلّم عبر المنصة.",
+          youtubeVideoId: "jNQXAC9IVRw",
+          youtubeUrl: "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+          durationSeconds: 19,
+          sortOrder: 0,
+          isPreview: true,
+          status: LessonStatus.PUBLISHED,
+        },
+        {
+          courseId: demoCourse.id,
+          sectionId: section.id,
+          title: "درس ثانٍ للتجربة",
+          description:
+            "متابعة التعلّم مع فيديو عام للتحقق من الترتيب والتقدّم.",
+          youtubeVideoId: "9bZkp7q19f0",
+          youtubeUrl: "https://www.youtube.com/watch?v=9bZkp7q19f0",
+          durationSeconds: 420,
+          sortOrder: 1,
+          isPreview: false,
+          status: LessonStatus.PUBLISHED,
+        },
+      ],
+    });
+  }
+
+  const studentUser = await prisma.user.findUnique({
+    where: { email: "student@example.com" },
+  });
+  if (studentUser) {
+    await prisma.enrollment.upsert({
+      where: {
+        studentId_courseId: {
+          studentId: studentUser.id,
+          courseId: demoCourse.id,
+        },
+      },
+      create: {
+        studentId: studentUser.id,
+        courseId: demoCourse.id,
+        source: EnrollmentSource.FREE,
+        status: EnrollmentStatus.ACTIVE,
+        progressPercent: 0,
+        startedAt: new Date(),
+      },
+      update: {
+        status: EnrollmentStatus.ACTIVE,
+      },
+    });
+
+    const enrollmentRow = await prisma.enrollment.findUnique({
+      where: {
+        studentId_courseId: {
+          studentId: studentUser.id,
+          courseId: demoCourse.id,
+        },
+      },
+    });
+    const firstLesson = await prisma.lesson.findFirst({
+      where: {
+        courseId: demoCourse.id,
+        status: LessonStatus.PUBLISHED,
+      },
+      orderBy: { sortOrder: "asc" },
+    });
+    if (enrollmentRow && firstLesson) {
+      await prisma.lessonProgress.upsert({
+        where: {
+          enrollmentId_lessonId: {
+            enrollmentId: enrollmentRow.id,
+            lessonId: firstLesson.id,
+          },
+        },
+        create: {
+          enrollmentId: enrollmentRow.id,
+          studentId: studentUser.id,
+          courseId: demoCourse.id,
+          lessonId: firstLesson.id,
+          watchedSeconds: 12,
+          isCompleted: false,
+          lastWatchedAt: new Date(),
+        },
+        update: {},
+      });
+    }
+  }
+
+  const pepper =
+    process.env.ACTIVATION_CODE_PEPPER ?? process.env.JWT_ACCESS_SECRET ?? "";
+  const SEGMENT_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  function randomSeg(len: number): string {
+    let s = "";
+    const buf = randomBytes(len * 2);
+    for (let i = 0; i < len; i++) {
+      s += SEGMENT_ALPHABET[buf[i]! % SEGMENT_ALPHABET.length];
+    }
+    return s;
+  }
+
+  const paidActivationCourse = await prisma.course.upsert({
+    where: { slug: "paid-activation-demo" },
+    update: {
+      status: CourseStatus.PUBLISHED,
+      pricingType: PricingType.PAID,
+      price: 19,
+      publishedAt: new Date(),
+    },
+    create: {
+      title: "كورس مدفوع — عرض تفعيل",
+      slug: "paid-activation-demo",
+      subtitle: "لاختبار أكواد التفعيل",
+      description: "كورس بسيط منشور كمدفوع لاختبار تفعيل الطلاب بالكود.",
+      coverImageUrl: null,
+      estimatedDurationMinutes: 60,
+      status: CourseStatus.PUBLISHED,
+      pricingType: PricingType.PAID,
+      price: 19,
+      currency: "JOD",
+      level: CourseLevel.BEGINNER,
+      categoryId: catProgramming.id,
+      createdById: adminUser.id,
+      publishedAt: new Date(),
+    },
+  });
+
+  if (pepper.length >= 32) {
+    const plain = `STUDY-${randomSeg(4)}-${randomSeg(4)}`;
+    const normalized = plain
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "")
+      .replace(/−/g, "-");
+    const hash = createHmac("sha256", pepper).update(normalized).digest("hex");
+    const parts = normalized.split("-").filter(Boolean);
+    const codePrefix =
+      parts.length >= 3
+        ? `${parts[0]}-${parts[1]}-****`
+        : `${normalized.slice(0, 8)}…`;
+
+    await prisma.activationCode.upsert({
+      where: { codeHash: hash },
+      update: {},
+      create: {
+        codeHash: hash,
+        codePrefix,
+        courseId: paidActivationCourse.id,
+        status: ActivationCodeStatus.ACTIVE,
+        maxUses: 100,
+        usedCount: 0,
+        createdById: adminUser.id,
+        notes: "بذرة تجريبية — يُطبع الكود الواضح مرة في سجل التشغيل فقط",
+      },
+    });
+    console.log(
+      "[seed] Demo PAID course slug: paid-activation-demo — activation code (dev, copy now):",
+      plain,
+    );
+  } else {
+    console.warn(
+      "[seed] Skipped demo activation code: set ACTIVATION_CODE_PEPPER or JWT_ACCESS_SECRET (≥32 chars).",
+    );
+  }
+
+  const student2ForPayment = await prisma.user.findUnique({
+    where: { email: "student2@example.com" },
+  });
+  if (student2ForPayment) {
+    const dupPending = await prisma.paymentRequest.findFirst({
+      where: {
+        studentId: student2ForPayment.id,
+        courseId: paidActivationCourse.id,
+        status: PaymentRequestStatus.PENDING,
+      },
+    });
+    if (!dupPending) {
+      await prisma.paymentRequest.create({
+        data: {
+          studentId: student2ForPayment.id,
+          courseId: paidActivationCourse.id,
+          amount: new Prisma.Decimal("19.00"),
+          currency: "JOD",
+          method: PaymentMethod.CLIQ,
+          status: PaymentRequestStatus.PENDING,
+          transactionReference: "CLIQ-SEED-PENDING-001",
+          studentNote: "بذرة: طلب قيد المراجعة لاختبار لوحة الإدارة",
+          payerName: "خالد (تجريبي)",
+        },
+      });
+      console.log(
+        "[seed] Pending CliQ payment: student2@example.com → paid-activation-demo — مرجع CLIQ-SEED-PENDING-001",
+      );
+    }
+  }
+
   console.log("[seed] Users ready:", {
     superAdmin: superAdmin.email,
     admin: adminUser.email,
     student: "student@example.com",
+    studentDemoEmpty: "student2@example.com",
   });
   console.log("[seed] Categories:", catProgramming.slug, catDesign.slug);
   console.log("[seed] Demo published course slug: arabic-web-basics");

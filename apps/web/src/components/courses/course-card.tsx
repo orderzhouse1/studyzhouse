@@ -33,7 +33,7 @@ export function CourseCard({
     <Link
       href={`/courses/${course.slug}`}
       className={cn(
-        "group relative overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[0_18px_55px_rgba(15,23,42,0.06)] transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_70px_rgba(15,23,42,0.10)]",
+        "group relative overflow-hidden rounded-3xl border border-border/80 bg-card shadow-card transition-all hover:-translate-y-0.5 hover:shadow-float",
         className,
       )}
     >
@@ -49,7 +49,10 @@ export function CourseCard({
         )}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/35 to-transparent p-4 pt-16">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary" className="backdrop-blur">
+            <Badge
+              variant={course.pricingType === "FREE" ? "free" : "paid"}
+              className="backdrop-blur"
+            >
               {priceLabel}
             </Badge>
             {course.category ? (
@@ -64,8 +67,8 @@ export function CourseCard({
         </div>
       </div>
 
-      <div className="space-y-2 p-6">
-        <h3 className="text-lg font-semibold leading-snug tracking-tight text-foreground">
+      <div className="space-y-1.5 p-4 md:p-5">
+        <h3 className="text-base font-semibold leading-snug tracking-tight text-heading">
           {course.title}
         </h3>
         {course.shortDescription ? (

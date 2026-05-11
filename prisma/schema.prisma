@@ -47,8 +47,10 @@ enum LessonStatus {
 
 enum EnrollmentSource {
   MANUAL
+  MANUAL_ADMIN
   ACTIVATION_CODE
   PAYMENT
+  CLIQ_PAYMENT
   FREE
 }
 
@@ -157,12 +159,13 @@ model Course {
 }
 
 model CourseSection {
-  id        String   @id @default(cuid())
-  courseId  String
-  title     String
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  courseId    String
+  title       String
+  description String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons Lesson[]
@@ -176,8 +179,8 @@ model Lesson {
   sectionId        String?
   title            String
   description      String?
-  youtubeVideoId   String
-  youtubeUrl       String
+  youtubeVideoId   String?
+  youtubeUrl       String?
   durationSeconds  Int?
   sortOrder        Int          @default(0)
   isPreview        Boolean      @default(false)
@@ -242,6 +245,8 @@ model LessonProgress {
 model ActivationCode {
   id          String               @id @default(cuid())
   codeHash    String               @unique
+  /** بادئة آمنة للعرض في لوحة الإدارة فقط (مثل STUDY-AB12-****) */
+  codePrefix  String               @default("")
   courseId    String
   status      ActivationCodeStatus @default(ACTIVE)
   maxUses     Int                  @default(1)
@@ -285,6 +290,10 @@ model PaymentRequest {
   proofImageUrl         String?
   studentNote           String?
   adminNote             String?
+  /** اسم صاحب التحويل (اختياري) */
+  payerName             String?
+  payerPhone            String?
+  rejectionReason       String?
   reviewedById          String?
   reviewedAt            DateTime?
   createdAt             DateTime             @default(now())
