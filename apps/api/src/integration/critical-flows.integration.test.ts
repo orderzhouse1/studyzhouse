@@ -280,6 +280,293 @@ describeIntegration("Critical API integration (TEST_DATABASE_URL)", () => {
     expect(res.body?.error?.code).toBe("INVALID_CREDENTIALS");
   });
 
+  const signupEmail = `signup-${runId}@studyhouse-integration.test`;
+  const signupPw = "SignupTest12345!";
+  const signupOtpCode = "123456";
+  const signupPayload = {
+    fullName: "طالب تسجيل ذاتي",
+    email: signupEmail,
+    password: signupPw,
+    confirmPassword: signupPw,
+    acceptTerms: true,
+  };
+
+  async function requestSignupOtp(
+    payload: Record<string, unknown> = signupPayload,
+  ) {
+    return request(app)
+      .post(`${base}/auth/signup/request-otp`)
+      .set("Origin", "http://localhost:3000")
+      .send(payload);
+  }
+
+  it("legacy POST /auth/signup returns 410 SIGNUP_REQUIRES_OTP", async () => {
+    const res = await request(app)
+      .post(`${base}/auth/signup`)
+      .set("Origin", "http://localhost:3000")
+      .send(signupPayload);
+    expect(res.status).toBe(410);
+    expect(res.body?.error?.code).toBe("SIGNUP_REQUIRES_OTP");
+  });
+
+  it("request OTP validates signup fields and stores only codeHash", async () => {
+    const res = await requestSignupOtp();
+    expect(res.status).toBe(200);
+    expect(res.body.data.challengeId).toBeTruthy();
+
+    const challenge = await prisma.signupOtpChallenge.findUnique({
+      where: { id: res.body.data.challengeId },
+    });
+    expect(challenge?.email).toBe(signupEmail);
+    expect(challenge?.codeHash).not.toBe(signupOtpCode);
+    expect(challenge?.codeHash.length).toBeGreaterThan(20);
+    const row = await prisma.user.findUnique({ where: { email: signupEmail } });
+    expect(row).toBeNull();
+  });
+
+  it("verify OTP creates STUDENT ACTIVE with emailVerifiedAt and no cookie", async () => {
+    const req = await requestSignupOtp();
+    const challengeId = req.body.data.challengeId as string;
+
+    const verify = await request(app)
+      .post(`${base}/auth/signup/verify-otp`)
+      .set("Origin", "http://localhost:3000")
+      .send({ challengeId, code: signupOtpCode });
+    expect(verify.status).toBe(201);
+    expect(verify.body.data.user.role).toBe("STUDENT");
+    expect(verify.body.data.user.status).toBe("ACTIVE");
+
+    const raw = verify.headers["set-cookie"];
+    const joined = raw
+      ? Array.isArray(raw)
+        ? raw.join(";")
+        : String(raw)
+      : "";
+    expect(joined).not.toContain(AUTH_ACCESS_COOKIE_NAME);
+
+    const row = await prisma.user.findUnique({ where: { email: signupEmail } });
+    expect(row?.role).toBe(UserRole.STUDENT);
+    expect(row?.status).toBe(UserStatus.ACTIVE);
+    expect(row?.emailVerifiedAt).not.toBeNull();
+    const enrollCount = await prisma.enrollment.count({
+      where: { studentId: row!.id },
+    });
+    expect(enrollCount).toBe(0);
+  });
+
+  it("signed-up student can login immediately", async () => {
+    const { res } = await loginAgent(signupEmail, signupPw);
+    expect(res.status).toBe(200);
+    expect(res.body.data.user.status).toBe("ACTIVE");
+  });
+
+  it("wrong OTP is rejected", async () => {
+    const email = `wrong-otp-${runId}@studyhouse-integration.test`;
+    const req = await requestSignupOtp({
+      ...signupPayload,
+      email,
+    });
+    const challengeId = req.body.data.challengeId as string;
+    const bad = await request(app)
+      .post(`${base}/auth/signup/verify-otp`)
+      .set("Origin", "http://localhost:3000")
+      .send({ challengeId, code: "000000" });
+    expect(bad.status).toBe(400);
+    expect(bad.body?.error?.code).toBe("OTP_INVALID");
+  });
+
+  it("too many OTP attempts are rejected", async () => {
+    const email = `attempts-${runId}@studyhouse-integration.test`;
+    const req = await requestSignupOtp({
+      ...signupPayload,
+      email,
+    });
+    const challengeId = req.body.data.challengeId as string;
+    for (let i = 0; i < 5; i++) {
+      await request(app)
+        .post(`${base}/auth/signup/verify-otp`)
+        .set("Origin", "http://localhost:3000")
+        .send({ challengeId, code: "000000" });
+    }
+    const blocked = await request(app)
+      .post(`${base}/auth/signup/verify-otp`)
+      .set("Origin", "http://localhost:3000")
+      .send({ challengeId, code: signupOtpCode });
+    expect(blocked.status).toBe(429);
+    expect(blocked.body?.error?.code).toBe("OTP_ATTEMPTS_EXCEEDED");
+  });
+
+  it("expired OTP is rejected", async () => {
+    const email = `expired-${runId}@studyhouse-integration.test`;
+    const req = await requestSignupOtp({
+      ...signupPayload,
+      email,
+    });
+    const challengeId = req.body.data.challengeId as string;
+    await prisma.signupOtpChallenge.update({
+      where: { id: challengeId },
+      data: { expiresAt: new Date(Date.now() - 60_000) },
+    });
+    const expired = await request(app)
+      .post(`${base}/auth/signup/verify-otp`)
+      .set("Origin", "http://localhost:3000")
+      .send({ challengeId, code: signupOtpCode });
+    expect(expired.status).toBe(400);
+    expect(expired.body?.error?.code).toBe("OTP_EXPIRED");
+  });
+
+  it("signup rejects duplicate email on request-otp", async () => {
+    const res = await requestSignupOtp();
+    expect(res.status).toBe(409);
+    expect(res.body?.error?.code).toBe("DUPLICATE_EMAIL");
+  });
+
+  it("signup rejects acceptTerms false", async () => {
+    const res = await requestSignupOtp({
+      ...signupPayload,
+      email: `terms-${runId}@studyhouse-integration.test`,
+      acceptTerms: false,
+    });
+    expect(res.status).toBe(400);
+    expect(res.body?.error?.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("signup rejects client-supplied role", async () => {
+    const res = await request(app)
+      .post(`${base}/auth/signup/request-otp`)
+      .set("Origin", "http://localhost:3000")
+      .send({
+        ...signupPayload,
+        email: `role-${runId}@studyhouse-integration.test`,
+        role: "ADMIN",
+      });
+    expect(res.status).toBe(400);
+    expect(res.body?.error?.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("admin can suspend signed-up student and student cannot login", async () => {
+    const { agent: adminAgent, res: adminLogin } = await loginAgent(
+      sup.admin,
+      pw.admin,
+    );
+    expect(adminLogin.status).toBe(200);
+
+    const student = await prisma.user.findUnique({
+      where: { email: signupEmail },
+    });
+    expect(student?.status).toBe(UserStatus.ACTIVE);
+
+    const patch = await adminAgent
+      .patch(`${base}/admin/students/${student!.id}`)
+      .set("Origin", "http://localhost:3000")
+      .send({ status: "SUSPENDED" });
+    expect(patch.status).toBe(200);
+    expect(patch.body.data.student.status).toBe("SUSPENDED");
+
+    const blocked = await request(app)
+      .post(`${base}/auth/login`)
+      .set("Origin", "http://localhost:3000")
+      .send({ email: signupEmail, password: signupPw });
+    expect(blocked.status).toBe(403);
+    expect(blocked.body?.error?.code).toBe("ACCOUNT_NOT_ACTIVE");
+  });
+
+  it("admin can reactivate suspended student and student can login", async () => {
+    const { agent: adminAgent, res: adminLogin } = await loginAgent(
+      sup.admin,
+      pw.admin,
+    );
+    expect(adminLogin.status).toBe(200);
+
+    const student = await prisma.user.findUnique({
+      where: { email: signupEmail },
+    });
+
+    const patch = await adminAgent
+      .patch(`${base}/admin/students/${student!.id}`)
+      .set("Origin", "http://localhost:3000")
+      .send({ status: "ACTIVE" });
+    expect(patch.status).toBe(200);
+    expect(patch.body.data.student.status).toBe("ACTIVE");
+
+    const { res: studentLogin } = await loginAgent(signupEmail, signupPw);
+    expect(studentLogin.status).toBe(200);
+    expect(studentLogin.body.data.user.status).toBe("ACTIVE");
+  });
+
+  it("GET /auth/google redirects to Google when configured", async () => {
+    const res = await request(app)
+      .get(`${base}/auth/google`)
+      .set("Origin", "http://localhost:3000");
+    expect(res.status).toBe(302);
+    expect(String(res.headers.location)).toContain("accounts.google.com");
+  });
+
+  it("google: new user becomes STUDENT ACTIVE with OAuth link", async () => {
+    const { resolveGoogleAuthUser } =
+      await import("../services/googleOAuth.service.js");
+    const email = `google-new-${runId}@studyhouse-integration.test`;
+    const result = await resolveGoogleAuthUser({
+      sub: `g-sub-new-${runId}`,
+      email,
+      email_verified: true,
+      name: "Google New",
+    });
+    expect(result.isNewUser).toBe(true);
+    expect(result.redirectPath).toBe("/student");
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    expect(user?.role).toBe(UserRole.STUDENT);
+    expect(user?.status).toBe(UserStatus.ACTIVE);
+    expect(user?.emailVerifiedAt).not.toBeNull();
+
+    const oauth = await prisma.oAuthAccount.findFirst({
+      where: { userId: user!.id },
+    });
+    expect(oauth?.provider).toBe("GOOGLE");
+    expect(oauth?.providerAccountId).toBe(`g-sub-new-${runId}`);
+
+    const enrollCount = await prisma.enrollment.count({
+      where: { studentId: user!.id },
+    });
+    expect(enrollCount).toBe(0);
+  });
+
+  it("google: blocks ADMIN email", async () => {
+    const { resolveGoogleAuthUser } =
+      await import("../services/googleOAuth.service.js");
+    await expect(
+      resolveGoogleAuthUser({
+        sub: `g-sub-admin-${runId}`,
+        email: sup.admin,
+        email_verified: true,
+      }),
+    ).rejects.toMatchObject({ code: "GOOGLE_STAFF_NOT_ALLOWED" });
+  });
+
+  it("google: blocks SUSPENDED student", async () => {
+    const email = `google-susp-${runId}@studyhouse-integration.test`;
+    const hash = await argon2.hash("SuspendGoogle123!");
+    await prisma.user.create({
+      data: {
+        fullName: "Suspended Google",
+        email,
+        passwordHash: hash,
+        role: UserRole.STUDENT,
+        status: UserStatus.SUSPENDED,
+      },
+    });
+    const { resolveGoogleAuthUser } =
+      await import("../services/googleOAuth.service.js");
+    await expect(
+      resolveGoogleAuthUser({
+        sub: `g-sub-susp-${runId}`,
+        email,
+        email_verified: true,
+      }),
+    ).rejects.toMatchObject({ code: "ACCOUNT_NOT_ACTIVE" });
+  });
+
   it("GET /auth/me without cookie is 401", async () => {
     const res = await request(app)
       .get(`${base}/auth/me`)
@@ -812,6 +1099,209 @@ describeIntegration("Critical API integration (TEST_DATABASE_URL)", () => {
     expect(forbidden.status).toBe(403);
 
     await prisma.user.delete({ where: { email: emailNew } });
+  });
+
+  const resetOtpCode = "123456";
+  const resetGeneric =
+    "إذا كان البريد مسجلًا لدينا، ستصلك رسالة تحتوي على رمز إعادة التعيين.";
+
+  async function requestResetOtp(email: string) {
+    return request(app)
+      .post(`${base}/auth/forgot-password/request-otp`)
+      .set("Origin", "http://localhost:3000")
+      .send({ email });
+  }
+
+  it("password reset: unknown email returns generic success without challengeId", async () => {
+    const res = await requestResetOtp(
+      `unknown-${runId}@studyhouse-integration.test`,
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.data.message).toBe(resetGeneric);
+    expect(res.body.data.challengeId).toBeUndefined();
+  });
+
+  it("password reset: existing user returns generic success and stores codeHash only", async () => {
+    const res = await requestResetOtp(sup.student);
+    expect(res.status).toBe(200);
+    expect(res.body.data.message).toBe(resetGeneric);
+    expect(res.body.data.challengeId).toBeTruthy();
+
+    const challenge = await prisma.passwordResetOtpChallenge.findUnique({
+      where: { id: res.body.data.challengeId },
+    });
+    expect(challenge?.codeHash).not.toBe(resetOtpCode);
+    expect(challenge?.codeHash.length).toBeGreaterThan(20);
+  });
+
+  it("password reset: wrong OTP rejected", async () => {
+    const res = await requestResetOtp(sup.student2);
+    const challengeId = res.body.data.challengeId as string;
+    const bad = await request(app)
+      .post(`${base}/auth/forgot-password/verify-otp`)
+      .set("Origin", "http://localhost:3000")
+      .send({
+        challengeId,
+        code: "000000",
+        newPassword: "NewReset12345!",
+        confirmPassword: "NewReset12345!",
+      });
+    expect(bad.status).toBe(400);
+    expect(bad.body?.error?.code).toBe("OTP_INVALID");
+  });
+
+  it("password reset: too many attempts returns OTP_ATTEMPTS_EXCEEDED", async () => {
+    const email = `reset-attempts-${runId}@studyhouse-integration.test`;
+    const hash = await argon2.hash("ResetAttempts123!");
+    await prisma.user.create({
+      data: {
+        fullName: "Reset Attempts",
+        email,
+        passwordHash: hash,
+        role: UserRole.STUDENT,
+        status: UserStatus.ACTIVE,
+      },
+    });
+    const req = await requestResetOtp(email);
+    const challengeId = req.body.data.challengeId as string;
+    for (let i = 0; i < 5; i++) {
+      await request(app)
+        .post(`${base}/auth/forgot-password/verify-otp`)
+        .set("Origin", "http://localhost:3000")
+        .send({
+          challengeId,
+          code: "000000",
+          newPassword: "NewReset12345!",
+          confirmPassword: "NewReset12345!",
+        });
+    }
+    const blocked = await request(app)
+      .post(`${base}/auth/forgot-password/verify-otp`)
+      .set("Origin", "http://localhost:3000")
+      .send({
+        challengeId,
+        code: resetOtpCode,
+        newPassword: "NewReset12345!",
+        confirmPassword: "NewReset12345!",
+      });
+    expect(blocked.status).toBe(429);
+    expect(blocked.body?.error?.code).toBe("OTP_ATTEMPTS_EXCEEDED");
+  });
+
+  it("password reset: expired OTP rejected", async () => {
+    const email = `reset-expired-${runId}@studyhouse-integration.test`;
+    const hash = await argon2.hash("ResetExpired123!");
+    await prisma.user.create({
+      data: {
+        fullName: "Reset Expired",
+        email,
+        passwordHash: hash,
+        role: UserRole.STUDENT,
+        status: UserStatus.ACTIVE,
+      },
+    });
+    const req = await requestResetOtp(email);
+    const challengeId = req.body.data.challengeId as string;
+    await prisma.passwordResetOtpChallenge.update({
+      where: { id: challengeId },
+      data: { expiresAt: new Date(Date.now() - 60_000) },
+    });
+    const expired = await request(app)
+      .post(`${base}/auth/forgot-password/verify-otp`)
+      .set("Origin", "http://localhost:3000")
+      .send({
+        challengeId,
+        code: resetOtpCode,
+        newPassword: "NewReset12345!",
+        confirmPassword: "NewReset12345!",
+      });
+    expect(expired.status).toBe(400);
+    expect(expired.body?.error?.code).toBe("OTP_EXPIRED");
+  });
+
+  it("password reset: valid OTP updates password, no cookie, login works", async () => {
+    const email = `reset-ok-${runId}@studyhouse-integration.test`;
+    const oldPw = "OldReset12345!";
+    const newPw = "NewReset99999!";
+    const hash = await argon2.hash(oldPw);
+    await prisma.user.create({
+      data: {
+        fullName: "Reset OK",
+        email,
+        passwordHash: hash,
+        role: UserRole.STUDENT,
+        status: UserStatus.ACTIVE,
+      },
+    });
+
+    const req = await requestResetOtp(email);
+    const challengeId = req.body.data.challengeId as string;
+
+    const verify = await request(app)
+      .post(`${base}/auth/forgot-password/verify-otp`)
+      .set("Origin", "http://localhost:3000")
+      .send({
+        challengeId,
+        code: resetOtpCode,
+        newPassword: newPw,
+        confirmPassword: newPw,
+      });
+    expect(verify.status).toBe(200);
+    const raw = verify.headers["set-cookie"];
+    const joined = raw
+      ? Array.isArray(raw)
+        ? raw.join(";")
+        : String(raw)
+      : "";
+    expect(joined).not.toContain(AUTH_ACCESS_COOKIE_NAME);
+
+    const oldLogin = await request(app)
+      .post(`${base}/auth/login`)
+      .set("Origin", "http://localhost:3000")
+      .send({ email, password: oldPw });
+    expect(oldLogin.status).toBe(401);
+
+    const newLogin = await loginAgent(email, newPw);
+    expect(newLogin.res.status).toBe(200);
+
+    const consumed = await prisma.passwordResetOtpChallenge.findUnique({
+      where: { id: challengeId },
+    });
+    expect(consumed?.consumedAt).not.toBeNull();
+  });
+
+  it("password reset: suspended user gets generic response without challengeId", async () => {
+    const email = `reset-susp-${runId}@studyhouse-integration.test`;
+    const hash = await argon2.hash("ResetSusp123!");
+    await prisma.user.create({
+      data: {
+        fullName: "Reset Suspended",
+        email,
+        passwordHash: hash,
+        role: UserRole.STUDENT,
+        status: UserStatus.SUSPENDED,
+      },
+    });
+    const res = await requestResetOtp(email);
+    expect(res.status).toBe(200);
+    expect(res.body.data.message).toBe(resetGeneric);
+    expect(res.body.data.challengeId).toBeUndefined();
+  });
+
+  it("password reset: validation rejects weak password", async () => {
+    const res = await requestResetOtp(sup.student3);
+    const challengeId = res.body.data.challengeId as string;
+    const weak = await request(app)
+      .post(`${base}/auth/forgot-password/verify-otp`)
+      .set("Origin", "http://localhost:3000")
+      .send({
+        challengeId,
+        code: resetOtpCode,
+        newPassword: "short",
+        confirmPassword: "short",
+      });
+    expect(weak.status).toBe(400);
+    expect(weak.body?.error?.code).toBe("VALIDATION_ERROR");
   });
 
   it("generated password returned when omitted on super-admin create", async () => {

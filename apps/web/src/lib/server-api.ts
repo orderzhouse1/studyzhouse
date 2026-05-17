@@ -31,14 +31,19 @@ function wrapFetchError(url: string, origin: string, err: unknown): Error {
  * جلب JSON عام من Express أثناء SSR.
  * أخطاء الشبكة تُعاد كاستثناء — للصفحات التي يجب أن تفشل صريحًا عند سقوط API أثناء الطلب الحقيقي.
  */
-export async function fetchPublicApi(path: string): Promise<unknown> {
+export async function fetchPublicApi(
+  path: string,
+  options?: { noStore?: boolean },
+): Promise<unknown> {
   const origin = getInternalApiOrigin();
   const url = `${origin}${path}`;
   let res: Response;
   try {
     res = await fetch(url, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      ...(options?.noStore
+        ? { cache: "no-store" as const }
+        : { next: { revalidate: 60 } }),
     });
   } catch (err) {
     throw wrapFetchError(url, origin, err);

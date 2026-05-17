@@ -132,6 +132,213 @@ async function main(): Promise<void> {
     },
   });
 
+  /** تصنيفات إضافية للكتالوج وشريط «مجالات رئيسية» على الصفحة الرئيسية */
+  const extraCategories: { slug: string; name: string; description: string }[] =
+    [
+      {
+        slug: "business",
+        name: "الأعمال",
+        description: "إدارة، تسويق، ريادة أعمال، ومهارات مكتبية.",
+      },
+      {
+        slug: "artificial-intelligence",
+        name: "الذكاء الاصطناعي",
+        description: "تعلم الآلة، النماذج اللغوية، وأدوات الذكاء الاصطناعي.",
+      },
+      {
+        slug: "data-science",
+        name: "علوم البيانات",
+        description: "تحليل بيانات، إحصاء، وتصوير معلومات.",
+      },
+      {
+        slug: "computer-science",
+        name: "علوم الحاسوب",
+        description: "خوارزميات، هياكل بيانات، وأسس علوم الحاسوب.",
+      },
+      {
+        slug: "information-technology",
+        name: "تقنية المعلومات",
+        description: "شبكات، أنظمة، دعم فني، وأمن معلومات.",
+      },
+      {
+        slug: "personal-development",
+        name: "التطوير الشخصي",
+        description: "إنتاجية، عادات، تواصل، وتنمية ذاتية.",
+      },
+      {
+        slug: "healthcare",
+        name: "الرعاية الصحية",
+        description: "محتوى صحي تعليمي ومهارات مساندة للقطاع الصحي.",
+      },
+      {
+        slug: "language-learning",
+        name: "تعلم اللغات",
+        description: "عربي، إنجليزي، ولغات أخرى للمبتدئين والمتقدمين.",
+      },
+    ];
+
+  for (const row of extraCategories) {
+    await prisma.category.upsert({
+      where: { slug: row.slug },
+      update: {
+        name: row.name,
+        description: row.description,
+        archivedAt: null,
+      },
+      create: {
+        slug: row.slug,
+        name: row.name,
+        description: row.description,
+      },
+    });
+  }
+
+  /**
+   * كورسات منشورة لأول تصنيفات تظهر في «الأكثر شعبية حسب الفئة»
+   * (الواجهة تطلب التصنيفات مرتبة بالاسم asc — عادةً: الأعمال، التطوير الشخصي، الذكاء الاصطناعي).
+   */
+  const thumbnail =
+    "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=400&q=72";
+  const popularByCategorySeed: {
+    categorySlug: string;
+    courses: {
+      slug: string;
+      title: string;
+      subtitle: string;
+      description: string;
+    }[];
+  }[] = [
+    {
+      categorySlug: "business",
+      courses: [
+        {
+          slug: "seed-biz-leadership-basics",
+          title: "أساسيات القيادة في بيئة العمل",
+          subtitle: "مهارات إدارية للمبتدئين",
+          description:
+            "مقدمة عملية للتواصل مع الفريق، توزيع المهام، واتخاذ قرارات واضحة في بيئات العمل العربية.",
+        },
+        {
+          slug: "seed-biz-marketing-intro",
+          title: "مقدمة في التسويق الرقمي",
+          subtitle: "قنوات واستراتيجيات أولية",
+          description:
+            "استكشاف القنوات الرئيسية، صياغة رسالة العلامة، ومؤشرات بسيطة لقياس الأداء دون تعقيد.",
+        },
+        {
+          slug: "seed-biz-finance-literacy",
+          title: "ثقافة مالية للمشاريع الصغيرة",
+          subtitle: "تدفقات نقدية وميزانيات",
+          description:
+            "قراءة بسيطة للقوائم المالية، تقدير التكلفة، والتخطيط المالي اليومي لصاحب مشروع أو فريق صغير.",
+        },
+      ],
+    },
+    {
+      categorySlug: "personal-development",
+      courses: [
+        {
+          slug: "seed-pd-productivity-system",
+          title: "نظام إنتاجية خفيف لأسبوعك",
+          subtitle: "عادات وتخطيط يومي",
+          description:
+            "جمع المهام، أولويات بسيطة، وتقليل التشتت — مناسب للمتعلمين الذين يريدون انطلاقة هادئة.",
+        },
+        {
+          slug: "seed-pd-communication-habits",
+          title: "عادات تواصل أوضح",
+          subtitle: "استماع وصياغة",
+          description:
+            "تمارين قصيرة لصياغة الطلبات، إعادة الصياغة، والتعامل مع الملاحظات في بيئة عمل أو دراسة.",
+        },
+        {
+          slug: "seed-pd-mindset-growth",
+          title: "عقلية النمو في التعلّم المستمر",
+          subtitle: "من التجربة إلى التحسين",
+          description:
+            "كيف تبني أهدافًا قابلة للقياس، تتعلم من الأخطاء، وتحافط على حماس معقول دون إرهاق.",
+        },
+      ],
+    },
+    {
+      categorySlug: "artificial-intelligence",
+      courses: [
+        {
+          slug: "seed-ai-landscape-intro",
+          title: "مشهد الذكاء الاصطناعي للمبتدئين",
+          subtitle: "مفاهيم دون رياضيات ثقيلة",
+          description:
+            "نظرة على التعلم الآلي، النماذج اللغوية، وأين تُستخدم الأدوات اليوم — تمهيد قبل الدخول في تطبيقات عملية.",
+        },
+        {
+          slug: "seed-ai-prompting-basics",
+          title: "أساسيات صياغة الطلبات للنماذج اللغوية",
+          subtitle: "وضوح وسياق وتقييد المخرجات",
+          description:
+            "أنماط طلبات آمنة، تجنب التضليل، وتحسين جودة الإجابات عند استخدام أدوات توليد النصوص.",
+        },
+        {
+          slug: "seed-ai-ethics-privacy",
+          title: "اعتبارات أخلاقية وخصوصية عند استخدام الذكاء الاصطناعي",
+          subtitle: "للمحترفين والطلاب",
+          description:
+            "بيانات حساسة، التحيز في المخرجات، والتحقق من المعلومات — إطار عملي قصير قبل اعتماد الأدوات في العمل.",
+        },
+      ],
+    },
+  ];
+
+  for (const block of popularByCategorySeed) {
+    const cat = await prisma.category.findUnique({
+      where: { slug: block.categorySlug },
+    });
+    if (!cat) {
+      console.warn(
+        `[seed] Skip popular courses: category slug not found: ${block.categorySlug}`,
+      );
+      continue;
+    }
+    for (const c of block.courses) {
+      await prisma.course.upsert({
+        where: { slug: c.slug },
+        update: {
+          title: c.title,
+          subtitle: c.subtitle,
+          description: c.description,
+          coverImageUrl: thumbnail,
+          estimatedDurationMinutes: 180,
+          status: CourseStatus.PUBLISHED,
+          pricingType: PricingType.FREE,
+          price: null,
+          currency: "JOD",
+          level: CourseLevel.ALL_LEVELS,
+          categoryId: cat.id,
+          createdById: adminUser.id,
+          publishedAt: new Date(),
+        },
+        create: {
+          title: c.title,
+          slug: c.slug,
+          subtitle: c.subtitle,
+          description: c.description,
+          coverImageUrl: thumbnail,
+          estimatedDurationMinutes: 180,
+          status: CourseStatus.PUBLISHED,
+          pricingType: PricingType.FREE,
+          price: null,
+          currency: "JOD",
+          level: CourseLevel.ALL_LEVELS,
+          categoryId: cat.id,
+          createdById: adminUser.id,
+          publishedAt: new Date(),
+        },
+      });
+    }
+  }
+  console.log(
+    "[seed] Published demo courses for popular-by-category (business, personal-development, artificial-intelligence).",
+  );
+
   const demoCourse = await prisma.course.upsert({
     where: { slug: "arabic-web-basics" },
     update: {
@@ -387,7 +594,14 @@ async function main(): Promise<void> {
     student: "student@example.com",
     studentDemoEmpty: "student2@example.com",
   });
-  console.log("[seed] Categories:", catProgramming.slug, catDesign.slug);
+  console.log(
+    "[seed] Categories:",
+    [
+      catProgramming.slug,
+      catDesign.slug,
+      ...extraCategories.map((c) => c.slug),
+    ].join(", "),
+  );
   console.log("[seed] Demo published course slug: arabic-web-basics");
 }
 

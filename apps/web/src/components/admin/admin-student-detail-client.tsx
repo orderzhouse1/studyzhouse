@@ -28,7 +28,7 @@ type StudentSafe = {
   id: string;
   fullName: string;
   email: string;
-  status: "ACTIVE" | "SUSPENDED" | "DELETED";
+  status: "ACTIVE" | "PENDING" | "SUSPENDED" | "DELETED";
   role: string;
   createdAt: string;
   lastLoginAt: string | null;
@@ -74,9 +74,19 @@ type DetailResponse = {
 
 const STATUS_LABEL: Record<StudentSafe["status"], string> = {
   ACTIVE: "نشط",
+  PENDING: "بانتظار التفعيل",
   SUSPENDED: "موقوف",
   DELETED: "محذوف",
 };
+
+function statusBadgeVariant(
+  s: StudentSafe["status"],
+): React.ComponentProps<typeof Badge>["variant"] {
+  if (s === "ACTIVE") return "success";
+  if (s === "PENDING") return "warning";
+  if (s === "SUSPENDED") return "warning";
+  return "muted";
+}
 
 const ENROLL_STATUS_LABEL: Record<EnrollmentRow["status"], string> = {
   ACTIVE: "نشط",
@@ -261,7 +271,7 @@ export function AdminStudentDetailClient({
       />
 
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={student.status === "ACTIVE" ? "success" : "warning"}>
+        <Badge variant={statusBadgeVariant(student.status)}>
           {STATUS_LABEL[student.status]}
         </Badge>
         <span className="text-xs text-muted-foreground">

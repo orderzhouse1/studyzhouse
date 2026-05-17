@@ -104,10 +104,24 @@ export async function listCoursesPublic(
   };
 
   if (query.categorySlug) {
-    where.category = {
-      slug: query.categorySlug,
-      archivedAt: null,
-    };
+    const categoryRow = await prisma.category.findFirst({
+      where: { slug: query.categorySlug, archivedAt: null },
+      select: { id: true },
+    });
+    if (!categoryRow) {
+      res.status(200).json({
+        success: true,
+        data: { items: [] },
+        meta: {
+          page: query.page,
+          pageSize: query.pageSize,
+          total: 0,
+          totalPages: 1,
+        },
+      });
+      return;
+    }
+    where.categoryId = categoryRow.id;
   }
 
   if (query.search?.trim()) {
@@ -123,6 +137,24 @@ export async function listCoursesPublic(
     ];
   }
 
+  if (query.pricingType) {
+    where.pricingType = query.pricingType;
+  }
+
+  const orderBy: Prisma.CourseOrderByWithRelationInput[] = (() => {
+    switch (query.sort) {
+      case "price_asc":
+        return [{ price: "asc" }, { publishedAt: "desc" }];
+      case "price_desc":
+        return [{ price: "desc" }, { publishedAt: "desc" }];
+      case "title_asc":
+        return [{ title: "asc" }];
+      case "newest":
+      default:
+        return [{ publishedAt: "desc" }, { createdAt: "desc" }];
+    }
+  })();
+
   const [total, rows] = await prisma.$transaction([
     prisma.course.count({ where }),
     prisma.course.findMany({
@@ -135,7 +167,7 @@ export async function listCoursesPublic(
           },
         },
       },
-      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+      orderBy,
       skip,
       take,
     }),

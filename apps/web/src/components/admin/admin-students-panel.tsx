@@ -14,7 +14,7 @@ type StudentRow = {
   id: string;
   fullName: string;
   email: string;
-  status: "ACTIVE" | "SUSPENDED" | "DELETED";
+  status: "ACTIVE" | "PENDING" | "SUSPENDED" | "DELETED";
   createdAt: string;
   enrollmentsCount: number;
   averageProgressPercent: number;
@@ -33,6 +33,7 @@ type ListResponse = {
 
 const STATUS_LABEL: Record<StudentRow["status"], string> = {
   ACTIVE: "نشط",
+  PENDING: "بانتظار التفعيل",
   SUSPENDED: "موقوف",
   DELETED: "محذوف",
 };
@@ -41,6 +42,7 @@ function statusVariant(
   s: StudentRow["status"],
 ): React.ComponentProps<typeof Badge>["variant"] {
   if (s === "ACTIVE") return "success";
+  if (s === "PENDING") return "warning";
   if (s === "SUSPENDED") return "warning";
   return "muted";
 }

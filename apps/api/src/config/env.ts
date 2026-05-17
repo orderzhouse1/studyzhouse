@@ -10,6 +10,12 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default("12h"),
   /** سرّ لاشتقاق بصمة أكواد التفعيل (يفضّل مفتاحًا مستقلًا؛ يُستخدم JWT كاحتياط عند الغياب) */
   ACTIVATION_CODE_PEPPER: z.string().min(32).optional(),
+  /** Resend — مطلوب لإرسال رمز OTP عند التسجيل */
+  RESEND_API_KEY: z.string().min(1).optional(),
+  EMAIL_FROM: z.string().min(3).optional(),
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+  GOOGLE_REDIRECT_URI: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -15,6 +15,7 @@ export type CourseCardCourse = {
   estimatedDurationMinutes: number | null;
   category: null | { id: string; name: string; slug: string };
   lessonCount: number;
+  publishedAt?: string | null;
 };
 
 export function CourseCard({

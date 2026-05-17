@@ -1,8 +1,9 @@
 import { z } from "zod";
 
 import { paginationQuerySchema } from "./pagination";
+import { userStatusSchema } from "./auth";
 
-export const userStatusSchema = z.enum(["ACTIVE", "SUSPENDED", "DELETED"]);
+export { userStatusSchema };
 
 export const adminStudentsQuerySchema = paginationQuerySchema.extend({
   search: z.string().trim().min(1).optional(),

@@ -18,6 +18,7 @@ enum UserRole {
 
 enum UserStatus {
   ACTIVE
+  PENDING
   SUSPENDED
   DELETED
 }
@@ -76,6 +77,51 @@ enum PaymentMethod {
   CLIQ
 }
 
+enum SignupOtpPurpose {
+  SIGNUP
+}
+
+enum OAuthProvider {
+  GOOGLE
+}
+
+model PasswordResetOtpChallenge {
+  id         String    @id @default(cuid())
+  email      String
+  userId     String
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  lastSentAt DateTime
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model SignupOtpChallenge {
+  id           String           @id @default(cuid())
+  email        String
+  fullName     String
+  passwordHash String
+  codeHash     String
+  purpose      SignupOtpPurpose @default(SIGNUP)
+  expiresAt    DateTime
+  attempts     Int              @default(0)
+  consumedAt   DateTime?
+  lastSentAt   DateTime
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([email, purpose])
+  @@index([expiresAt])
+}
+
 model User {
   id              String      @id @default(cuid())
   fullName        String
@@ -101,6 +147,24 @@ model User {
   codeRedemptions       CodeRedemption[]
   lessonProgressRecords LessonProgress[]
   auditLogs             AuditLog[]
+  oauthAccounts                OAuthAccount[]
+  passwordResetOtpChallenges   PasswordResetOtpChallenge[]
+}
+
+model OAuthAccount {
+  id                String        @id @default(cuid())
+  userId            String
+  provider          OAuthProvider
+  providerAccountId String
+  email             String
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@index([email])
 }
 
 model AdminProfile {
