@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { type Express } from "express";
@@ -7,6 +9,9 @@ import { loadEnv } from "./config/env.js";
 import { createRedisClient } from "./lib/redis.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { notFoundHandler } from "./middlewares/notFound.js";
+import { getCourseThumbnailsDir } from "./lib/courseThumbnailStorage.js";
+import { getLessonResourcesDir } from "./lib/lessonResourceStorage.js";
+import { getPaymentProofsDir } from "./lib/paymentProofStorage.js";
 import { createApiRouter } from "./routes/index.js";
 
 export function createApp(): Express {
@@ -38,8 +43,32 @@ export function createApp(): Express {
     }),
   );
 
-  app.use(express.json({ limit: "1mb" }));
+  app.use(express.json({ limit: "8mb" }));
   app.use(cookieParser());
+
+  app.use(
+    "/api/v1/uploads/payment-proofs",
+    express.static(getPaymentProofsDir(), {
+      maxAge: "7d",
+      index: false,
+    }),
+  );
+
+  app.use(
+    "/api/v1/uploads/course-thumbnails",
+    express.static(getCourseThumbnailsDir(), {
+      maxAge: "30d",
+      index: false,
+    }),
+  );
+
+  app.use(
+    "/api/v1/uploads/lesson-resources",
+    express.static(getLessonResourcesDir(), {
+      maxAge: "30d",
+      index: false,
+    }),
+  );
 
   app.use(createApiRouter());
 

@@ -1,12 +1,18 @@
 "use client";
 
-import { BookOpen, Menu, Search, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useMemo, useState } from "react";
 
+import {
+  HeaderBrand,
+  HEADER_INNER_CLASS,
+  HEADER_MOBILE_SEARCH_CLASS,
+  HEADER_ROOT_CLASS,
+} from "@/components/layout/header-brand";
+import { HeaderSearchField } from "@/components/layout/header-search-field";
 import { cn } from "@/lib/utils";
-import { APP_NAME_AR } from "@studyhouse/shared";
 
 type NavLink = {
   id: string;
@@ -20,40 +26,6 @@ type SiteHeaderProps = {
   /** تمييز رابط الكورسات عند كونه الصفحة الحالية */
   coursesActive?: boolean;
 };
-
-const SEARCH_PLACEHOLDER = "ابحث في الكورسات…";
-const BRAND_TAGLINE = "تعلّم بخطوات واضحة";
-
-function HeaderSearchField({
-  className,
-}: {
-  className?: string;
-}): React.ReactElement {
-  return (
-    <div
-      className={cn(
-        "flex min-w-0 items-stretch overflow-hidden rounded-xl border border-border bg-muted/40 shadow-sm ring-1 ring-border/50",
-        className,
-      )}
-    >
-      <input
-        type="search"
-        name="q"
-        placeholder={SEARCH_PLACEHOLDER}
-        className="min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0"
-        readOnly
-        aria-label={SEARCH_PLACEHOLDER}
-      />
-      <Link
-        href="/courses"
-        className="flex shrink-0 items-center justify-center border-s border-border/80 bg-card px-3 text-primary transition hover:bg-muted/60"
-        aria-label="الانتقال إلى الكتالوج للبحث"
-      >
-        <Search className="h-4 w-4" aria-hidden />
-      </Link>
-    </div>
-  );
-}
 
 function buildNavLinks(
   showFeaturedLink: boolean,
@@ -99,25 +71,10 @@ export function SiteHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-border/90 bg-card/90 shadow-[0_8px_24px_-18px_hsl(222_47%_10%_/_0.2)] backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-[min(100%,100rem)] items-center gap-3 px-6 py-2.5 sm:gap-4 sm:px-8 md:px-10 lg:px-14 xl:px-20">
+      <header className={HEADER_ROOT_CLASS}>
+        <div className={HEADER_INNER_CLASS}>
           <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
-            <Link
-              href="/"
-              className="flex min-w-0 shrink-0 items-center gap-2 no-underline"
-            >
-              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm ring-1 ring-black/[0.06] sm:h-10 sm:w-10 sm:rounded-2xl">
-                <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-base font-bold leading-tight tracking-tight text-heading sm:text-lg">
-                  {APP_NAME_AR}
-                </span>
-                <span className="mt-0.5 block truncate text-[11px] font-medium leading-none text-muted-foreground sm:text-xs">
-                  {BRAND_TAGLINE}
-                </span>
-              </span>
-            </Link>
+            <HeaderBrand href="/" />
 
             <span
               className="hidden h-9 w-px shrink-0 bg-border md:block"
@@ -192,7 +149,7 @@ export function SiteHeader({
           </div>
         </div>
 
-        <div className="border-t border-border/60 bg-muted/25 px-6 py-2 sm:px-8 md:hidden md:px-10 lg:px-14 xl:px-20">
+        <div className={HEADER_MOBILE_SEARCH_CLASS}>
           <HeaderSearchField />
         </div>
       </header>

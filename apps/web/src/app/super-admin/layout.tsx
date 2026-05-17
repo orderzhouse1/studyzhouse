@@ -1,9 +1,13 @@
-import { SuperAdminShell } from "@/components/super-admin/super-admin-shell";
+import { AdminWorkspaceShell } from "@/components/admin/workspace/admin-workspace-shell";
 
 export default function SuperAdminLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>): React.ReactElement {
-  return <SuperAdminShell>{children}</SuperAdminShell>;
+  return (
+    <div className="h-dvh overflow-hidden">
+      <AdminWorkspaceShell role="super-admin">{children}</AdminWorkspaceShell>
+    </div>
+  );
 }

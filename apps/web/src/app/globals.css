@@ -74,6 +74,28 @@
     text-wrap: balance;
   }
 
+  /* بطاقة «محتوى الكورس» — كحلي غالب + لمسة برتقالية */
+  .course-info-accent-cell {
+    color: hsl(0 0% 100%) !important;
+    background-color: hsl(222 47% 14%) !important;
+    background-image:
+      radial-gradient(
+        circle at 100% 100%,
+        hsl(24 95% 53% / 0.35) 0%,
+        transparent 48%
+      ),
+      linear-gradient(
+        145deg,
+        hsl(222 47% 13%) 0%,
+        hsl(222 47% 20%) 52%,
+        hsl(222 47% 15%) 100%
+      ) !important;
+  }
+
+  .course-info-accent-cell .text-primary {
+    color: hsl(var(--primary));
+  }
+
   .hero-mesh {
     background-image:
       radial-gradient(

@@ -34,18 +34,29 @@ const moneyStringSchema = z
     message: "المبلغ يجب أن يكون أكبر من صفر.",
   });
 
-export const studentPaymentRequestCreateBodySchema = z.object({
-  courseId: z.string().cuid(),
-  paidAmount: moneyStringSchema,
-  paymentReference: z
-    .string()
-    .trim()
-    .min(4, "أدخل رقم العملية أو المرجع.")
-    .max(200),
-  payerName: z.string().trim().max(120).optional(),
-  payerPhone: z.string().trim().max(40).optional(),
-  note: z.string().trim().max(1000).optional(),
-});
+export const studentPaymentRequestCreateBodySchema = z
+  .object({
+    courseId: z.string().cuid(),
+    paidAmount: moneyStringSchema,
+    paymentReference: z.string().trim().max(200).optional(),
+    payerName: z.string().trim().max(120).optional(),
+    payerPhone: z.string().trim().max(40).optional(),
+    note: z.string().trim().max(2000).optional(),
+    proofImageBase64: z.string().trim().max(7_000_000).optional(),
+  })
+  .superRefine((data, ctx) => {
+    const refOk = (data.paymentReference?.length ?? 0) >= 4;
+    const noteOk = (data.note?.length ?? 0) >= 8;
+    const imgOk = Boolean(data.proofImageBase64?.startsWith("data:image/"));
+    if (!refOk && !noteOk && !imgOk) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "أدخل رقم العملية، أو اكتب تفاصيل الحوالة، أو أرفق صورة الإيصال.",
+        path: ["paymentReference"],
+      });
+    }
+  });
 
 export type StudentPaymentRequestCreateBody = z.infer<
   typeof studentPaymentRequestCreateBodySchema

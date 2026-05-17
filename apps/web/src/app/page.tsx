@@ -21,10 +21,10 @@ import {
   loadPopularByCategoryColumns,
   PopularByCategorySection,
 } from "@/components/marketing/popular-by-category";
+import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { Button } from "@/components/ui/button";
 import { fetchPublicApi } from "@/lib/server-api";
-import { APP_NAME_AR } from "@studyhouse/shared";
 
 /** تجنّب جلب API أثناء التوليد الثابت — يُنفَّذ الجلب عند الطلب فقط (لا ECONNREFUSED في `next build` بدون خادم). */
 export const dynamic = "force-dynamic";
@@ -149,14 +149,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
         <HomeFaqSection />
       </main>
 
-      <footer
-        id="site-footer"
-        className="border-t border-border/70 bg-card/50 scroll-mt-20"
-      >
-        <div className="mx-auto flex w-full max-w-[min(100%,88rem)] flex-col gap-2 px-4 py-8 text-xs text-muted-foreground sm:px-6 md:flex-row md:items-center md:justify-between md:px-8 md:text-sm">
-          <p>{APP_NAME_AR} — تجربة LMS خفيفة ومحترمة للمتعلّم العربي</p>
-        </div>
-      </footer>
+      <SiteFooter showFeaturedLink={featured.length > 0} showFaqLink />
     </div>
   );
 }

@@ -516,6 +516,11 @@ export async function publishCourseAdmin(req: Request, res: Response): Promise<v
     req,
   });
 
+  await prisma.lesson.updateMany({
+    where: { courseId: id, status: LessonStatus.DRAFT },
+    data: { status: LessonStatus.PUBLISHED },
+  });
+
   const updated = await prisma.course.update({
     where: { id },
     data: {

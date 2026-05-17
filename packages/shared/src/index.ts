@@ -12,4 +12,5 @@ export * from "./schemas/adminStudent";
 export * from "./schemas/activationCode";
 export * from "./schemas/paymentRequest";
 export * from "./schemas/superAdmin";
+export * from "./schemas/adminUpload";
 export * from "./youtube";

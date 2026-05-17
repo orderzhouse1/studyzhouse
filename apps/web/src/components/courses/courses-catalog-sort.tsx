@@ -11,20 +11,27 @@ const SORT_OPTIONS = [
   { value: "title_asc", label: "العنوان (أ–ي)" },
 ] as const;
 
-function buildHref(filters: CatalogFilters, sort: string): string {
+function buildHref(
+  basePath: string,
+  filters: CatalogFilters,
+  sort: string,
+): string {
   const qs = new URLSearchParams();
   if (filters.search?.trim()) qs.set("search", filters.search.trim());
   if (filters.categorySlug?.trim()) qs.set("categorySlug", filters.categorySlug.trim());
   if (filters.pricingType) qs.set("pricingType", filters.pricingType);
   if (sort && sort !== "newest") qs.set("sort", sort);
+  if (filters.adminPreview) qs.set("adminPreview", "1");
   const q = qs.toString();
-  return q ? `/courses?${q}` : "/courses";
+  return q ? `${basePath}?${q}` : basePath;
 }
 
 export function CoursesCatalogSort({
+  basePath = "/courses",
   filters,
   total,
 }: {
+  basePath?: string;
   filters: CatalogFilters;
   total: number;
 }): React.ReactElement {
@@ -42,7 +49,7 @@ export function CoursesCatalogSort({
         <span className="shrink-0 font-medium">ترتيب حسب:</span>
         <select
           value={current}
-          onChange={(e) => router.push(buildHref(filters, e.target.value))}
+          onChange={(e) => router.push(buildHref(basePath, filters, e.target.value))}
           className="h-9 min-w-[11rem] rounded-lg border border-border bg-card px-3 text-sm font-medium text-heading shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
           aria-label="ترتيب الكورسات"
         >
