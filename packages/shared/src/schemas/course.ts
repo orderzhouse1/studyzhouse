@@ -13,9 +13,18 @@ export const courseLevelSchema = z.enum([
   "ALL_LEVELS",
 ]);
 
+export const publicCourseSortSchema = z.enum([
+  "newest",
+  "price_asc",
+  "price_desc",
+  "title_asc",
+]);
+
 export const publicCoursesQuerySchema = paginationQuerySchema.extend({
   categorySlug: z.string().trim().min(1).optional(),
   search: z.string().trim().min(1).optional(),
+  pricingType: pricingTypeSchema.optional(),
+  sort: publicCourseSortSchema.optional(),
 });
 
 export const adminCoursesQuerySchema = paginationQuerySchema.extend({

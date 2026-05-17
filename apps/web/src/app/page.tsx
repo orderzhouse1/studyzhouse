@@ -1,10 +1,27 @@
-import { ArrowLeft, BookOpen, Sparkles, TrendingUp, Users } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
+  BarChart3,
+  Briefcase,
+  Code2,
+  Globe2,
+  Laptop,
+  LayoutGrid,
+  ShieldCheck,
+  Sparkles,
+  Sprout,
+} from "lucide-react";
 import Link from "next/link";
 
+import type { CourseCardCourse } from "@/components/courses/course-card";
+import { FeaturedCoursesBanner } from "@/components/marketing/featured-courses-banner";
+import { HeroKiderStyle } from "@/components/marketing/hero-kider-style";
+import { HomeFaqSection } from "@/components/marketing/home-faq";
+import { HomeLatestCoursesFeed } from "@/components/marketing/home-latest-courses-feed";
 import {
-  CourseCard,
-  type CourseCardCourse,
-} from "@/components/courses/course-card";
+  loadPopularByCategoryColumns,
+  PopularByCategorySection,
+} from "@/components/marketing/popular-by-category";
+import { SiteHeader } from "@/components/layout/site-header";
 import { Button } from "@/components/ui/button";
 import { fetchPublicApi } from "@/lib/server-api";
 import { APP_NAME_AR } from "@studyhouse/shared";
@@ -25,7 +42,8 @@ type CategoriesJson = {
 async function loadFeaturedCourses(): Promise<CourseCardCourse[]> {
   try {
     const json = (await fetchPublicApi(
-      "/api/v1/courses?page=1&pageSize=3",
+      "/api/v1/courses?page=1&pageSize=4",
+      { noStore: true },
     )) as CoursesJson;
     return json.data.items;
   } catch {
@@ -38,7 +56,8 @@ async function loadCategoryChips(): Promise<
 > {
   try {
     const json = (await fetchPublicApi(
-      "/api/v1/categories?page=1&pageSize=10",
+      "/api/v1/categories?page=1&pageSize=12",
+      { noStore: true },
     )) as CategoriesJson;
     return json.data.items.map((c) => ({ name: c.name, slug: c.slug }));
   } catch {
@@ -46,211 +65,96 @@ async function loadCategoryChips(): Promise<
   }
 }
 
+function categoryChipIcon(slug: string, name: string): LucideIcon {
+  const hay = `${slug} ${name}`.toLowerCase();
+  if (/ذكاء|اصطناع|ai\b/.test(hay)) return Sparkles;
+  if (/بيانات|data/.test(hay)) return BarChart3;
+  if (/حاسوب|برمج|code|dev/.test(hay)) return Code2;
+  if (/تقنية|معلومات|it\b|tech/.test(hay)) return Laptop;
+  if (/أعمال|business|إدارة|مالية/.test(hay)) return Briefcase;
+  if (/شخصي|تطوير|skills|مهارات/.test(hay)) return Sprout;
+  if (/صح|طبي|health|رعاية/.test(hay)) return ShieldCheck;
+  if (/لغة|lang|english|عربي/.test(hay)) return Globe2;
+  return LayoutGrid;
+}
+
 export default async function HomePage(): Promise<React.ReactElement> {
   const [featured, categories] = await Promise.all([
     loadFeaturedCourses(),
     loadCategoryChips(),
   ]);
+  const popularColumns =
+    categories.length > 0
+      ? await loadPopularByCategoryColumns(categories.slice(0, 3))
+      : [];
 
   return (
-    <div className="relative overflow-hidden">
-      <div className="hero-mesh noise-soft absolute inset-0 -z-10" aria-hidden />
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-6 md:px-8">
-        <div className="flex items-center gap-2 text-sm font-semibold tracking-tight text-heading">
-          <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-float ring-1 ring-primary/20">
-            <BookOpen className="h-5 w-5" aria-hidden />
-          </span>
-          <span>{APP_NAME_AR}</span>
-        </div>
-        <nav className="flex items-center gap-4 text-sm">
-          <span className="hidden text-muted-foreground sm:inline">
-            تعلّم بلمسة بصرية دافئة
-          </span>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/login">تسجيل الدخول</Link>
-          </Button>
-        </nav>
-      </header>
+    <div className="relative min-h-screen overflow-x-hidden bg-background">
+      <SiteHeader showFeaturedLink={featured.length > 0} />
 
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-14 px-6 pb-20 pt-8 md:px-8 md:pt-10">
-        <section className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/80 px-4 py-1.5 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur">
-              <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden />
-              مساحة تعليمية عربية — هوية واضحة ومريحة للعين
-            </div>
-            <h1 className="text-balance text-4xl font-bold leading-[1.15] tracking-tight md:text-5xl lg:text-6xl lg:leading-[1.1]">
-              تعلّم بثقة
-              <span className="mt-2 block text-primary">مع تجربة LMS تراعي العربية</span>
-            </h1>
-            <p className="max-w-2xl text-pretty text-base leading-relaxed text-muted-foreground md:text-lg">
-              منصة كورسات بخط عربي انسيابي، بطاقات بيضاء ناعمة، وقرارات لونية
-              صريحة: برتقالي للخطوة التالية، وأزرق سماوي للمحتوى التعليمي — بدون
-              لوحة رمادية مُرهقة.
-            </p>
-            <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
-              <Button asChild className="px-6 shadow-brand">
-                <Link href="/courses">استكشف الكورسات</Link>
-              </Button>
-              <Button asChild variant="cyan" className="px-6">
-                <Link href="#featured">
-                  الكورسات المختارة
-                  <ArrowLeft className="h-4 w-4" aria-hidden />
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="px-6">
-                <Link href="#trust">لماذا هذا الشكل؟</Link>
-              </Button>
-            </div>
-            <dl className="grid max-w-xl grid-cols-3 gap-3 pt-1 text-sm">
-              <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-float">
-                <dt className="text-muted-foreground">اتجاه الواجهة</dt>
-                <dd className="mt-1.5 text-xl font-bold text-heading">RTL</dd>
-              </div>
-              <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-float">
-                <dt className="text-muted-foreground">الإحساس</dt>
-                <dd className="mt-1.5 text-xl font-bold text-heading">مرِح</dd>
-              </div>
-              <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-float">
-                <dt className="text-muted-foreground">السطح</dt>
-                <dd className="mt-1.5 text-xl font-bold text-heading">فاتح</dd>
-              </div>
-            </dl>
-          </div>
+      <HeroKiderStyle />
 
-          <div className="relative">
-            <div className="pointer-events-none absolute -end-8 -top-10 h-36 w-36 rounded-full bg-brand-purple blur-3xl" />
-            <div className="pointer-events-none absolute -bottom-6 start-4 h-28 w-28 rounded-full bg-secondary blur-2xl" />
-            <div
-              id="preview"
-              className="relative rounded-[1.75rem] border border-border/80 bg-card p-6 shadow-card"
+      <main className="mx-auto flex w-full max-w-[min(100%,88rem)] flex-col gap-8 px-4 pb-14 pt-4 sm:px-6 sm:pt-5 md:px-8 md:gap-10">
+        {categories.length > 0 ? (
+          <>
+            <PopularByCategorySection columns={popularColumns} />
+            <section
+              className="relative w-screen max-w-[100vw] border-y border-border/70 bg-background [margin-inline:calc(50%-50vw)]"
+              aria-labelledby="main-fields-heading"
             >
-              <div className="absolute inset-x-10 -top-8 h-28 rounded-[1.75rem] bg-gradient-to-l from-primary/20 via-transparent to-secondary/30 blur-2xl" />
-              <div className="relative space-y-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-heading">
-                      لوحة تلميحات بصرية
-                    </p>
-                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      ظلال ناعمة، زوايا كبيرة، وطبقة ألوان تحاكي الفصول دون صخب.
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground ring-1 ring-border/60">
-                    هوية LMS
-                  </span>
+              <div className="mx-auto flex w-full max-w-[min(100%,88rem)] flex-col items-center justify-center gap-3 px-4 py-4 text-center sm:px-6 sm:py-5 md:px-8 lg:flex-row lg:flex-wrap lg:gap-x-5 lg:gap-y-2">
+                <h2
+                  id="main-fields-heading"
+                  className="shrink-0 text-lg font-bold text-heading sm:text-xl"
+                >
+                  مجالات رئيسية
+                </h2>
+
+                <div className="flex min-w-0 flex-wrap items-center justify-center gap-2.5 lg:max-w-3xl lg:flex-1 lg:gap-3">
+                  {categories.map((c) => {
+                    const Icon = categoryChipIcon(c.slug, c.name);
+                    return (
+                      <Link
+                        key={c.slug}
+                        href={`/courses?categorySlug=${encodeURIComponent(c.slug)}`}
+                        className="inline-flex items-center gap-2 rounded-full border border-border/90 bg-card px-3.5 py-2 text-sm font-medium text-heading shadow-sm transition-colors hover:border-primary hover:text-primary sm:px-4"
+                      >
+                        <Icon
+                          className="h-4 w-4 shrink-0 text-muted-foreground"
+                          aria-hidden
+                        />
+                        {c.name}
+                      </Link>
+                    );
+                  })}
                 </div>
-                <div className="grid gap-4">
-                  <div className="h-36 rounded-2xl bg-gradient-to-bl from-secondary/80 via-card to-brand-purple/40 ring-1 ring-border/60" />
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="flex flex-col gap-2 rounded-2xl bg-secondary/60 px-3 py-4 text-xs font-medium text-secondary-foreground ring-1 ring-sky-100">
-                      <TrendingUp className="h-4 w-4 text-primary" aria-hidden />
-                      تقدّم واضح
-                    </div>
-                    <div className="flex flex-col gap-2 rounded-2xl bg-brand-purple px-3 py-4 text-xs font-medium text-accent-foreground ring-1 ring-purple-100">
-                      <Users className="h-4 w-4 text-primary" aria-hidden />
-                      تجربة جماعية
-                    </div>
-                    <div className="flex flex-col gap-2 rounded-2xl bg-card px-3 py-4 text-xs font-medium text-muted-foreground ring-1 ring-border">
-                      جلسات مرنة
-                    </div>
-                  </div>
-                  <p className="text-xs leading-relaxed text-muted-foreground">
-                    الشريط الجانبي للإدارة على اليمين في الواجهة العربية — محتوى
-                    الطرف الآخر يبقى هو المحور البصري.
-                  </p>
-                </div>
+
+                <Link
+                  href="/courses"
+                  className="shrink-0 text-sm font-medium text-primary transition-colors hover:text-primary/90"
+                >
+                  عرض الكتالوج كاملاً
+                </Link>
               </div>
-            </div>
-          </div>
-        </section>
+            </section>
+          </>
+        ) : null}
 
         {featured.length > 0 ? (
-          <section id="featured" className="scroll-mt-24 space-y-6">
-            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-              <div className="space-y-1.5">
-                <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-                  مختارات من الكتالوج
-                </p>
-                <h2 className="text-xl font-bold md:text-2xl">
-                  كورسات جاهزة للاستكشاف
-                </h2>
-                <p className="max-w-2xl text-sm text-muted-foreground md:text-base">
-                  عيّنة حية من المنشور حاليًا — تتحدّث البيانات مع لوحة الإدارة دون
-                  أي خطوة إضافية هنا.
-                </p>
-              </div>
-              <Button asChild variant="outline">
-                <Link href="/courses">عرض الكل</Link>
-              </Button>
-            </div>
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {featured.map((course) => (
-                <CourseCard key={course.id} course={course} />
-              ))}
-            </div>
-          </section>
+          <FeaturedCoursesBanner courses={featured} />
         ) : null}
 
-        {categories.length > 0 ? (
-          <section className="space-y-4">
-            <div className="space-y-1.5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-secondary-foreground">
-                تصنيفات سريعة
-              </p>
-              <h2 className="text-xl font-bold md:text-2xl">ابدأ من مجالك</h2>
-              <p className="text-sm text-muted-foreground md:text-base">
-                انتقل مباشرة إلى الكورسات ضمن التصنيف الذي يهمّك.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {categories.map((c) => (
-                <Link
-                  key={c.slug}
-                  href={`/courses?categorySlug=${encodeURIComponent(c.slug)}`}
-                  className="rounded-full border border-border/80 bg-card px-5 py-2.5 text-sm font-semibold text-heading shadow-sm ring-1 ring-border/50 transition-colors hover:border-secondary hover:bg-secondary/60 hover:text-secondary-foreground"
-                >
-                  {c.name}
-                </Link>
-              ))}
-            </div>
-          </section>
-        ) : null}
+        {featured.length > 0 ? <HomeLatestCoursesFeed courses={featured} /> : null}
 
-        <section
-          id="trust"
-          className="grid gap-6 rounded-[1.75rem] border border-border/70 bg-card/70 p-6 shadow-card backdrop-blur md:grid-cols-3 md:p-8"
-        >
-          <div className="space-y-2">
-            <h2 className="text-base font-bold md:text-lg">قرارات لونية محسوبة</h2>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              برتقالي دافئ للخطوات الحاسمة، سماوي للمساحات التعليمية، وبنفسجي خفيف
-              للتمييز — مع تركيز على الوضوح لا الإزعاج.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-base font-bold md:text-lg">عربي يُقرأ بسلاسة</h2>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              خط Cairo عبر Next/font مع مسافات سخية وبطاقات بيضاء ترتفع بلطف فوق
-              خلفية كريمية هادئة.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-base font-bold md:text-lg">RTL من الأساس</h2>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              كل المحاذاة والمسارات مصممة لتبدأ من اليمين — لتبدو لوحة الإدارة
-              والكتالوج العام كمنتج واحد متماسك.
-            </p>
-          </div>
-        </section>
+        <HomeFaqSection />
       </main>
 
-      <footer className="border-t border-border/70 bg-card/50">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-6 py-8 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between md:px-8">
+      <footer
+        id="site-footer"
+        className="border-t border-border/70 bg-card/50 scroll-mt-20"
+      >
+        <div className="mx-auto flex w-full max-w-[min(100%,88rem)] flex-col gap-2 px-4 py-8 text-xs text-muted-foreground sm:px-6 md:flex-row md:items-center md:justify-between md:px-8 md:text-sm">
           <p>{APP_NAME_AR} — تجربة LMS خفيفة ومحترمة للمتعلّم العربي</p>
-          <p className="text-xs md:text-sm">
-            API مستقل · جاهز للمراحل القادمة دون إرباك الواجهة
-          </p>
         </div>
       </footer>
     </div>

@@ -48,6 +48,15 @@ const apiInternal =
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@studyhouse/shared"],
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        pathname: "/**",
+      },
+    ],
+  },
   async rewrites() {
     return [
       {

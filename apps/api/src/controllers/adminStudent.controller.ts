@@ -346,13 +346,28 @@ export async function patchStudentAdmin(
     data,
   });
 
+  let auditAction = "STUDENT_UPDATED";
+  if (body.status !== undefined && body.status !== existing.status) {
+    if (user.status === UserStatus.SUSPENDED) {
+      auditAction = "STUDENT_SUSPENDED_BY_ADMIN";
+    } else if (
+      user.status === UserStatus.ACTIVE &&
+      existing.status !== UserStatus.ACTIVE
+    ) {
+      auditAction = "STUDENT_REACTIVATED_BY_ADMIN";
+    }
+  }
+
   await writeAuditLog({
     actorId,
-    action: "STUDENT_UPDATED",
+    action: auditAction,
     entityType: "User",
     entityId: user.id,
     metadata: {
       fields: Object.keys(body),
+      ...(body.status !== undefined && body.status !== existing.status
+        ? { previousStatus: existing.status, newStatus: user.status }
+        : {}),
     },
     req,
   });

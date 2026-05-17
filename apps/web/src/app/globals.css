@@ -4,8 +4,8 @@
 
 @layer base {
   :root {
-    /* Warm off-white canvas */
-    --background: 35 42% 97%;
+    /* Page canvas — pure white */
+    --background: 0 0% 100%;
     --foreground: 222 47% 11%;
 
     --heading: 222 47% 16%;
@@ -93,8 +93,8 @@
       ),
       linear-gradient(
         180deg,
-        hsl(35 42% 98.5%) 0%,
-        hsl(35 38% 96%) 100%
+        hsl(0 0% 100%) 0%,
+        hsl(0 0% 100%) 100%
       );
   }
 

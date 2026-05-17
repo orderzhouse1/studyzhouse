@@ -16,4 +16,12 @@ export function applyIntegrationProcessEnv(): void {
   process.env.ACTIVATION_CODE_PEPPER =
     process.env.ACTIVATION_CODE_PEPPER ??
     "abcdef0123456789abcdef0123456789abcdef01";
+  process.env.SIGNUP_OTP_TEST_FIXED = "123456";
+  process.env.GOOGLE_CLIENT_ID =
+    process.env.GOOGLE_CLIENT_ID ?? "integration-test-google-client-id";
+  process.env.GOOGLE_CLIENT_SECRET =
+    process.env.GOOGLE_CLIENT_SECRET ?? "integration-test-google-client-secret";
+  process.env.GOOGLE_REDIRECT_URI =
+    process.env.GOOGLE_REDIRECT_URI ??
+    "http://localhost:3000/api/v1/auth/google/callback";
 }

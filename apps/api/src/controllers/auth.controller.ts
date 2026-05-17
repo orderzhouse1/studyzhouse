@@ -30,6 +30,21 @@ function mapPublicUser(user: {
   });
 }
 
+/**
+ * @deprecated Use POST /auth/signup/request-otp then /auth/signup/verify-otp.
+ * Kept so old clients get a clear migration error instead of creating users without OTP.
+ */
+export async function signup(_req: Request, res: Response): Promise<void> {
+  res.status(410).json({
+    success: false,
+    error: {
+      code: "SIGNUP_REQUIRES_OTP",
+      message:
+        "التسجيل يتطلب تأكيد البريد عبر رمز OTP. استخدم /auth/signup/request-otp ثم /auth/signup/verify-otp.",
+    },
+  });
+}
+
 export async function login(req: Request, res: Response): Promise<void> {
   const body = req.body as LoginBody;
   const env = loadEnv();
@@ -83,7 +98,7 @@ export async function login(req: Request, res: Response): Promise<void> {
     res.status(403).json({
       success: false,
       error: {
-        code: "ACCOUNT_DISABLED",
+        code: "ACCOUNT_NOT_ACTIVE",
         message: "هذا الحساب غير مفعّل أو موقوف.",
       },
     });
