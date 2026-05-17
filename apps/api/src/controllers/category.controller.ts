@@ -67,6 +67,22 @@ export async function listCategoriesAdmin(
     where = { archivedAt: { not: null } };
   }
 
+  if (query.search?.trim()) {
+    const s = query.search.trim();
+    where = {
+      ...where,
+      AND: [
+        {
+          OR: [
+            { name: { contains: s, mode: "insensitive" } },
+            { slug: { contains: s, mode: "insensitive" } },
+            { description: { contains: s, mode: "insensitive" } },
+          ],
+        },
+      ],
+    };
+  }
+
   const [total, rows] = await prisma.$transaction([
     prisma.category.count({ where }),
     prisma.category.findMany({

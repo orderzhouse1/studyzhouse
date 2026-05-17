@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
+import { notFound, redirect } from "next/navigation";
+import { AUTH_ACCESS_COOKIE_NAME } from "@studyhouse/shared";
+
+import { verifyAccessTokenFromCookie } from "@/lib/edge-access-token";
 
 import {
   CoursePublicDetail,
@@ -41,6 +45,13 @@ export default async function CourseDetailPage({
   params: Promise<{ slug: string }>;
 }): Promise<React.ReactElement> {
   const { slug } = await params;
+
+  const token = (await cookies()).get(AUTH_ACCESS_COOKIE_NAME)?.value;
+  const auth = await verifyAccessTokenFromCookie(token);
+  if (auth?.role === "STUDENT") {
+    redirect(`/student/courses/${encodeURIComponent(slug)}`);
+  }
+
   const json = (await fetchPublicApiMaybe(
     `/api/v1/courses/${encodeURIComponent(slug)}`,
   )) as CourseDetailJson | null;

@@ -18,7 +18,7 @@ export async function generateMetadata({
 
 function LearnFallback(): React.ReactElement {
   return (
-    <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
+    <div className="flex min-h-[40vh] items-center justify-center px-4 text-sm text-muted-foreground sm:px-6 md:px-10">
       جاري التحميل…
     </div>
   );

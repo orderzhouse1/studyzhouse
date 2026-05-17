@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import type { CourseCardCourse } from "@/components/courses/course-card";
 import { Button } from "@/components/ui/button";
+import { catalogCtaButtonClassName } from "@/lib/catalog-cta-button";
 import { cn } from "@/lib/utils";
 import { APP_NAME_AR } from "@studyhouse/shared";
 
@@ -21,10 +22,17 @@ function formatPrice(course: CourseCardCourse): string {
 export function CatalogCourseCard({
   course,
   className,
+  detailBasePath = "/courses",
+  compact = false,
 }: {
   course: CourseCardCourse;
   className?: string;
+  /** مسار صفحة تفاصيل الكورس، مثلاً `/student/courses` للطالب */
+  detailBasePath?: string;
+  /** خطوط أصغر — معاينة لوحة الإدارة فقط */
+  compact?: boolean;
 }): React.ReactElement {
+  const detailHref = `${detailBasePath}/${course.slug}`;
   const rating = ratingFromId(course.id);
   const categoryLabel = course.category?.name ?? "كورس تعليمي";
 
@@ -49,53 +57,101 @@ export function CatalogCourseCard({
           />
         )}
         <Link
-          href={`/courses/${course.slug}`}
-          className="absolute end-2.5 top-2.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-primary shadow-sm transition-colors hover:bg-white hover:text-primary/90"
+          href={detailHref}
+          className={cn(
+            "absolute inline-flex items-center justify-center rounded-full bg-white/95 text-primary shadow-sm transition-colors hover:bg-white hover:text-primary/90",
+            compact ? "end-2 top-2 h-7 w-7" : "end-2.5 top-2.5 h-8 w-8",
+          )}
           aria-label={`إضافة ${course.title} للمفضلة`}
         >
-          <Heart className="h-4 w-4" aria-hidden />
+          <Heart
+            className={cn(compact ? "h-3.5 w-3.5" : "h-4 w-4")}
+            aria-hidden
+          />
         </Link>
       </div>
 
-      <div className="flex flex-1 flex-col gap-3 p-4 sm:p-[1.125rem]">
-        <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex max-w-[70%] truncate rounded-full bg-muted/80 px-2.5 py-1 text-[0.6875rem] font-medium text-muted-foreground">
+      <div
+        className={cn(
+          "flex flex-1 flex-col",
+          compact ? "gap-2 p-2.5" : "gap-3 p-4 sm:p-[1.125rem]",
+        )}
+      >
+        <div className="flex items-center justify-between gap-1.5">
+          <span
+            className={cn(
+              "inline-flex max-w-[70%] truncate rounded-full bg-muted/80 font-medium text-muted-foreground",
+              compact
+                ? "px-1.5 py-0.5 text-[0.625rem]"
+                : "px-2.5 py-1 text-[0.6875rem]",
+            )}
+          >
             {categoryLabel}
           </span>
-          <span className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-heading">
-            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" aria-hidden />
+          <span
+            className={cn(
+              "inline-flex shrink-0 items-center gap-0.5 font-semibold text-heading",
+              compact ? "text-[0.625rem]" : "text-xs",
+            )}
+          >
+            <Star
+              className={cn(
+                "fill-amber-400 text-amber-400",
+                compact ? "h-3 w-3" : "h-3.5 w-3.5",
+              )}
+              aria-hidden
+            />
             {rating}
           </span>
         </div>
 
-        <div className="space-y-1">
-          <h3 className="line-clamp-2 text-sm font-bold leading-snug text-[hsl(222_47%_12%)] sm:text-[0.9375rem]">
+        <div className={cn(compact ? "space-y-0.5" : "space-y-1")}>
+          <h3
+            className={cn(
+              "line-clamp-2 font-bold leading-snug text-[hsl(222_47%_12%)]",
+              compact ? "text-[0.6875rem]" : "text-sm sm:text-[0.9375rem]",
+            )}
+          >
             <Link
-              href={`/courses/${course.slug}`}
+              href={detailHref}
               className="transition-colors hover:text-primary"
             >
               {course.title}
             </Link>
           </h3>
-          <p className="text-xs text-muted-foreground">بواسطة {APP_NAME_AR}</p>
+          <p
+            className={cn(
+              "text-muted-foreground",
+              compact ? "text-[0.625rem]" : "text-xs",
+            )}
+          >
+            بواسطة {APP_NAME_AR}
+          </p>
         </div>
 
-        <div className="mt-auto flex items-center justify-between gap-2 pt-1">
+        <div className="mt-auto flex items-center justify-between gap-1.5 pt-0.5">
           <Button
             asChild
-            className="h-9 shrink-0 rounded-full bg-primary px-3.5 text-xs font-semibold text-primary-foreground shadow-[3px_3px_0_0_hsl(222_47%_10%)] transition-transform hover:bg-[hsl(var(--primary-hover))] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0_0_hsl(222_47%_10%)] sm:px-4 sm:text-sm"
+            className={cn(
+              "shrink-0 font-semibold",
+              compact
+                ? "h-7 px-2 text-[0.625rem]"
+                : "h-9 px-3.5 text-xs sm:px-4 sm:text-sm",
+              catalogCtaButtonClassName,
+            )}
           >
-            <Link href={`/courses/${course.slug}`} className="gap-1.5">
+            <Link href={detailHref} className={cn(compact ? "gap-1" : "gap-1.5")}>
               عرض الكورس
-              <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+              <ArrowLeft
+                className={cn(compact ? "h-3 w-3" : "h-3.5 w-3.5")}
+                aria-hidden
+              />
             </Link>
           </Button>
           <span
             className={cn(
-              "text-sm font-bold tabular-nums sm:text-base",
-              course.pricingType === "FREE"
-                ? "text-primary"
-                : "text-primary",
+              "font-bold tabular-nums text-primary",
+              compact ? "text-[0.6875rem]" : "text-sm sm:text-base",
             )}
           >
             {formatPrice(course)}

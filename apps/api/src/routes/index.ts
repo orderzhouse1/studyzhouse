@@ -11,6 +11,7 @@ import { categoriesPublicRouter } from "./categoriesPublic.routes.js";
 import { adminActivationCodesRouter } from "./adminActivationCodes.routes.js";
 import { adminPaymentRequestsRouter } from "./adminPaymentRequests.routes.js";
 import { adminStudentsRouter } from "./adminStudents.routes.js";
+import { adminUploadsRouter } from "./adminUploads.routes.js";
 import { coursesAdminRouter } from "./coursesAdmin.routes.js";
 import { coursesPublicRouter } from "./coursesPublic.routes.js";
 import { healthRouter } from "./health.routes.js";
@@ -63,6 +64,13 @@ export function createApiRouter(): Router {
     requireAuth,
     requireRole(ADMIN_ACCESS_ROLES),
     coursesAdminRouter,
+  );
+
+  router.use(
+    `${base}/admin/uploads`,
+    requireAuth,
+    requireRole(ADMIN_ACCESS_ROLES),
+    adminUploadsRouter,
   );
 
   router.use(

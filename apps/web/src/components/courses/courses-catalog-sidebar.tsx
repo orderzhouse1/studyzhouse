@@ -7,9 +7,12 @@ export type CatalogFilters = {
   categorySlug?: string;
   pricingType?: "FREE" | "PAID";
   sort?: string;
+  /** معاينة لوحة الإدارة — خطوط أصغر داخل الكروت */
+  adminPreview?: boolean;
 };
 
 function buildCoursesHref(
+  basePath: string,
   base: CatalogFilters,
   patch: {
     categorySlug?: string | null;
@@ -26,8 +29,9 @@ function buildCoursesHref(
   if (categorySlug?.trim()) qs.set("categorySlug", categorySlug.trim());
   if (pricingType) qs.set("pricingType", pricingType);
   if (base.sort && base.sort !== "newest") qs.set("sort", base.sort);
+  if (base.adminPreview) qs.set("adminPreview", "1");
   const q = qs.toString();
-  return q ? `/courses?${q}` : "/courses";
+  return q ? `${basePath}?${q}` : basePath;
 }
 
 function FilterCheckbox({
@@ -89,9 +93,11 @@ function FilterSection({
 }
 
 export function CoursesCatalogSidebar({
+  basePath = "/courses",
   categories,
   filters,
 }: {
+  basePath?: string;
   categories: { name: string; slug: string }[];
   filters: CatalogFilters;
 }): React.ReactElement {
@@ -107,14 +113,14 @@ export function CoursesCatalogSidebar({
         {categories.length > 0 ? (
           <FilterSection title="التصنيفات">
             <FilterCheckbox
-              href={buildCoursesHref(filters, { categorySlug: null })}
+              href={buildCoursesHref(basePath, filters, { categorySlug: null })}
               active={activeSlug === ""}
               label="جميع التصنيفات"
             />
             {categories.map((c) => (
               <FilterCheckbox
                 key={c.slug}
-                href={buildCoursesHref(filters, { categorySlug: c.slug })}
+                href={buildCoursesHref(basePath, filters, { categorySlug: c.slug })}
                 active={activeSlug === c.slug}
                 label={c.name}
               />
@@ -123,22 +129,22 @@ export function CoursesCatalogSidebar({
         ) : null}
 
         <FilterSection title="اللغة">
-          <FilterCheckbox href={buildCoursesHref(filters, {})} active label="العربية" />
+          <FilterCheckbox href={buildCoursesHref(basePath, filters, {})} active label="العربية" />
         </FilterSection>
 
         <FilterSection title="السعر">
           <FilterCheckbox
-            href={buildCoursesHref(filters, { pricingType: null })}
+            href={buildCoursesHref(basePath, filters, { pricingType: null })}
             active={activePricing === ""}
             label="الكل"
           />
           <FilterCheckbox
-            href={buildCoursesHref(filters, { pricingType: "FREE" })}
+            href={buildCoursesHref(basePath, filters, { pricingType: "FREE" })}
             active={activePricing === "FREE"}
             label="مجاني"
           />
           <FilterCheckbox
-            href={buildCoursesHref(filters, { pricingType: "PAID" })}
+            href={buildCoursesHref(basePath, filters, { pricingType: "PAID" })}
             active={activePricing === "PAID"}
             label="مدفوع"
           />

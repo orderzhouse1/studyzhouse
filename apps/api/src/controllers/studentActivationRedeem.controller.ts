@@ -84,6 +84,14 @@ export async function redeemActivationCodeStudent(
         );
       }
 
+      if (body.courseId && ac.courseId !== body.courseId) {
+        throw new AppError(
+          "CODE_WRONG_COURSE",
+          "هذا الكود لا يخص هذا الكورس.",
+          400,
+        );
+      }
+
       if (ac.expiresAt && ac.expiresAt.getTime() < Date.now()) {
         throw new AppError("CODE_EXPIRED", "انتهت صلاحية هذا الكود.", 400);
       }

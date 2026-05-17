@@ -1,27 +1,52 @@
 "use client";
 
-import { ArrowLeft, BookOpen } from "lucide-react";
-import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-
-import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { StudentCourseGridSkeleton } from "@/components/student/student-page-skeletons";
+  ArrowLeft,
+  BookOpen,
+  Clock,
+  GraduationCap,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import {
+  MyCourseCard,
+  MyCoursesSection,
+  StudentDashboardHero,
+  STUDENT_CONTENT_PAD,
+} from "@/components/student/student-dashboard-ui";
+import { StudentMyCoursesSkeleton } from "@/components/student/student-page-skeletons";
+import { Button } from "@/components/ui/button";
 import {
   StudentApiError,
   studentFetchJsonCached,
 } from "@/lib/student-client-api";
+import { cn } from "@/lib/utils";
+
+type DashboardResponse = {
+  success: true;
+  data: {
+    enrolledCoursesCount: number;
+    completedLessonsCount: number;
+    inProgressCoursesCount: number;
+    overallProgressPercent: number;
+    continueLearning: null | {
+      courseTitle: string;
+      courseSlug: string;
+      lessonId: string;
+      lessonTitle: string;
+    };
+  };
+};
 
 type MyCoursesResponse = {
   success: true;
   data: {
     items: Array<{
+      kind?: "enrolled" | "pending_payment";
+      paymentRequestId?: string;
       enrollmentId: string;
       progressPercent: number;
       completedLessons: number;
@@ -43,6 +68,7 @@ type MyCoursesResponse = {
 
 export function MyCoursesPanel(): React.ReactElement {
   const [items, setItems] = useState<MyCoursesResponse["data"]["items"]>([]);
+  const [dash, setDash] = useState<DashboardResponse["data"] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,15 +76,20 @@ export function MyCoursesPanel(): React.ReactElement {
     setLoading(true);
     setError(null);
     try {
-      const json = await studentFetchJsonCached<MyCoursesResponse>(
-        "/student/my-courses",
-      );
-      setItems(json.data.items);
+      const [mine, dashJson] = await Promise.all([
+        studentFetchJsonCached<MyCoursesResponse>("/student/my-courses"),
+        studentFetchJsonCached<DashboardResponse>("/student/dashboard").catch(
+          () => null,
+        ),
+      ]);
+      setItems(mine.data.items);
+      setDash(dashJson?.data ?? null);
     } catch (e) {
       setError(
         e instanceof StudentApiError ? e.message : "تعذّر تحميل كورساتك.",
       );
       setItems([]);
+      setDash(null);
     } finally {
       setLoading(false);
     }
@@ -68,120 +99,191 @@ export function MyCoursesPanel(): React.ReactElement {
     void load();
   }, [load]);
 
+  const { enrolled, pending } = useMemo(() => {
+    const enrolledItems = items.filter((i) => i.kind !== "pending_payment");
+    const pendingItems = items.filter((i) => i.kind === "pending_payment");
+    return { enrolled: enrolledItems, pending: pendingItems };
+  }, [items]);
+
   if (loading && items.length === 0 && !error) {
-    return <StudentCourseGridSkeleton cards={4} />;
+    return <StudentMyCoursesSkeleton />;
   }
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50/90 px-4 py-6 text-center text-sm text-red-900">
-        {error}
-        <div className="mt-4">
-          <Button type="button" variant="outline" onClick={() => void load()}>
-            إعادة المحاولة
-          </Button>
+      <div className={cn(STUDENT_CONTENT_PAD, "py-12")}>
+        <div className="rounded-2xl border border-red-200 bg-red-50/90 px-4 py-6 text-center text-sm text-red-900">
+          {error}
+          <div className="mt-4">
+            <Button type="button" variant="outline" onClick={() => void load()}>
+              إعادة المحاولة
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
+  const heroStats = [
+    {
+      label: "كورسات نشطة",
+      value: enrolled.length,
+      icon: GraduationCap,
+    },
+    {
+      label: "قيد المراجعة",
+      value: pending.length,
+      icon: Clock,
+    },
+    {
+      label: "دروس مكتملة",
+      value: dash?.completedLessonsCount ?? "—",
+      icon: BookOpen,
+    },
+    {
+      label: "التقدّم الكلي",
+      value: dash ? `${dash.overallProgressPercent}%` : "—",
+      icon: Sparkles,
+    },
+  ];
+
+  const continueBlock =
+    dash?.continueLearning && enrolled.length > 0 ? (
+      <div className="flex flex-col gap-2.5 rounded-xl border border-white/15 bg-white/10 p-3 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:p-4">
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-primary">تابع من حيث توقفت</p>
+          <p className="mt-1 font-semibold">{dash.continueLearning.courseTitle}</p>
+          <p className="text-sm text-white/70">
+            {dash.continueLearning.lessonTitle}
+          </p>
+        </div>
+        <Button
+          asChild
+          className="shrink-0 rounded-xl bg-primary shadow-brand hover:bg-[hsl(var(--primary-hover))]"
+        >
+          <Link
+            href={`/learn/${dash.continueLearning.courseSlug}?lessonId=${dash.continueLearning.lessonId}`}
+          >
+            متابعة الدرس
+            <ArrowLeft className="ms-2 h-4 w-4" aria-hidden />
+          </Link>
+        </Button>
+      </div>
+    ) : null;
+
   if (items.length === 0) {
     return (
-      <Card className="rounded-3xl border-dashed border-primary/30 bg-card/80 py-12 text-center shadow-sm ring-1 ring-primary/15">
-        <CardContent className="space-y-4">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-            <BookOpen className="h-7 w-7" aria-hidden />
+      <div className="pb-16">
+        <StudentDashboardHero
+          eyebrow="مساحتك التعليمية"
+          title="كورساتي"
+          description="لم تسجّل في أي كورس بعد — استكشف الكتالوج وابدأ رحلتك."
+          stats={[
+            { label: "كورسات نشطة", value: 0, icon: GraduationCap },
+            { label: "قيد المراجعة", value: 0, icon: Clock },
+            { label: "دروس مكتملة", value: 0, icon: BookOpen },
+            { label: "التقدّم الكلي", value: "0%", icon: TrendingUp },
+          ]}
+        />
+        <div
+          className={cn(
+            "mx-auto max-w-[min(100%,100rem)] py-10 md:py-12",
+            STUDENT_CONTENT_PAD,
+          )}
+        >
+          <div className="rounded-2xl border border-dashed border-primary/30 bg-card/80 px-6 py-14 text-center shadow-sm ring-1 ring-primary/15">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+              <BookOpen className="h-7 w-7" aria-hidden />
+            </div>
+            <h2 className="mt-4 text-xl font-bold text-heading">لا كورسات بعد</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+              استكشف الكتالوج واختر أول كورس — التقدّم يظهر هنا فور التسجيل.
+            </p>
+            <Button
+              asChild
+              className="mt-6 rounded-xl bg-primary shadow-brand hover:bg-[hsl(var(--primary-hover))]"
+            >
+              <Link href="/student/explore">
+                استكشف الكورسات
+                <ArrowLeft className="ms-2 h-4 w-4" aria-hidden />
+              </Link>
+            </Button>
           </div>
-          <CardTitle className="text-xl">لا كورسات بعد</CardTitle>
-          <CardDescription className="mx-auto max-w-md text-base leading-relaxed">
-            لم تسجّل في أي كورس حتى الآن. استكشف الكتالوج العام عندما يكون
-            التسجيل متاحًا في المراحل القادمة.
-          </CardDescription>
-          <Button asChild className="rounded-xl">
-            <Link href="/student/explore">استكشف الكورسات</Link>
-          </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">كورساتي</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          تقدّمك محفوظ لكل كورس مسجّل به.
-        </p>
-      </div>
-      <div className="grid gap-5 md:grid-cols-2">
-        {items.map((row) => (
-          <Card
-            key={row.enrollmentId}
-            className="overflow-hidden rounded-3xl border-border shadow-card ring-1 ring-border/60"
+    <div className="pb-16">
+      <StudentDashboardHero
+        eyebrow="مساحتك التعليمية"
+        title="كورساتي"
+        description="كل تسجيلاتك النشطة وطلبات التفعيل في مكان واحد — تابع التعلّم بنقرة."
+        stats={heroStats}
+        action={continueBlock}
+      />
+
+      <div
+        className={cn(
+          "mx-auto max-w-[min(100%,100rem)] space-y-14 py-10 md:py-12",
+          STUDENT_CONTENT_PAD,
+        )}
+      >
+        {pending.length > 0 ? (
+          <MyCoursesSection
+            title="قيد المراجعة"
+            description="طلبات CliQ بانتظار موافقة الإدارة — لا يمكن البدء بالتعلّم حتى القبول."
           >
-            <div className="aspect-[16/9] w-full bg-gradient-to-br from-secondary/50 to-muted">
-              {row.course.thumbnailUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element -- remote URLs from CMS
-                <img
-                  src={row.course.thumbnailUrl}
-                  alt=""
-                  className="h-full w-full object-cover"
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {pending.map((row) => (
+                <MyCourseCard
+                  key={`pending-${row.paymentRequestId ?? row.course.id}`}
+                  row={row}
                 />
-              ) : (
-                <div className="flex h-full items-center justify-center text-muted-foreground">
-                  <BookOpen className="h-12 w-12 opacity-40" aria-hidden />
-                </div>
-              )}
+              ))}
             </div>
-            <CardHeader className="space-y-1 pb-2">
-              <p className="text-xs font-medium text-primary">
-                {row.course.category?.name ?? "بدون تصنيف"}
-              </p>
-              <CardTitle className="text-lg leading-snug">
-                {row.course.title}
-              </CardTitle>
-              <CardDescription>
-                {row.completedLessons} / {row.totalLessons} درسًا مكتملًا
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>التقدّم</span>
-                  <span className="tabular-nums font-medium text-foreground">
-                    {row.progressPercent}%
-                  </span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-primary transition-[width]"
-                    style={{ width: `${row.progressPercent}%` }}
-                  />
-                </div>
-              </div>
-              {row.lastAccessedLesson ? (
-                <p className="text-xs text-muted-foreground">
-                  آخر نشاط: {row.lastAccessedLesson.title}
-                </p>
-              ) : null}
-              <Button
-                asChild
-                className="w-full rounded-xl bg-primary font-semibold text-primary-foreground hover:bg-primary-hover"
-              >
-                <Link
-                  href={
-                    row.lastAccessedLesson
-                      ? `/learn/${row.course.slug}?lessonId=${row.lastAccessedLesson.id}`
-                      : `/learn/${row.course.slug}`
-                  }
-                >
-                  متابعة التعلّم
-                  <ArrowLeft className="ms-2 h-4 w-4" aria-hidden />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+          </MyCoursesSection>
+        ) : null}
+
+        {enrolled.length > 0 ? (
+          <MyCoursesSection
+            title="متابعة التعلّم"
+            description={
+              dash
+                ? `${dash.inProgressCoursesCount} كورسًا قيد التقدّم — تقدّمك الكلي ${dash.overallProgressPercent}%`
+                : "وصول سريع لكل ما سجّلت به."
+            }
+          >
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {enrolled.map((row) => (
+                <MyCourseCard key={row.enrollmentId} row={row} />
+              ))}
+            </div>
+          </MyCoursesSection>
+        ) : null}
+
+        <div className="flex flex-wrap justify-center gap-3 border-t border-border/60 pt-8">
+          <Button
+            asChild
+            variant="outline"
+            className="rounded-xl border-heading/15 text-heading hover:border-primary hover:text-primary"
+          >
+            <Link href="/student">
+              العودة للوحة التعلّم
+              <ArrowLeft className="ms-2 h-4 w-4" aria-hidden />
+            </Link>
+          </Button>
+          <Button
+            asChild
+            className="rounded-xl bg-primary shadow-brand hover:bg-[hsl(var(--primary-hover))]"
+          >
+            <Link href="/student/explore">
+              استكشف كورسات جديدة
+              <ArrowLeft className="ms-2 h-4 w-4" aria-hidden />
+            </Link>
+          </Button>
+        </div>
       </div>
     </div>
   );

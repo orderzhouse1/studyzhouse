@@ -29,6 +29,11 @@ studentRouter.post(
   asyncHandler(studentActivationRedeemController.redeemActivationCodeStudent),
 );
 
+studentRouter.get(
+  "/payment-info",
+  asyncHandler(studentPaymentRequestController.getStudentPaymentInfo),
+);
+
 studentRouter.post(
   "/payment-requests",
   validateBody(studentPaymentRequestCreateBodySchema),
@@ -48,6 +53,19 @@ studentRouter.get(
 studentRouter.get(
   "/my-courses",
   asyncHandler(studentController.getStudentMyCourses),
+);
+
+studentRouter.get(
+  "/courses/:courseSlug/access",
+  validateParams(studentCourseSlugParamsSchema),
+  asyncHandler(studentController.getStudentCourseAccess),
+);
+
+studentRouter.post(
+  "/courses/:courseSlug/enroll",
+  validateParams(studentCourseSlugParamsSchema),
+  validateBody(emptyBodySchema),
+  asyncHandler(studentController.enrollStudentInFreeCourse),
 );
 
 studentRouter.get(

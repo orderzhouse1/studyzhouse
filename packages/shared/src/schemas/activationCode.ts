@@ -60,6 +60,8 @@ export type AdminActivationCodeUpdateBody = z.infer<
 
 export const studentActivationRedeemBodySchema = z.object({
   code: z.string().trim().min(6, "أدخل الكود."),
+  /** عند التفعيل من صفحة كورس — يُرفض الكود إن كان لكورس آخر */
+  courseId: z.string().cuid().optional(),
 });
 
 export type StudentActivationRedeemBody = z.infer<

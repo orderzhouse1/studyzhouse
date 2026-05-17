@@ -10,8 +10,24 @@ import {
 
 import { AppError } from "../lib/AppError.js";
 import { decimalToString } from "../lib/courseMapper.js";
+import { loadPlatformSettings } from "../lib/platformSettings.js";
+import { savePaymentProofBase64 } from "../lib/paymentProofStorage.js";
 import { prisma } from "../lib/prisma.js";
 import type { StudentPaymentRequestCreateBody } from "@studyhouse/shared";
+
+export async function getStudentPaymentInfo(
+  _req: Request,
+  res: Response,
+): Promise<void> {
+  const settings = await loadPlatformSettings();
+  res.status(200).json({
+    success: true,
+    data: {
+      cliqAlias: settings.cliqAlias,
+      cliqInstructions: settings.cliqInstructions,
+    },
+  });
+}
 
 export async function createPaymentRequestStudent(
   req: Request,
@@ -83,6 +99,14 @@ export async function createPaymentRequestStudent(
 
   const amountDec = new Prisma.Decimal(body.paidAmount);
 
+  let proofImageUrl: string | null = null;
+  if (body.proofImageBase64) {
+    proofImageUrl = await savePaymentProofBase64(body.proofImageBase64);
+  }
+
+  const ref = body.paymentReference?.trim() ?? "";
+  const note = body.note?.trim() ?? "";
+
   const row = await prisma.paymentRequest.create({
     data: {
       studentId,
@@ -91,8 +115,9 @@ export async function createPaymentRequestStudent(
       currency: course.currency,
       method: PaymentMethod.CLIQ,
       status: PaymentRequestStatus.PENDING,
-      transactionReference: body.paymentReference.trim(),
-      studentNote: body.note?.trim() ? body.note.trim() : null,
+      transactionReference: ref.length >= 4 ? ref : null,
+      proofImageUrl,
+      studentNote: note.length > 0 ? note : null,
       payerName: body.payerName?.trim() ? body.payerName.trim() : null,
       payerPhone: body.payerPhone?.trim() ? body.payerPhone.trim() : null,
     },

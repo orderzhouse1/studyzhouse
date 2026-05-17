@@ -1,8 +1,11 @@
 import type { Request, Response } from "express";
 import {
   CourseStatus,
+  EnrollmentSource,
   EnrollmentStatus,
   LessonStatus,
+  PaymentRequestStatus,
+  PricingType,
 } from "@prisma/client";
 
 import { AppError } from "../lib/AppError.js";
@@ -158,17 +161,32 @@ export async function getStudentMyCourses(
 ): Promise<void> {
   const studentId = req.auth!.userId;
 
-  const enrollments = await prisma.enrollment.findMany({
-    where: {
-      studentId,
-      status: EnrollmentStatus.ACTIVE,
-      course: { status: CourseStatus.PUBLISHED },
-    },
-    include: {
-      course: { include: { category: true } },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+  const [enrollments, pendingPayments] = await Promise.all([
+    prisma.enrollment.findMany({
+      where: {
+        studentId,
+        status: EnrollmentStatus.ACTIVE,
+        course: { status: CourseStatus.PUBLISHED },
+      },
+      include: {
+        course: { include: { category: true } },
+      },
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.paymentRequest.findMany({
+      where: {
+        studentId,
+        status: PaymentRequestStatus.PENDING,
+        course: { status: CourseStatus.PUBLISHED },
+      },
+      include: {
+        course: { include: { category: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+
+  const enrolledCourseIds = new Set(enrollments.map((e) => e.courseId));
 
   const items = await Promise.all(
     enrollments.map(async (e) => {
@@ -197,6 +215,7 @@ export async function getStudentMyCourses(
       });
 
       return {
+        kind: "enrolled" as const,
         enrollmentId: e.id,
         progressPercent: e.progressPercent,
         completedLessons,
@@ -221,9 +240,36 @@ export async function getStudentMyCourses(
     }),
   );
 
+  const pendingItems = pendingPayments
+    .filter((p) => !enrolledCourseIds.has(p.courseId))
+    .map((p) => {
+      const dto = mapCoursePublic({
+        ...p.course,
+        lessonCount: 0,
+      });
+      return {
+        kind: "pending_payment" as const,
+        paymentRequestId: p.id,
+        progressPercent: 0,
+        completedLessons: 0,
+        totalLessons: 0,
+        lastAccessedLesson: null,
+        course: {
+          id: dto.id,
+          title: dto.title,
+          slug: dto.slug,
+          thumbnailUrl: dto.thumbnailUrl,
+          category: dto.category,
+          pricingType: dto.pricingType,
+          level: dto.level,
+          estimatedDurationMinutes: dto.estimatedDurationMinutes,
+        },
+      };
+    });
+
   res.status(200).json({
     success: true,
-    data: { items },
+    data: { items: [...pendingItems, ...items] },
   });
 }
 
@@ -636,6 +682,133 @@ export async function postStudentLessonComplete(
       },
       enrollment: {
         progressPercent: freshEnrollment?.progressPercent ?? pct,
+      },
+    },
+  });
+}
+
+export async function getStudentCourseAccess(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const studentId = req.auth!.userId;
+  const { courseSlug } = req.validatedParams as { courseSlug: string };
+
+  const course = await prisma.course.findFirst({
+    where: { slug: courseSlug, status: CourseStatus.PUBLISHED },
+    select: { id: true, slug: true, pricingType: true },
+  });
+
+  if (!course) {
+    throw new AppError("COURSE_NOT_FOUND", "الكورس غير متاح أو غير منشور.", 404);
+  }
+
+  const enrollment = await prisma.enrollment.findUnique({
+    where: {
+      studentId_courseId: { studentId, courseId: course.id },
+    },
+    select: { id: true, status: true, progressPercent: true },
+  });
+
+  const pendingPaymentRequest = await prisma.paymentRequest.findFirst({
+    where: {
+      studentId,
+      courseId: course.id,
+      status: PaymentRequestStatus.PENDING,
+    },
+    select: { id: true, status: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const isEnrolled = enrollment?.status === EnrollmentStatus.ACTIVE;
+
+  res.status(200).json({
+    success: true,
+    data: {
+      courseId: course.id,
+      isEnrolled,
+      enrollmentId: isEnrolled ? enrollment!.id : null,
+      progressPercent: enrollment?.progressPercent ?? 0,
+      pendingPaymentRequest,
+      canEnrollFree:
+        course.pricingType === PricingType.FREE && !isEnrolled,
+    },
+  });
+}
+
+export async function enrollStudentInFreeCourse(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const studentId = req.auth!.userId;
+  const { courseSlug } = req.validatedParams as { courseSlug: string };
+
+  const course = await prisma.course.findFirst({
+    where: { slug: courseSlug, status: CourseStatus.PUBLISHED },
+    select: { id: true, slug: true, title: true, pricingType: true },
+  });
+
+  if (!course) {
+    throw new AppError("COURSE_NOT_FOUND", "الكورس غير متاح أو غير منشور.", 404);
+  }
+
+  if (course.pricingType !== PricingType.FREE) {
+    throw new AppError(
+      "NOT_FREE_COURSE",
+      "هذا الكورس مدفوع — استخدم طلب الدفع عبر CliQ أو رمز التفعيل.",
+      400,
+    );
+  }
+
+  const existing = await prisma.enrollment.findUnique({
+    where: {
+      studentId_courseId: { studentId, courseId: course.id },
+    },
+  });
+
+  if (existing?.status === EnrollmentStatus.ACTIVE) {
+    throw new AppError(
+      "ALREADY_ENROLLED",
+      "أنت مسجّل بالفعل في هذا الكورس.",
+      409,
+    );
+  }
+
+  let enrollment;
+  if (existing) {
+    enrollment = await prisma.enrollment.update({
+      where: { id: existing.id },
+      data: {
+        status: EnrollmentStatus.ACTIVE,
+        source: EnrollmentSource.FREE,
+        startedAt: existing.startedAt ?? new Date(),
+        completedAt: null,
+      },
+    });
+  } else {
+    enrollment = await prisma.enrollment.create({
+      data: {
+        studentId,
+        courseId: course.id,
+        source: EnrollmentSource.FREE,
+        status: EnrollmentStatus.ACTIVE,
+        startedAt: new Date(),
+      },
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    data: {
+      enrollment: {
+        id: enrollment.id,
+        status: enrollment.status,
+        progressPercent: enrollment.progressPercent,
+      },
+      course: {
+        id: course.id,
+        slug: course.slug,
+        title: course.title,
       },
     },
   });

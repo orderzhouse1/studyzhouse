@@ -1,10 +1,9 @@
+import { Suspense } from "react";
 import {
-  BookOpen,
   Check,
   Clock,
   Globe2,
   GraduationCap,
-  Layers,
   Monitor,
   Sparkles,
   Tag,
@@ -12,7 +11,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { CourseStudentActions } from "@/components/courses/course-student-actions";
+import { SameCategoryCoursesAsync } from "@/components/courses/same-category-courses-async";
+import { SameCategoryCoursesSkeleton } from "@/components/courses/same-category-courses-skeleton";
+import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { StudentHeader } from "@/components/layout/student-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { APP_NAME_AR } from "@studyhouse/shared";
@@ -104,25 +108,54 @@ function buildToolTags(course: PublicCourseDetail): string[] {
   return tags;
 }
 
+const INFO_BAR_ACCENT_STYLE: React.CSSProperties = {
+  color: "#ffffff",
+  backgroundColor: "hsl(222, 47%, 14%)",
+  backgroundImage: [
+    "radial-gradient(circle at 100% 100%, hsl(24, 95%, 53%, 0.35) 0%, transparent 48%)",
+    "linear-gradient(145deg, hsl(222, 47%, 13%) 0%, hsl(222, 47%, 20%) 52%, hsl(222, 47%, 15%) 100%)",
+  ].join(", "),
+};
+
 function InfoBarCell({
   title,
   children,
   className,
+  variant = "default",
 }: {
   title: string;
   children: React.ReactNode;
   className?: string;
+  variant?: "default" | "accent";
 }): React.ReactElement {
+  const accent = variant === "accent";
+
   return (
     <div
+      style={accent ? INFO_BAR_ACCENT_STYLE : undefined}
       className={cn(
         "flex min-w-0 flex-col justify-center gap-1 border-border/80 px-4 py-3.5 md:px-5 md:py-4",
         "border-b last:border-b-0 md:border-b-0 md:border-e md:last:border-e-0",
+        accent && "course-info-accent-cell border-e-white/15 md:rounded-e-[1.35rem]",
         className,
       )}
     >
-      <p className="text-sm font-bold text-heading">{title}</p>
-      <div className="text-xs leading-relaxed text-muted-foreground">
+      <p
+        className={cn(
+          "text-sm font-bold",
+          accent ? "text-white" : "text-heading",
+        )}
+      >
+        {title}
+      </p>
+      <div
+        className={cn(
+          "text-xs leading-relaxed",
+          accent
+            ? "text-white/85 [&_.font-semibold]:text-white [&_svg]:text-[hsl(24,95%,53%)]"
+            : "text-muted-foreground",
+        )}
+      >
         {children}
       </div>
     </div>
@@ -131,20 +164,40 @@ function InfoBarCell({
 
 export function CoursePublicDetail({
   course,
+  variant = "guest",
+  catalogBackHref,
+  hideShellHeader = false,
 }: {
   course: PublicCourseDetail;
+  variant?: "guest" | "student";
+  catalogBackHref?: string;
+  /** عند العرض داخل StudentShell لا نكرّر الهيدر */
+  hideShellHeader?: boolean;
 }): React.ReactElement {
   const outcomes = buildLearnOutcomes(course);
   const skills = buildSkillTags(course);
   const tools = buildToolTags(course);
   const duration = formatDuration(course.estimatedDurationMinutes);
   const price = priceLabel(course);
+  const isStudent = variant === "student";
+  const backHref = catalogBackHref ?? (isStudent ? "/student/explore" : "/courses");
+  const categoryHref = course.category
+    ? isStudent
+      ? `/student/explore?categorySlug=${encodeURIComponent(course.category.slug)}`
+      : `/courses?categorySlug=${encodeURIComponent(course.category.slug)}`
+    : isStudent
+      ? "/student/explore"
+      : "/courses";
   const ctaLabel =
     course.pricingType === "FREE" ? "ابدأ التعلّم مجاناً" : "إنشاء حساب للوصول";
 
   return (
-    <div className="min-h-screen bg-background">
-      <SiteHeader coursesActive />
+    <div className="min-h-screen overflow-x-hidden bg-background">
+      {isStudent && !hideShellHeader ? (
+        <StudentHeader />
+      ) : !isStudent ? (
+        <SiteHeader coursesActive />
+      ) : null}
 
       <section className="relative overflow-hidden bg-secondary/45 pb-16 pt-5 md:pb-20 md:pt-8">
         <div
@@ -178,7 +231,7 @@ export function CoursePublicDetail({
               <p className="mb-1.5 text-xs font-medium text-muted-foreground">
                 تصنيف:{" "}
                 <Link
-                  href={`/courses?categorySlug=${encodeURIComponent(course.category.slug)}`}
+                  href={categoryHref}
                   className="text-heading underline-offset-2 hover:underline"
                 >
                   {course.category.name}
@@ -206,29 +259,36 @@ export function CoursePublicDetail({
               ) : null}
             </div>
 
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button asChild size="lg" className="min-w-[11rem] shadow-brand">
-                <Link href="/signup">{ctaLabel}</Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-xl">
-                <Link href="/login">لديّ حساب — تسجيل الدخول</Link>
-              </Button>
-            </div>
-
-            <p className="mt-3 text-xs text-muted-foreground">
-              {course.pricingType === "FREE"
-                ? "بعد إنشاء الحساب يمكنك تفعيل الكورس من لوحة الاستكشاف والبدء فوراً."
-                : "الكورسات المدفوعة تتطلّب تفعيلاً عبر رمز أو طلب دفع بعد التسجيل."}
-            </p>
+            {isStudent ? (
+              <div className="mt-6">
+                <CourseStudentActions course={course} layout="hero" />
+              </div>
+            ) : (
+              <>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Button asChild size="lg" className="min-w-[11rem] shadow-brand">
+                    <Link href="/signup">{ctaLabel}</Link>
+                  </Button>
+                  <Button asChild variant="outline" size="lg" className="rounded-xl">
+                    <Link href="/login">لديّ حساب — تسجيل الدخول</Link>
+                  </Button>
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  {course.pricingType === "FREE"
+                    ? "بعد إنشاء الحساب يمكنك تفعيل الكورس من لوحة الاستكشاف والبدء فوراً."
+                    : "الكورسات المدفوعة تتطلّب تفعيلاً عبر رمز أو طلب دفع بعد التسجيل."}
+                </p>
+              </>
+            )}
           </div>
         </div>
 
         <div className="relative z-10 mx-auto -mb-6 mt-8 w-full max-w-6xl px-4 sm:px-6 md:-mb-8 md:mt-10 md:px-8">
           <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-card ring-1 ring-border/50 md:rounded-3xl">
             <div className="grid md:grid-cols-5">
-              <InfoBarCell title="محتوى الكورس">
-                <span className="flex items-center gap-1.5 font-semibold text-heading">
-                  <Video className="h-3.5 w-3.5 text-primary" aria-hidden />
+              <InfoBarCell title="محتوى الكورس" variant="accent">
+                <span className="flex items-center gap-1.5 font-semibold">
+                  <Video className="h-3.5 w-3.5 shrink-0" aria-hidden />
                   {course.lessonCount} درس فيديو
                 </span>
                 <span className="mt-0.5 block">
@@ -369,72 +429,25 @@ export function CoursePublicDetail({
           </div>
         </section>
 
-        <section
-          id="about"
-          className="scroll-mt-24 overflow-hidden rounded-3xl border border-border/80 bg-card shadow-card ring-1 ring-border/50"
-        >
-          <div className="border-b border-border/80 bg-secondary/25 px-6 py-4 md:px-8">
-            <h2 className="flex items-center gap-2 text-lg font-bold text-heading">
-              <BookOpen className="h-5 w-5 text-primary" aria-hidden />
-              عن هذا الكورس
-            </h2>
-          </div>
-          <div className="grid gap-8 p-6 md:grid-cols-[1fr_minmax(0,280px)] md:p-8">
-            <article className="space-y-4">
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                {course.description}
-              </p>
-            </article>
-            <aside className="space-y-4">
-              {course.thumbnailUrl ? (
-                <div className="overflow-hidden rounded-2xl border border-border/70">
-                  <img
-                    src={course.thumbnailUrl}
-                    alt=""
-                    className="aspect-video w-full object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="flex aspect-video items-center justify-center rounded-2xl border border-dashed border-border/80 bg-muted/30">
-                  <Layers className="h-8 w-8 text-muted-foreground/40" />
-                </div>
-              )}
-              <dl className="space-y-3 rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm">
-                <div className="flex justify-between gap-3">
-                  <dt className="text-muted-foreground">عدد الدروس</dt>
-                  <dd className="font-semibold text-heading">
-                    {course.lessonCount}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-muted-foreground">المدة</dt>
-                  <dd className="font-semibold text-heading">{duration}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-muted-foreground">تاريخ النشر</dt>
-                  <dd className="font-semibold text-heading">
-                    {course.publishedAt
-                      ? new Date(course.publishedAt).toLocaleDateString("ar")
-                      : "—"}
-                  </dd>
-                </div>
-              </dl>
-              <Button asChild className="w-full shadow-brand">
-                <Link href="/signup">{ctaLabel}</Link>
-              </Button>
-            </aside>
-          </div>
-        </section>
-
         <div className="flex flex-wrap justify-between gap-4 border-t border-border/80 pt-8">
           <Button asChild variant="outline" className="rounded-xl">
-            <Link href="/courses">← العودة للكتالوج</Link>
+            <Link href={backHref}>← العودة للكتالوج</Link>
           </Button>
-          <Button asChild variant="cyan" className="rounded-xl">
-            <Link href="/student/explore">استكشاف الكورسات (للطالب)</Link>
-          </Button>
+          {!isStudent ? (
+            <Button asChild variant="cyan" className="rounded-xl">
+              <Link href="/login?next=/student/explore">تسجيل الدخول كطالب</Link>
+            </Button>
+          ) : null}
         </div>
       </main>
+
+      {course.category ? (
+        <Suspense fallback={<SameCategoryCoursesSkeleton />}>
+          <SameCategoryCoursesAsync course={course} isStudent={isStudent} />
+        </Suspense>
+      ) : null}
+
+      {!isStudent ? <SiteFooter className="mt-2" /> : null}
     </div>
   );
 }

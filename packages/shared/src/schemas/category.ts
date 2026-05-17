@@ -37,6 +37,7 @@ export const adminCategoriesScopeSchema = z.enum(["active", "archived", "all"]);
 
 export const adminCategoriesQuerySchema = paginationQuerySchema.extend({
   scope: adminCategoriesScopeSchema.optional().default("all"),
+  search: z.string().trim().max(200).optional(),
 });
 
 export type AdminCategoriesQuery = z.infer<typeof adminCategoriesQuerySchema>;

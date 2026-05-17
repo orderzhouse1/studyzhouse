@@ -4,6 +4,8 @@ import type { HTMLAttributes, ReactElement } from "react";
 
 import { cn } from "@/lib/utils";
 
+const CONTENT_PAD = "px-4 sm:px-6 md:px-10 lg:px-14 xl:px-20";
+
 function Pulse({
   className,
   ...props
@@ -18,50 +20,54 @@ function Pulse({
 
 export function StudentDashboardSkeleton(): ReactElement {
   return (
-    <div className="space-y-8">
-      <div className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/12 via-card to-secondary/25 px-5 py-6 shadow-card ring-1 ring-primary/15 md:px-8 md:py-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-3">
-            <Pulse className="h-3 w-24" />
-            <Pulse className="h-9 max-w-md w-full" />
-            <Pulse className="h-4 max-w-xl w-full" />
-            <Pulse className="h-4 max-w-lg w-full" />
+    <div className="pb-16">
+      <Pulse className="h-36 w-full rounded-none sm:h-40" />
+      <div className={cn("mx-auto max-w-[min(100%,100rem)] space-y-10 py-10", CONTENT_PAD)}>
+        <div className="space-y-4">
+          <Pulse className="h-7 w-40" />
+          <div className="flex gap-4 overflow-hidden">
+            {[0, 1, 2].map((i) => (
+              <Pulse key={i} className="h-[5.5rem] w-[16.75rem] shrink-0 rounded-xl" />
+            ))}
           </div>
-          <Pulse className="hidden h-12 w-12 shrink-0 rounded-2xl md:block" />
+        </div>
+        <div className="space-y-4">
+          <Pulse className="h-7 w-48" />
+          <div className="flex flex-wrap gap-2">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <Pulse key={i} className="h-10 w-28 rounded-full" />
+            ))}
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <Pulse key={i} className="aspect-[4/5] rounded-2xl" />
+          ))}
         </div>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[0, 1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="rounded-2xl border-secondary/80 bg-card p-6 shadow-sm ring-1 ring-border/60"
-          >
-            <Pulse className="mb-3 h-3 w-28" />
-            <Pulse className="h-9 w-16" />
+    </div>
+  );
+}
+
+export function StudentMyCoursesSkeleton(): ReactElement {
+  return (
+    <div className="pb-16">
+      <Pulse className="h-36 w-full rounded-none sm:h-40" />
+      <div
+        className={cn(
+          "mx-auto max-w-[min(100%,100rem)] space-y-10 py-10",
+          CONTENT_PAD,
+        )}
+      >
+        <div className="space-y-4">
+          <Pulse className="h-7 w-40" />
+          <Pulse className="h-4 w-64 max-w-full" />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2, 3].map((i) => (
+              <Pulse key={i} className="h-[5.5rem] rounded-xl" />
+            ))}
           </div>
-        ))}
-      </div>
-      <div className="overflow-hidden rounded-3xl border-primary/25 bg-card shadow-card ring-1 ring-primary/15">
-        <div className="border-b border-border bg-gradient-to-l from-card to-secondary/30 px-6 py-4">
-          <Pulse className="h-5 w-40" />
-          <Pulse className="mt-2 h-4 w-64" />
         </div>
-        <div className="space-y-3 p-6">
-          <Pulse className="h-4 w-full max-w-md" />
-          <Pulse className="h-10 w-36 rounded-xl" />
-        </div>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        {[0, 1].map((i) => (
-          <div
-            key={i}
-            className="rounded-3xl border-border bg-card p-6 shadow-sm ring-1 ring-border/50"
-          >
-            <Pulse className="h-5 w-32" />
-            <Pulse className="mt-2 h-4 w-full max-w-xs" />
-            <Pulse className="mt-6 h-10 w-36 rounded-xl" />
-          </div>
-        ))}
       </div>
     </div>
   );
@@ -78,46 +84,33 @@ export function StudentCourseGridSkeleton({
         <Pulse className="h-8 w-48" />
         <Pulse className="mt-2 h-4 w-72 max-w-full" />
       </div>
-      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: cards }).map((_, i) => (
-          <div
-            key={i}
-            className="flex flex-col overflow-hidden rounded-3xl border-border shadow-card ring-1 ring-border/60"
-          >
-            <Pulse className="aspect-[16/9] w-full rounded-none" />
-            <div className="space-y-2 p-5 pt-4">
-              <Pulse className="h-3 w-20" />
-              <Pulse className="h-5 w-full" />
-              <Pulse className="h-4 w-28" />
-              <Pulse className="mt-3 h-10 w-full rounded-xl" />
-            </div>
-          </div>
+      <div className="grid gap-5 md:grid-cols-2">
+        {Array.from({ length: cards }, (_, i) => (
+          <Pulse key={i} className="h-80 rounded-3xl" />
         ))}
       </div>
     </div>
   );
 }
 
-export function ExploreCoursesSkeleton(): ReactElement {
+export function CoursesCatalogSkeleton(): ReactElement {
   return (
-    <div className="space-y-6">
-      <div>
-        <Pulse className="h-8 w-56" />
-        <Pulse className="mt-2 h-4 w-full max-w-xl" />
+    <div className="mx-auto w-full max-w-[min(100%,88rem)] px-4 pb-16 pt-2 sm:px-6 md:px-8 md:pt-4">
+      <div className="mb-8 space-y-2">
+        <Pulse className="h-9 w-48" />
+        <Pulse className="h-4 w-full max-w-md" />
       </div>
-      <div className="rounded-2xl border border-cyan-200/80 bg-cyan-50/40 p-4 ring-1 ring-cyan-200/60">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-1 items-start gap-3">
-            <Pulse className="h-10 w-10 shrink-0 rounded-xl" />
-            <div className="min-w-0 flex-1 space-y-2">
-              <Pulse className="h-4 w-40" />
-              <Pulse className="h-3 w-full max-w-sm" />
-            </div>
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
+        <Pulse className="h-80 w-full shrink-0 rounded-2xl lg:w-[17rem]" />
+        <div className="@container min-w-0 flex-1 space-y-5">
+          <Pulse className="h-12 w-full rounded-lg" />
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 @min-[36rem]:grid-cols-4">
+            {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <Pulse key={i} className="aspect-[4/5] rounded-2xl" />
+            ))}
           </div>
-          <Pulse className="h-10 w-28 shrink-0 rounded-xl" />
         </div>
       </div>
-      <StudentCourseGridSkeleton cards={6} />
     </div>
   );
 }
@@ -130,96 +123,32 @@ export function StudentPaymentsSkeleton(): ReactElement {
         <Pulse className="h-9 w-72 max-w-full" />
         <Pulse className="h-4 w-full max-w-2xl" />
       </div>
-      <div className="rounded-2xl border border-cyan-200/80 bg-cyan-50/40 p-6 ring-1 ring-cyan-200/60">
-        <Pulse className="h-5 w-40" />
-        <Pulse className="mt-2 h-4 w-full max-w-xl" />
-      </div>
-      <div className="rounded-3xl border-border bg-card p-6 shadow-card ring-1 ring-border/60">
-        <Pulse className="h-6 w-48" />
-        <Pulse className="mt-2 h-4 w-full max-w-lg" />
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2 sm:col-span-2">
-            <Pulse className="h-4 w-16" />
-            <Pulse className="h-10 w-full rounded-xl" />
-          </div>
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="space-y-2">
-              <Pulse className="h-4 w-24" />
-              <Pulse className="h-10 w-full rounded-xl" />
-            </div>
-          ))}
-          <div className="space-y-2 sm:col-span-2">
-            <Pulse className="h-4 w-20" />
-            <Pulse className="h-[72px] w-full rounded-xl" />
-          </div>
-        </div>
-        <Pulse className="mt-6 h-10 w-44 rounded-xl" />
-      </div>
-      <div className="space-y-4">
-        <Pulse className="h-7 w-40" />
-        <div className="grid gap-3">
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              className="rounded-2xl border-border bg-card p-4 shadow-sm ring-1 ring-border/50"
-            >
-              <Pulse className="h-5 w-48" />
-              <Pulse className="mt-2 h-3 w-full max-w-md" />
-            </div>
-          ))}
-        </div>
-      </div>
+      <Pulse className="h-32 w-full rounded-2xl" />
+      <Pulse className="h-64 w-full rounded-3xl" />
     </div>
   );
 }
 
 export function LearnCourseSkeleton(): ReactElement {
   return (
-    <div className="space-y-6 pb-10">
-      <div className="flex flex-col gap-4 rounded-3xl border border-border bg-card/90 px-4 py-4 shadow-sm ring-1 ring-border/60 md:flex-row md:items-center md:justify-between md:px-6">
-        <div className="min-w-0 flex-1 space-y-3">
-          <Pulse className="h-4 w-36" />
-          <Pulse className="h-8 w-full max-w-md" />
-          <Pulse className="h-4 w-full max-w-lg" />
-        </div>
-        <div className="w-full max-w-xs shrink-0 space-y-2 md:text-end">
-          <Pulse className="h-3 w-full" />
-          <Pulse className="h-2 w-full rounded-full" />
-          <Pulse className="h-3 w-32 ms-auto" />
-        </div>
-      </div>
-      <div className="lg:grid lg:grid-cols-[minmax(0,280px)_1fr] lg:items-start lg:gap-6">
-        <div className="mb-4 lg:mb-0">
-          <Pulse className="mb-3 h-10 w-full rounded-xl lg:hidden" />
-          <div className="rounded-3xl border border-border bg-card shadow-sm ring-1 ring-border/60">
-            <Pulse className="h-12 w-full rounded-none rounded-t-3xl" />
-            <div className="space-y-4 p-3">
-              {[0, 1].map((sec) => (
-                <div key={sec} className="space-y-2">
-                  <Pulse className="h-3 w-24 px-1" />
-                  {[0, 1, 2].map((les) => (
-                    <Pulse key={les} className="h-10 w-full rounded-xl" />
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="min-w-0 space-y-5">
-          <div className="overflow-hidden rounded-3xl border-border shadow-card ring-1 ring-border/60">
-            <div className="border-b border-border bg-gradient-to-l from-card to-secondary/25 px-4 py-3 md:px-6">
-              <Pulse className="h-3 w-20" />
-              <Pulse className="mt-2 h-7 w-full max-w-lg" />
-            </div>
-            <div className="space-y-4 p-4 md:p-6">
-              <Pulse className="aspect-video w-full rounded-2xl" />
-              <Pulse className="h-24 w-full rounded-2xl" />
-              <div className="flex flex-wrap gap-3">
-                <Pulse className="h-10 w-44 rounded-xl" />
-                <Pulse className="h-10 w-24 rounded-xl" />
-                <Pulse className="h-10 w-24 rounded-xl" />
-              </div>
-            </div>
+    <div
+      className={cn(
+        "mx-auto w-full max-w-[min(100%,100rem)] space-y-3 pb-10 pt-4 sm:pt-5 md:pb-12",
+        CONTENT_PAD,
+      )}
+    >
+      <Pulse className="h-7 w-36" />
+      <div className="lg:grid lg:grid-cols-[minmax(0,260px)_1fr] lg:gap-4">
+        <Pulse className="hidden h-80 rounded-2xl lg:block" />
+        <div className="min-w-0 space-y-3">
+          <Pulse className="h-11 w-full rounded-2xl" />
+          <Pulse className="h-28 w-full rounded-2xl" />
+          <Pulse className="mx-auto aspect-video w-full max-w-2xl rounded-lg" />
+          <Pulse className="h-10 w-full rounded-2xl" />
+          <div className="grid gap-3 md:grid-cols-2">
+            <Pulse className="h-36 rounded-2xl" />
+            <Pulse className="h-36 rounded-2xl" />
+            <Pulse className="h-28 rounded-2xl md:col-span-2" />
           </div>
         </div>
       </div>

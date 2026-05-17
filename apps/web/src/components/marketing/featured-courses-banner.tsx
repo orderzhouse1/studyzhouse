@@ -13,14 +13,17 @@ function courseTypeLabel(course: CourseCardCourse): string {
 
 function FeaturedStripCard({
   course,
+  detailBasePath = "/courses",
   className,
 }: {
   course: CourseCardCourse;
+  detailBasePath?: string;
   className?: string;
 }): React.ReactElement {
   return (
     <Link
-      href={`/courses/${course.slug}`}
+      href={`${detailBasePath}/${course.slug}`}
+      prefetch
       className={cn(
         "group flex min-w-0 w-full flex-col overflow-hidden rounded-2xl bg-card shadow-[0_8px_28px_-8px_hsl(222_47%_10%_/_0.35)] ring-1 ring-white/80 transition-transform duration-200 hover:-translate-y-0.5",
         className,
@@ -56,19 +59,53 @@ function FeaturedStripCard({
   );
 }
 
+const DEFAULT_COPY = {
+  eyebrow: "مختارات من الكتالوج",
+  title: "كورسات جاهزة للاستكشاف",
+  description: "اختر كورسًا وابدأ التعلّم من حيث يناسبك.",
+  exploreHref: "/courses",
+  exploreLabel: "عرض الكل",
+} as const;
+
 /**
  * شريط مختارات الكتالوج — عرض كامل، أربع بطاقات ظاهرة دون تمرير أفقي.
  */
 export function FeaturedCoursesBanner({
   courses,
+  eyebrow = DEFAULT_COPY.eyebrow,
+  title = DEFAULT_COPY.title,
+  description = DEFAULT_COPY.description,
+  exploreHref = DEFAULT_COPY.exploreHref,
+  exploreLabel = DEFAULT_COPY.exploreLabel,
+  showExploreButton = true,
+  detailBasePath = "/courses",
+  sectionId = "featured",
+  headingId = "featured-banner-heading",
+  fullBleed = true,
 }: {
   courses: CourseCardCourse[];
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+  exploreHref?: string;
+  exploreLabel?: string;
+  showExploreButton?: boolean;
+  detailBasePath?: string;
+  sectionId?: string;
+  headingId?: string;
+  /** false داخل صفحات بعرض محدود — يمنع السكرول الأفقي */
+  fullBleed?: boolean;
 }): React.ReactElement {
   return (
     <section
-      id="featured"
-      className="relative w-screen max-w-[100vw] scroll-mt-24 [margin-inline:calc(50%-50vw)]"
-      aria-labelledby="featured-banner-heading"
+      id={sectionId}
+      className={cn(
+        "relative scroll-mt-24 overflow-x-hidden",
+        fullBleed
+          ? "w-screen max-w-[100vw] [margin-inline:calc(50%-50vw)]"
+          : "w-full",
+      )}
+      aria-labelledby={headingId}
     >
       <div className="mx-auto w-full max-w-[min(100%,88rem)] px-4 sm:px-6 md:px-8">
         <div
@@ -88,35 +125,41 @@ export function FeaturedCoursesBanner({
           />
 
           <div className="relative flex flex-col gap-5 lg:flex-row lg:items-stretch lg:gap-6 xl:gap-8">
-            {/* RTL: نص وزر يمين */}
             <div className="flex shrink-0 flex-col justify-center text-start lg:w-[15.5rem] xl:w-[17rem]">
               <p className="text-xs font-semibold tracking-wide text-primary sm:text-sm">
-                مختارات من الكتالوج
+                {eyebrow}
               </p>
               <h2
-                id="featured-banner-heading"
+                id={headingId}
                 className="mt-2 text-balance text-lg font-bold leading-tight text-white sm:text-xl xl:text-2xl"
               >
-                كورسات جاهزة للاستكشاف
+                {title}
               </h2>
               <p className="mt-2 text-pretty text-xs leading-relaxed text-white/80 sm:text-sm">
-                اختر كورسًا وابدأ التعلّم من حيث يناسبك.
+                {description}
               </p>
-              <Button
-                asChild
-                className="mt-4 h-10 w-fit rounded-xl border-2 border-white/90 bg-white px-4 text-sm font-semibold text-[hsl(222_47%_12%)] shadow-sm hover:bg-white/95 hover:text-[hsl(222_47%_10%)] sm:mt-5 sm:h-11 sm:px-5"
-              >
-                <Link href="/courses">عرض الكل</Link>
-              </Button>
+              {showExploreButton ? (
+                <Button
+                  asChild
+                  className="mt-4 h-10 w-fit rounded-xl border-2 border-white/90 bg-white px-4 text-sm font-semibold text-[hsl(222_47%_12%)] shadow-sm hover:bg-white/95 hover:text-[hsl(222_47%_10%)] sm:mt-5 sm:h-11 sm:px-5"
+                >
+                  <Link href={exploreHref} prefetch>
+                    {exploreLabel}
+                  </Link>
+                </Button>
+              ) : null}
             </div>
 
-            {/* أربع بطاقات — شبكة ثابتة بدون سكرول */}
             <div
               className="grid min-w-0 flex-1 grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4 lg:gap-3.5 xl:gap-4"
               role="list"
             >
               {courses.map((course) => (
-                <FeaturedStripCard key={course.id} course={course} />
+                <FeaturedStripCard
+                  key={course.id}
+                  course={course}
+                  detailBasePath={detailBasePath}
+                />
               ))}
             </div>
           </div>
@@ -125,3 +168,4 @@ export function FeaturedCoursesBanner({
     </section>
   );
 }
+
