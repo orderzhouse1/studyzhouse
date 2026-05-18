@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { AdminPaymentRequestDetailPanel } from "@/components/admin/admin-payment-request-detail-panel";
+type Props = { params: Promise<{ id: string }> };
 
-export const metadata: Metadata = {
-  title: "مراجعة طلب دفع",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "مراجعة طلب دفع",
+  };
+}
 
 export default async function AdminPaymentRequestDetailPage({
   params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<React.ReactElement> {
+}: Props): Promise<never> {
   const { id } = await params;
-  return <AdminPaymentRequestDetailPanel paymentRequestId={id} />;
+  redirect(`/admin/payment-requests?edit=${encodeURIComponent(id)}`);
 }

@@ -363,15 +363,15 @@ export function LearnCourseClient({
             <Button
               type="button"
               size="sm"
-              className="h-8 rounded-lg px-3 text-xs shadow-brand sm:order-3"
+              className="h-8 rounded-lg px-3 text-xs shadow-brand sm:order-1"
               disabled={!d.navigation.nextLessonId}
               onClick={() =>
                 d.navigation.nextLessonId &&
                 goLesson(d.navigation.nextLessonId)
               }
             >
+              <ArrowRight className="h-3.5 w-3.5" aria-hidden />
               التالي
-              <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
             </Button>
             <p className="text-center text-[0.6875rem] text-muted-foreground sm:order-2">
               تنقّل سريع بين الدروس
@@ -381,38 +381,40 @@ export function LearnCourseClient({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-8 rounded-lg px-3 text-xs sm:order-1"
+                className="h-8 rounded-lg px-3 text-xs sm:order-3"
                 onClick={() => goLesson(d.navigation.previousLessonId!)}
               >
-                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
                 السابق
+                <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
               </Button>
             ) : (
-              <span className="text-center text-[0.6875rem] text-muted-foreground sm:order-1 sm:text-end">
+              <span className="text-center text-[0.6875rem] text-muted-foreground sm:order-3 sm:text-end">
                 لا يوجد درس سابق
               </span>
             )}
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/50 p-4 ring-1 ring-emerald-100/80">
-              <h3 className="text-xs font-bold text-heading">
-                حالة إنجاز الدرس
-              </h3>
-              <p className="mt-1.5 text-[0.6875rem] leading-relaxed text-muted-foreground">
-                {completed
-                  ? "أكملت هذا الدرس. يمكنك الانتقال للدرس التالي."
-                  : "بعد مشاهدة المحتوى، سجّل إكمال الدرس لتحديث تقدّمك."}
-              </p>
-              <p className="mt-2 text-[0.6875rem] font-medium text-emerald-800">
-                {d.stats.progressPercent}% — {d.stats.completedLessons}/
-                {d.stats.totalLessons} درسًا مكتملًا
-              </p>
+          <div className="flex flex-col gap-3">
+            <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/50 p-4 ring-1 ring-emerald-100/80 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-xs font-bold text-heading">
+                  حالة إنجاز الدرس
+                </h3>
+                <p className="mt-1.5 text-[0.6875rem] leading-relaxed text-muted-foreground">
+                  {completed
+                    ? "أكملت هذا الدرس. يمكنك الانتقال للدرس التالي."
+                    : "بعد مشاهدة المحتوى، سجّل إكمال الدرس لتحديث تقدّمك."}
+                </p>
+                <p className="mt-2 text-[0.6875rem] font-medium text-emerald-800">
+                  {d.stats.progressPercent}% — {d.stats.completedLessons}/
+                  {d.stats.totalLessons} درسًا مكتملًا
+                </p>
+              </div>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="mt-3 h-8 w-full rounded-lg border-emerald-300/80 bg-card text-xs hover:bg-emerald-50"
+                className="mt-3 h-8 w-full shrink-0 rounded-lg border-emerald-300/80 bg-card text-xs hover:bg-emerald-50 sm:mt-0 sm:w-auto sm:min-w-[11rem]"
                 disabled={busy || completed}
                 onClick={() => void markComplete()}
               >
@@ -432,35 +434,35 @@ export function LearnCourseClient({
               </Button>
             </div>
 
-            <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm ring-1 ring-border/50">
+            <div className="w-full rounded-2xl border border-border/80 bg-card p-4 shadow-sm ring-1 ring-border/50">
               <div className="flex flex-wrap items-center gap-1.5">
-                <h3 className="text-xs font-bold text-heading">عن هذا الدرس</h3>
+                <h3 className="text-sm font-bold text-heading">عن هذا الدرس</h3>
                 {vid ? (
-                  <span className="rounded bg-secondary px-1.5 py-0.5 text-[9px] font-semibold text-secondary-foreground">
+                  <span className="rounded bg-secondary px-2 py-0.5 text-[0.625rem] font-semibold text-secondary-foreground">
                     فيديو
                   </span>
                 ) : null}
               </div>
               {d.currentLesson.description ? (
-                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
                   {d.currentLesson.description}
                 </p>
               ) : (
-                <p className="mt-2 text-xs text-muted-foreground">
+                <p className="mt-2.5 text-sm text-muted-foreground">
                   لا يوجد وصف إضافي لهذا الدرس.
                 </p>
               )}
               <div className="mt-3">
-                <p className="mb-1.5 text-[0.6875rem] font-semibold text-heading">
+                <p className="mb-1.5 text-xs font-semibold text-heading">
                   الملفات
                 </p>
-                <div className="rounded-lg border border-dashed border-border/80 bg-muted/30 px-2.5 py-4 text-center text-[0.6875rem] text-muted-foreground">
+                <div className="rounded-lg border border-dashed border-border/80 bg-muted/30 px-2.5 py-4 text-center text-xs text-muted-foreground">
                   لا توجد ملفات مرفقة لهذا الدرس.
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm ring-1 ring-border/50 md:col-span-2">
+            <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm ring-1 ring-border/50">
               <h3 className="text-xs font-bold text-heading">نظرة الكورس</h3>
               <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                 {d.course.shortDescription ??

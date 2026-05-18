@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-
-import { AdminActivationCodeNewForm } from "@/components/admin/admin-activation-code-new-form";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "كود تفعيل جديد",
 };
 
-export default function AdminActivationCodeNewPage(): React.ReactElement {
-  return <AdminActivationCodeNewForm />;
+export default function AdminActivationCodeNewPage(): never {
+  redirect("/admin/activation-codes?new=1");
 }
