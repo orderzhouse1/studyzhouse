@@ -17,6 +17,13 @@ import { Button } from "@/components/ui/button";
 import { APP_NAME_AR } from "@studyhouse/shared";
 import { cn } from "@/lib/utils";
 
+/** خلفية الإطار الخارجي — رمادي فاتح موحّد (خارج اللوحة البيضاء) */
+const WORKSPACE_CANVAS_CLASS = "relative bg-[hsl(220_14%_88%)]";
+
+/** الشريط الجانبي الرئيسي — كحلي العلامة (ليس أسود) */
+const WORKSPACE_SIDEBAR_CLASS =
+  "bg-[linear-gradient(180deg,hsl(222_47%_19%)_0%,hsl(222_47%_16%)_45%,hsl(222_47%_14%)_100%)] shadow-[inset_0_1px_0_hsl(0_0%_100%_/_0.08)]";
+
 export function AdminWorkspaceShell({
   role,
   children,
@@ -37,26 +44,25 @@ export function AdminWorkspaceShell({
 
   return (
     <div
-      className="flex h-dvh max-h-dvh overflow-hidden"
-      style={{
-        background:
-          "linear-gradient(145deg, hsl(222 47% 8%) 0%, hsl(222 47% 12%) 40%, hsl(265 35% 14%) 100%)",
-      }}
+      className={cn(
+        "flex h-dvh max-h-dvh overflow-hidden",
+        WORKSPACE_CANVAS_CLASS,
+      )}
       dir="rtl"
     >
       {/* الشريط الجانبي الرئيسي */}
       <aside
         className={cn(
-          "fixed inset-y-0 end-0 z-50 flex h-dvh max-h-dvh w-[min(100%,17.5rem)] flex-col border-s border-white/10 shadow-2xl transition-transform duration-200 lg:static lg:z-auto lg:h-full lg:w-[15.5rem] lg:translate-x-0",
-          "bg-[hsl(222_47%_10%_/_0.97)] backdrop-blur-md",
+          "fixed inset-y-0 end-0 z-50 flex h-dvh max-h-dvh w-[min(100%,17.5rem)] flex-col border-s border-white/10 shadow-[0_8px_40px_-12px_hsl(222_47%_14%_/_0.35)] transition-transform duration-200 lg:static lg:z-10 lg:h-full lg:w-[15.5rem] lg:translate-x-0",
+          WORKSPACE_SIDEBAR_CLASS,
           mobileOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0",
         )}
       >
-        <div className="shrink-0 border-b border-white/10 px-5 py-6">
+        <div className="shrink-0 border-b border-white/12 px-5 py-6">
           <p className="text-xs font-semibold tracking-wide text-primary">
             {workspaceTitle}
           </p>
-          <p className="mt-1 text-sm font-medium text-white/55">
+          <p className="mt-1 text-sm font-medium text-white/70">
             {workspaceSubtitle}
           </p>
         </div>
@@ -118,22 +124,22 @@ export function AdminWorkspaceShell({
       ) : null}
 
       {/* منطقة المحتوى — ارتفاع الشاشة، التمرير داخل البطاقة فقط */}
-      <div className="flex h-dvh max-h-dvh min-w-0 flex-1 flex-col overflow-hidden lg:me-0">
+      <div className="relative z-10 flex h-dvh max-h-dvh min-w-0 flex-1 flex-col overflow-hidden lg:me-0">
         <div className="flex shrink-0 items-center justify-between gap-3 px-4 py-3 lg:hidden">
           <button
             type="button"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border/80 bg-white/90 text-heading shadow-sm"
             onClick={() => setMobileOpen(true)}
             aria-label="فتح القائمة"
           >
             <Menu className="h-5 w-5" />
           </button>
-          <p className="text-sm font-bold text-white">
+          <p className="text-sm font-bold text-heading">
             {sitePreview?.title ?? workspaceTitle}
           </p>
           <button
             type="button"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white lg:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border/80 bg-white/90 text-heading shadow-sm lg:hidden"
             onClick={() => setMobileOpen(false)}
             aria-label="إغلاق"
           >
@@ -142,7 +148,7 @@ export function AdminWorkspaceShell({
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-3 pt-0 sm:px-4 sm:pb-4 lg:px-6 lg:pb-6 lg:pt-6">
-          <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-[0_24px_64px_-24px_hsl(222_47%_8%_/_0.65)] ring-1 ring-white/20">
+          <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-[0_20px_56px_-20px_hsl(222_47%_14%_/_0.22)] ring-1 ring-border/50">
             {/* شريط علوي داخل البطاقة */}
             <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[hsl(222_47%_12%)] px-4 sm:px-6">
               {isSitePreview && sitePreview ? (

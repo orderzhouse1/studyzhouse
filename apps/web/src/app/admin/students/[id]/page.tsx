@@ -1,18 +1,17 @@
 import type { Metadata } from "next";
-
-import { AdminStudentDetailClient } from "@/components/admin/admin-student-detail-client";
+import { redirect } from "next/navigation";
 
 type Props = { params: Promise<{ id: string }> };
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: "تفاصيل الطالب",
+    title: "تعديل الطالب",
   };
 }
 
 export default async function AdminStudentDetailPage({
   params,
-}: Props): Promise<React.ReactElement> {
+}: Props): Promise<never> {
   const { id } = await params;
-  return <AdminStudentDetailClient studentId={id} />;
+  redirect(`/admin/students?edit=${encodeURIComponent(id)}`);
 }
