@@ -88,6 +88,7 @@ export function ttlMsForStudentGet(path: string): number | null {
   const base = path.split("?")[0] ?? path;
   if (base === "/auth/me") return 60_000;
   if (base.startsWith("/student/dashboard")) return 30_000;
+  if (base.startsWith("/student/profile")) return 30_000;
   if (base.startsWith("/student/my-courses")) return 30_000;
   if (base.startsWith("/student/payment-requests")) return 30_000;
   if (base.startsWith("/courses")) return 45_000;

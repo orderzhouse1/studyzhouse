@@ -11,6 +11,7 @@ import {
   Zap,
 } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { CourseCardCourse } from "@/components/courses/course-card";
@@ -19,8 +20,11 @@ import {
   MyCourseCard,
   STUDENT_CONTENT_PAD,
 } from "@/components/student/student-dashboard-ui";
+import { StudentOnboardingPrompt } from "@/components/student/student-onboarding-prompt";
 import { StudentDashboardSkeleton } from "@/components/student/student-page-skeletons";
 import { Button } from "@/components/ui/button";
+import { fetchStudentProfile } from "@/lib/student-profile-api";
+import type { StudentProfileDto } from "@studyhouse/shared";
 import {
   StudentApiError,
   studentFetchJsonCached,
@@ -135,7 +139,9 @@ function DashboardSection({
 }
 
 export function StudentDashboard(): React.ReactElement {
+  const searchParams = useSearchParams();
   const [userName, setUserName] = useState<string>("");
+  const [profile, setProfile] = useState<StudentProfileDto | null>(null);
   const [dash, setDash] = useState<DashboardResponse["data"] | null>(null);
   const [myCourses, setMyCourses] = useState<MyCoursesResponse["data"]["items"]>(
     [],
@@ -151,7 +157,7 @@ export function StudentDashboard(): React.ReactElement {
     setLoading(true);
     setError(null);
     try {
-      const [me, dashJson, mine, pub, cats] = await Promise.all([
+      const [me, dashJson, mine, pub, cats, prof] = await Promise.all([
         studentFetchJsonCached<MeResponse>("/auth/me"),
         studentFetchJsonCached<DashboardResponse>("/student/dashboard"),
         studentFetchJsonCached<MyCoursesResponse>("/student/my-courses"),
@@ -165,8 +171,10 @@ export function StudentDashboard(): React.ReactElement {
               data: { items: [] },
             }) satisfies CategoriesResponse,
         ),
+        fetchStudentProfile().catch(() => null),
       ]);
       setUserName(firstName(me.data.user.fullName));
+      setProfile(prof);
       setDash(dashJson.data);
       setMyCourses(mine.data.items);
       setCatalog(pub.data.items);
@@ -213,6 +221,22 @@ export function StudentDashboard(): React.ReactElement {
     () => catalog.filter(isUniversityCourse).slice(0, 4),
     [catalog],
   );
+
+  const popularDescription = useMemo(() => {
+    const parts: string[] = [];
+    if (profile?.interests.length) {
+      parts.push("اخترنا لك كورسات قريبة من اهتماماتك");
+    }
+    if (profile?.currentLevel) {
+      parts.push("سنراعي مستواك الحالي في الاقتراحات");
+    }
+    if (parts.length === 0) {
+      return "كورسات يختارها المتعلمون كثيراً على المنصة.";
+    }
+    return parts.join(" — ");
+  }, [profile]);
+
+  const onboardingDone = searchParams.get("onboarding") === "done";
 
   if (loading && !dash) {
     return <StudentDashboardSkeleton />;
@@ -336,6 +360,22 @@ export function StudentDashboard(): React.ReactElement {
       </section>
 
       <div className={cn("mx-auto max-w-[min(100%,100rem)] space-y-14 py-10 md:py-12", STUDENT_CONTENT_PAD)}>
+        {onboardingDone ? (
+          <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-900">
+            تم حفظ ملفك التعليمي — سنستخدمه لتحسين اقتراحات الكورسات.
+          </div>
+        ) : null}
+
+        {profile?.needsOnboarding ? (
+          <StudentOnboardingPrompt
+            onDismiss={() =>
+              setProfile((p) =>
+                p ? { ...p, needsOnboarding: false } : p,
+              )
+            }
+          />
+        ) : null}
+
         {myCourses.length > 0 ? (
           <DashboardSection
             title="كورساتي"
@@ -388,12 +428,16 @@ export function StudentDashboard(): React.ReactElement {
         {popular.length > 0 ? (
           <DashboardSection
             title="الأكثر شيوعاً"
-            description="كورسات يختارها المتعلمون كثيراً على المنصة."
+            description={popularDescription}
             exploreHref="/student/explore"
           >
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {popular.map((course) => (
-                <CatalogCourseCard key={course.id} course={course} />
+                <CatalogCourseCard
+                  key={course.id}
+                  course={course}
+                  detailBasePath="/student/courses"
+                />
               ))}
             </div>
           </DashboardSection>

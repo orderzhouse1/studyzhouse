@@ -8,10 +8,11 @@ import {
   Loader2,
   LogOut,
   Settings,
+  ShoppingBag,
   User,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { STUDENT_AVATAR_GRADIENT_CLASS } from "@/components/student/student-dashboard-ui";
@@ -23,6 +24,22 @@ type MeResponse = {
   success: true;
   data: { user: AuthUser };
 };
+
+const MENU_LINKS: Array<{
+  href: string;
+  label: string;
+  icon: React.ElementType;
+}> = [
+  { href: "/student/profile", label: "الملف الشخصي", icon: User },
+  { href: "/student/help", label: "مركز التعليمات", icon: HelpCircle },
+  { href: "/student/settings", label: "الإعدادات", icon: Settings },
+  { href: "/student/purchases", label: "مشترياتي", icon: ShoppingBag },
+];
+
+const MENU_SOON: Array<{ label: string; icon: React.ElementType }> = [
+  { label: "الإشعارات", icon: Bell },
+  { label: "الإنجازات", icon: Award },
+];
 
 function userInitial(fullName: string): string {
   const trimmed = fullName.trim();
@@ -101,21 +118,6 @@ function ProfileAvatar({
   );
 }
 
-const MENU_LINKS: Array<{
-  href: string;
-  label: string;
-  icon: React.ElementType;
-}> = [
-  { href: "/student", label: "الملف الشخصي", icon: User },
-  { href: "/#home-faq-heading", label: "مركز التعليمات", icon: HelpCircle },
-];
-
-const MENU_SOON: Array<{ label: string; icon: React.ElementType }> = [
-  { label: "الإعدادات", icon: Settings },
-  { label: "التحديثات", icon: Bell },
-  { label: "الإنجازات", icon: Award },
-];
-
 export function StudentHeaderActions({
   className,
   layout = "inline",
@@ -124,6 +126,7 @@ export function StudentHeaderActions({
   layout?: "inline" | "stacked";
 }): React.ReactElement {
   const router = useRouter();
+  const pathname = usePathname();
   const profileMenuId = useId();
   const notifMenuId = useId();
   const profileWrapRef = useRef<HTMLDivElement>(null);
@@ -178,6 +181,10 @@ export function StudentHeaderActions({
 
   const stacked = layout === "stacked";
 
+  function isActive(href: string): boolean {
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
   return (
     <div
       className={cn(
@@ -187,7 +194,6 @@ export function StudentHeaderActions({
         className,
       )}
     >
-      {/* إشعارات */}
       <div ref={notifWrapRef} className="relative">
         <button
           type="button"
@@ -218,13 +224,12 @@ export function StudentHeaderActions({
           >
             <p className="text-sm font-semibold text-heading">الإشعارات</p>
             <p className="mt-3 text-center text-sm text-muted-foreground">
-              لا إشعارات جديدة حالياً.
+              الإشعارات قريبًا.
             </p>
           </div>
         ) : null}
       </div>
 
-      {/* الملف الشخصي */}
       <div ref={profileWrapRef} className="relative">
         <button
           type="button"
@@ -291,14 +296,22 @@ export function StudentHeaderActions({
             <nav className="py-1" aria-label="قائمة الحساب">
               {MENU_LINKS.map(({ href, label, icon: Icon }) => (
                 <Link
-                  key={href + label}
+                  key={href}
                   href={href}
                   role="menuitem"
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-heading transition hover:bg-muted/60"
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-2.5 text-sm transition hover:bg-muted/60",
+                    isActive(href)
+                      ? "bg-primary/5 font-semibold text-primary"
+                      : "text-heading",
+                  )}
                   onClick={closeAll}
                 >
                   <Icon
-                    className="h-4 w-4 shrink-0 text-muted-foreground"
+                    className={cn(
+                      "h-4 w-4 shrink-0",
+                      isActive(href) ? "text-primary" : "text-muted-foreground",
+                    )}
                     aria-hidden
                   />
                   {label}
@@ -316,7 +329,7 @@ export function StudentHeaderActions({
                     {label}
                   </span>
                   <span className="text-[0.65rem] font-medium text-muted-foreground">
-                    قريباً
+                    قريبًا
                   </span>
                 </span>
               ))}

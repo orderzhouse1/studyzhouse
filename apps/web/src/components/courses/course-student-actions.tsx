@@ -225,7 +225,7 @@ export function CourseStudentActions({
       className={primaryCtaClass(layout)}
       onClick={() => setCliqOpen(true)}
     >
-      طلب تفعيل عبر CliQ
+      شراء عبر كليك
     </Button>
   );
 
