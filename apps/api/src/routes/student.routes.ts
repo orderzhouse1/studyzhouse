@@ -3,6 +3,8 @@ import { Router } from "express";
 import * as studentActivationRedeemController from "../controllers/studentActivationRedeem.controller.js";
 import * as studentController from "../controllers/student.controller.js";
 import * as studentPaymentRequestController from "../controllers/studentPaymentRequest.controller.js";
+import * as studentProfileController from "../controllers/studentProfile.controller.js";
+import * as studentPurchasesController from "../controllers/studentPurchases.controller.js";
 import { activationRedeemRateLimiter } from "../middlewares/activationRedeemRateLimiter.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import {
@@ -18,9 +20,40 @@ import {
   studentCourseSlugParamsSchema,
   studentLearnQuerySchema,
   studentPaymentRequestCreateBodySchema,
+  studentOnboardingCompleteBodySchema,
+  studentOnboardingSkipBodySchema,
+  studentProfilePatchBodySchema,
 } from "@studyhouse/shared";
 
 export const studentRouter = Router();
+
+studentRouter.get(
+  "/profile",
+  asyncHandler(studentProfileController.getStudentProfile),
+);
+
+studentRouter.patch(
+  "/profile",
+  validateBody(studentProfilePatchBodySchema),
+  asyncHandler(studentProfileController.patchStudentProfile),
+);
+
+studentRouter.post(
+  "/onboarding/complete",
+  validateBody(studentOnboardingCompleteBodySchema),
+  asyncHandler(studentProfileController.completeStudentOnboardingHandler),
+);
+
+studentRouter.post(
+  "/onboarding/skip",
+  validateBody(studentOnboardingSkipBodySchema),
+  asyncHandler(studentProfileController.skipStudentOnboardingHandler),
+);
+
+studentRouter.get(
+  "/purchases",
+  asyncHandler(studentPurchasesController.listStudentPurchases),
+);
 
 studentRouter.post(
   "/activation-codes/redeem",

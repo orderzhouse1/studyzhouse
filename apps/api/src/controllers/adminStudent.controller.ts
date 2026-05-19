@@ -17,6 +17,7 @@ import { hashPassword } from "../lib/password.js";
 import { prismaSkipTake } from "../lib/pagination.js";
 import { prisma } from "../lib/prisma.js";
 import { writeAuditLog } from "../services/audit.service.js";
+import { getStudentProfileSummaryForAdmin } from "../services/studentProfile.service.js";
 import type {
   AdminEnrollmentCreateBody,
   AdminStudentCreateBody,
@@ -308,12 +309,15 @@ export async function getStudentAdmin(
     };
   });
 
+  const learningProfile = await getStudentProfileSummaryForAdmin(studentId);
+
   res.status(200).json({
     success: true,
     data: {
       student: mapStudentSafe(user),
       enrollments,
       availableCourses,
+      learningProfile,
     },
   });
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 
@@ -24,10 +23,11 @@ export function GoogleAuthButton(): React.ReactElement {
       variant="outline"
       className="h-10 w-full rounded-xl border-border/80 bg-background text-sm font-medium shadow-sm"
     >
-      <Link href={href}>
+      {/* <a> وليس Link — OAuth يعيد 302 إلى Google؛ Link يحاول fetch كـ RSC فيظهر خطأ CORS لحظي */}
+      <a href={href}>
         <GoogleIcon />
         المتابعة عبر Google
-      </Link>
+      </a>
     </Button>
   );
 }

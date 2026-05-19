@@ -9,6 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AdminApiError, adminFetchJson } from "@/lib/courses-client-api";
 import { cn } from "@/lib/utils";
+import type { StudentProfileDto } from "@studyhouse/shared";
+import {
+  STUDENT_INTEREST_OPTIONS,
+  STUDENT_LEARNING_GOAL_OPTIONS,
+  STUDENT_LEVEL_OPTIONS,
+} from "@studyhouse/shared";
 
 type StudentStatus = "ACTIVE" | "PENDING" | "SUSPENDED" | "DELETED";
 
@@ -46,8 +52,16 @@ type DetailResponse = {
     };
     enrollments: EnrollmentRow[];
     availableCourses: AvailableCourse[];
+    learningProfile: StudentProfileDto | null;
   };
 };
+
+function profileLabel(
+  id: string,
+  options: Array<{ id: string; labelAr: string }>,
+): string {
+  return options.find((o) => o.id === id)?.labelAr ?? id;
+}
 
 type CreateResponse = {
   success: true;
@@ -364,16 +378,62 @@ export function AdminStudentComposer({
         {!loadingDetail ? (
           <>
             {isEditMode && detail ? (
-              <p className="text-[0.625rem] text-muted-foreground">
-                <span className="font-semibold text-heading">
-                  {detail.student.email}
-                </span>
-                {" · "}
-                {STATUS_LABEL[detail.student.status]}
-                {detail.student.lastLoginAt
-                  ? ` · آخر دخول ${new Date(detail.student.lastLoginAt).toLocaleDateString("ar-JO")}`
-                  : " · لم يسجّل دخولًا بعد"}
-              </p>
+              <>
+                <p className="text-[0.625rem] text-muted-foreground">
+                  <span className="font-semibold text-heading">
+                    {detail.student.email}
+                  </span>
+                  {" · "}
+                  {STATUS_LABEL[detail.student.status]}
+                  {detail.student.lastLoginAt
+                    ? ` · آخر دخول ${new Date(detail.student.lastLoginAt).toLocaleDateString("ar-JO")}`
+                    : " · لم يسجّل دخولًا بعد"}
+                </p>
+                {detail.learningProfile &&
+                (detail.learningProfile.interests.length > 0 ||
+                  detail.learningProfile.currentLevel ||
+                  detail.learningProfile.country) ? (
+                  <div className="rounded-md border border-border/60 bg-muted/20 px-2.5 py-2 text-[0.625rem] text-muted-foreground">
+                    <p className="font-semibold text-heading">
+                      الملف التعليمي (للقراءة فقط)
+                    </p>
+                    {detail.learningProfile.currentLevel ? (
+                      <p className="mt-1">
+                        المستوى:{" "}
+                        {profileLabel(
+                          detail.learningProfile.currentLevel,
+                          STUDENT_LEVEL_OPTIONS,
+                        )}
+                      </p>
+                    ) : null}
+                    {detail.learningProfile.interests.length > 0 ? (
+                      <p className="mt-0.5">
+                        الاهتمامات:{" "}
+                        {detail.learningProfile.interests
+                          .map((id) =>
+                            profileLabel(id, STUDENT_INTEREST_OPTIONS),
+                          )
+                          .join("، ")}
+                      </p>
+                    ) : null}
+                    {detail.learningProfile.learningGoals.length > 0 ? (
+                      <p className="mt-0.5">
+                        الأهداف:{" "}
+                        {detail.learningProfile.learningGoals
+                          .map((id) =>
+                            profileLabel(id, STUDENT_LEARNING_GOAL_OPTIONS),
+                          )
+                          .join("، ")}
+                      </p>
+                    ) : null}
+                    {detail.learningProfile.country ? (
+                      <p className="mt-0.5">
+                        الدولة: {detail.learningProfile.country}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </>
             ) : null}
 
             <form
