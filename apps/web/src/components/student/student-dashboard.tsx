@@ -20,6 +20,7 @@ import {
   MyCourseCard,
   STUDENT_CONTENT_PAD,
 } from "@/components/student/student-dashboard-ui";
+import { StudentInterestCourses } from "@/components/student/student-interest-courses";
 import { StudentOnboardingPrompt } from "@/components/student/student-onboarding-prompt";
 import { StudentDashboardSkeleton } from "@/components/student/student-page-skeletons";
 import { Button } from "@/components/ui/button";
@@ -395,6 +396,14 @@ export function StudentDashboard(): React.ReactElement {
           </DashboardSection>
         ) : null}
 
+        {!profile?.needsOnboarding ? (
+          <StudentInterestCourses
+            variant="dashboard"
+            showCtaWhenEmpty
+            from="dashboard"
+          />
+        ) : null}
+
         {/* التصنيفات */}
         {categories.length > 0 ? (
           <section className="space-y-5">
@@ -461,7 +470,7 @@ export function StudentDashboard(): React.ReactElement {
         {/* كورسات طويلة */}
         {longCourses.length > 0 ? (
           <DashboardSection
-            title="كورسات عميقة"
+            title="كورسات طويلة"
             description="مسارات أطول لمن يريد تعلّماً ممتداً."
             exploreHref="/student/explore"
           >

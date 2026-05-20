@@ -89,7 +89,13 @@ export function StudentOnboardingForm(): React.ReactElement {
       if (profile.phone) setPhone(profile.phone);
       if (profile.gender) setGender(profile.gender);
       if (profile.birthYear) setBirthYear(String(profile.birthYear));
-      if (!profile.needsOnboarding) {
+
+      const fromParam = searchParams.get("from");
+      const voluntaryVisit = fromParam === "dashboard" || fromParam === "explore";
+      const needsInterests = profile.interests.length === 0;
+
+      // لا نطرد الزائر إذا جاء عمداً (من لوحة التعلّم/الاستكشف) أو لإضافة اهتماماته
+      if (!profile.needsOnboarding && !voluntaryVisit && !needsInterests) {
         router.replace("/student");
       }
     } catch {
@@ -97,7 +103,7 @@ export function StudentOnboardingForm(): React.ReactElement {
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, searchParams]);
 
   useEffect(() => {
     void load();

@@ -13,6 +13,7 @@ import { decimalToString } from "../lib/courseMapper.js";
 import { prismaSkipTake } from "../lib/pagination.js";
 import { prisma } from "../lib/prisma.js";
 import { writeAuditLog } from "../services/audit.service.js";
+import { createNotification } from "../services/notification.service.js";
 import type {
   AdminPaymentRequestRejectBody,
   AdminPaymentRequestsQuery,
@@ -318,6 +319,15 @@ export async function approvePaymentRequestAdmin(
     req,
   });
 
+  await createNotification({
+    userId: out.enrollment.studentId,
+    type: "PAYMENT_APPROVED",
+    title: "تم قبول طلب الدفع",
+    body: "تم تفعيل الكورس ويمكنك البدء بالتعلم الآن.",
+    actionUrl: `/learn/${out.course.slug}`,
+    metadata: { courseId: out.course.id, courseSlug: out.course.slug },
+  });
+
   res.status(200).json({
     success: true,
     data: {
@@ -353,6 +363,7 @@ export async function rejectPaymentRequestAdmin(
 
   const existing = await prisma.paymentRequest.findFirst({
     where: { id: paymentRequestId },
+    select: { id: true, status: true, studentId: true },
   });
 
   if (!existing) {
@@ -386,12 +397,23 @@ export async function rejectPaymentRequestAdmin(
     req,
   });
 
+  const reason = body.rejectionReason.trim();
+  await createNotification({
+    userId: existing.studentId,
+    type: "PAYMENT_REJECTED",
+    title: "تم رفض طلب الدفع",
+    body: reason
+      ? `تم رفض طلب الدفع. السبب: ${reason}`
+      : "تم رفض طلب الدفع.",
+    actionUrl: "/student/purchases",
+  });
+
   res.status(200).json({
     success: true,
     data: {
       paymentRequestId,
       status: PaymentRequestStatus.REJECTED,
-      rejectionReason: body.rejectionReason.trim(),
+      rejectionReason: reason,
     },
   });
 }

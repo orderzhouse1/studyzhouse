@@ -1,4 +1,4 @@
-import { ArrowLeft, Heart, Star } from "lucide-react";
+import { ArrowLeft, Bookmark, Star } from "lucide-react";
 import Link from "next/link";
 
 import type { CourseCardCourse } from "@/components/courses/course-card";
@@ -24,6 +24,9 @@ export function CatalogCourseCard({
   className,
   detailBasePath = "/courses",
   compact = false,
+  saved,
+  saveLoading,
+  onToggleSave,
 }: {
   course: CourseCardCourse;
   className?: string;
@@ -31,6 +34,9 @@ export function CatalogCourseCard({
   detailBasePath?: string;
   /** خطوط أصغر — معاينة لوحة الإدارة فقط */
   compact?: boolean;
+  saved?: boolean;
+  saveLoading?: boolean;
+  onToggleSave?: () => void;
 }): React.ReactElement {
   const detailHref = `${detailBasePath}/${course.slug}`;
   const rating = ratingFromId(course.id);
@@ -56,19 +62,34 @@ export function CatalogCourseCard({
             aria-hidden
           />
         )}
-        <Link
-          href={detailHref}
-          className={cn(
-            "absolute inline-flex items-center justify-center rounded-full bg-white/95 text-primary shadow-sm transition-colors hover:bg-white hover:text-primary/90",
-            compact ? "end-2 top-2 h-7 w-7" : "end-2.5 top-2.5 h-8 w-8",
-          )}
-          aria-label={`إضافة ${course.title} للمفضلة`}
-        >
-          <Heart
-            className={cn(compact ? "h-3.5 w-3.5" : "h-4 w-4")}
-            aria-hidden
-          />
-        </Link>
+        {onToggleSave ? (
+          <button
+            type="button"
+            disabled={saveLoading}
+            className={cn(
+              "absolute inline-flex items-center justify-center rounded-full bg-white/95 text-primary shadow-sm transition-colors hover:bg-white hover:text-primary/90 disabled:opacity-60",
+              compact ? "end-2 top-2 h-7 w-7" : "end-2.5 top-2.5 h-8 w-8",
+            )}
+            aria-label={
+              saved
+                ? `إزالة ${course.title} من المحفوظات`
+                : `حفظ ${course.title}`
+            }
+            aria-pressed={saved}
+            onClick={(e) => {
+              e.preventDefault();
+              onToggleSave();
+            }}
+          >
+            <Bookmark
+              className={cn(
+                compact ? "h-3.5 w-3.5" : "h-4 w-4",
+                saved && "fill-current",
+              )}
+              aria-hidden
+            />
+          </button>
+        ) : null}
       </div>
 
       <div

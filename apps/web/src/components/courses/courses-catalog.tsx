@@ -2,6 +2,7 @@ import { BookOpen } from "lucide-react";
 import Link from "next/link";
 
 import { CatalogCourseCard } from "@/components/courses/catalog-course-card";
+import { StudentCoursesCatalogGrid } from "@/components/student/student-courses-catalog-grid";
 import type { CourseCardCourse } from "@/components/courses/course-card";
 import {
   CoursesCatalogSidebar,
@@ -117,7 +118,8 @@ export async function CoursesCatalog({
 
   const items = json.data.items;
   const meta = json.meta;
-  const courseDetailBasePath = basePath.startsWith("/student")
+  const isStudentCatalog = basePath.startsWith("/student");
+  const courseDetailBasePath = isStudentCatalog
     ? "/student/courses"
     : "/courses";
 
@@ -161,6 +163,12 @@ export async function CoursesCatalog({
               description="جرّب تغيير التصفية أو العودة لعرض جميع الكورسات."
               actionLabel="عرض الكل"
               actionHref={basePath}
+            />
+          ) : isStudentCatalog ? (
+            <StudentCoursesCatalogGrid
+              items={items}
+              detailBasePath={courseDetailBasePath}
+              compact={adminPreview}
             />
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 @min-[36rem]:grid-cols-4">
