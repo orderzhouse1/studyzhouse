@@ -10,6 +10,8 @@ export * from "./schemas/youtubePlaylist";
 export * from "./schemas/student";
 export * from "./schemas/studentProfile";
 export * from "./schemas/studentPurchases";
+export * from "./schemas/notification";
+export * from "./schemas/studentSavedCourse";
 export * from "./studentProfileOptions";
 export * from "./schemas/adminStudent";
 export * from "./schemas/activationCode";

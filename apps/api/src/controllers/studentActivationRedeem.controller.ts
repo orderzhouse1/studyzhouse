@@ -13,6 +13,7 @@ import {
 } from "../lib/activationCodeCrypto.js";
 import { prisma } from "../lib/prisma.js";
 import { writeAuditLog } from "../services/audit.service.js";
+import { createNotification } from "../services/notification.service.js";
 import type { StudentActivationRedeemBody } from "@studyhouse/shared";
 
 function clientIp(req: Request): string | undefined {
@@ -200,6 +201,15 @@ export async function redeemActivationCodeStudent(
       entityId: row.id,
       metadata: { courseId: row.courseId },
       req,
+    });
+
+    await createNotification({
+      userId: studentId,
+      type: "ACTIVATION_CODE_REDEEMED",
+      title: "تم تفعيل الكورس",
+      body: "تم تفعيل الكورس باستخدام كود التفعيل.",
+      actionUrl: `/learn/${out.course.slug}`,
+      metadata: { courseId: out.course.id, courseSlug: out.course.slug },
     });
 
     res.status(200).json({

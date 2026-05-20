@@ -17,6 +17,7 @@ import { hashPassword } from "../lib/password.js";
 import { prismaSkipTake } from "../lib/pagination.js";
 import { prisma } from "../lib/prisma.js";
 import { writeAuditLog } from "../services/audit.service.js";
+import { createNotification } from "../services/notification.service.js";
 import { getStudentProfileSummaryForAdmin } from "../services/studentProfile.service.js";
 import type {
   AdminEnrollmentCreateBody,
@@ -470,6 +471,15 @@ export async function enrollStudentAdmin(
     req,
   });
 
+  await createNotification({
+    userId: studentId,
+    type: "COURSE_ENROLLED",
+    title: "تمت إضافتك إلى كورس",
+    body: "أضافت الإدارة كورسًا جديدًا إلى حسابك.",
+    actionUrl: `/learn/${course.slug}`,
+    metadata: { courseId: course.id, courseSlug: course.slug },
+  });
+
   res.status(200).json({
     success: true,
     data: {
@@ -526,6 +536,15 @@ export async function revokeStudentEnrollmentAdmin(
       courseId: updated.courseId,
     },
     req,
+  });
+
+  await createNotification({
+    userId: studentId,
+    type: "COURSE_REVOKED",
+    title: "تم إلغاء الوصول إلى كورس",
+    body: "تم إلغاء تسجيلك من أحد الكورسات.",
+    actionUrl: "/student/my-courses",
+    metadata: { courseId: updated.courseId },
   });
 
   res.status(200).json({

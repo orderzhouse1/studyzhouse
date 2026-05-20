@@ -16,7 +16,10 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:clear-courses": "tsx prisma/clear-courses.ts",
+    "db:seed-random-courses": "tsx prisma/seed-random-courses.ts",
+    "db:create-admin": "tsx prisma/create-admin-user.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

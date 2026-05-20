@@ -2,13 +2,12 @@
 
 import type { AuthUser } from "@studyhouse/shared";
 import {
-  Award,
   Bell,
+  Bookmark,
   HelpCircle,
   Loader2,
   LogOut,
   Settings,
-  ShoppingBag,
   User,
 } from "lucide-react";
 import Link from "next/link";
@@ -17,6 +16,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { STUDENT_AVATAR_GRADIENT_CLASS } from "@/components/student/student-dashboard-ui";
 import { logoutRequest } from "@/lib/auth-api";
+import { fetchStudentNotificationsUnreadCount } from "@/lib/student-notifications-api";
 import { studentFetchJsonCached } from "@/lib/student-client-api";
 import { cn } from "@/lib/utils";
 
@@ -33,12 +33,8 @@ const MENU_LINKS: Array<{
   { href: "/student/profile", label: "الملف الشخصي", icon: User },
   { href: "/student/help", label: "مركز التعليمات", icon: HelpCircle },
   { href: "/student/settings", label: "الإعدادات", icon: Settings },
-  { href: "/student/purchases", label: "مشترياتي", icon: ShoppingBag },
-];
-
-const MENU_SOON: Array<{ label: string; icon: React.ElementType }> = [
-  { label: "الإشعارات", icon: Bell },
-  { label: "الإنجازات", icon: Award },
+  { href: "/student/notifications", label: "الإشعارات", icon: Bell },
+  { href: "/student/saved", label: "المحفوظات", icon: Bookmark },
 ];
 
 function userInitial(fullName: string): string {
@@ -128,22 +124,20 @@ export function StudentHeaderActions({
   const router = useRouter();
   const pathname = usePathname();
   const profileMenuId = useId();
-  const notifMenuId = useId();
   const profileWrapRef = useRef<HTMLDivElement>(null);
   const notifWrapRef = useRef<HTMLDivElement>(null);
 
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const closeAll = useCallback(() => {
     setProfileOpen(false);
-    setNotifOpen(false);
   }, []);
 
-  useClickOutside([profileWrapRef, notifWrapRef], closeAll, profileOpen || notifOpen);
+  useClickOutside([profileWrapRef], closeAll, profileOpen);
 
   useEffect(() => {
     let cancelled = false;
@@ -161,6 +155,21 @@ export function StudentHeaderActions({
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const count = await fetchStudentNotificationsUnreadCount();
+        if (!cancelled) setUnreadCount(count);
+      } catch {
+        if (!cancelled) setUnreadCount(0);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent): void {
@@ -195,39 +204,27 @@ export function StudentHeaderActions({
       )}
     >
       <div ref={notifWrapRef} className="relative">
-        <button
-          type="button"
+        <Link
+          href="/student/notifications"
           className={cn(
-            "inline-flex items-center justify-center rounded-full text-heading transition hover:bg-muted/70",
+            "relative inline-flex items-center justify-center rounded-full text-heading transition hover:bg-muted/70",
             stacked ? "h-11 w-11" : "h-10 w-10",
+            isActive("/student/notifications") && "bg-primary/5 text-primary",
           )}
-          aria-expanded={notifOpen}
-          aria-controls={notifMenuId}
-          aria-label="الإشعارات"
-          onClick={() => {
-            setNotifOpen((v) => !v);
-            setProfileOpen(false);
-          }}
+          aria-label={
+            unreadCount > 0
+              ? `الإشعارات، ${unreadCount} غير مقروء`
+              : "الإشعارات"
+          }
+          onClick={closeAll}
         >
           <Bell className="h-5 w-5" strokeWidth={1.75} aria-hidden />
-        </button>
-
-        {notifOpen ? (
-          <div
-            id={notifMenuId}
-            role="dialog"
-            aria-label="الإشعارات"
-            className={cn(
-              "absolute z-50 mt-2 w-[min(100vw-2rem,20rem)] rounded-xl border border-border bg-card p-4 shadow-float",
-              stacked ? "start-0" : "end-0",
-            )}
-          >
-            <p className="text-sm font-semibold text-heading">الإشعارات</p>
-            <p className="mt-3 text-center text-sm text-muted-foreground">
-              الإشعارات قريبًا.
-            </p>
-          </div>
-        ) : null}
+          {unreadCount > 0 ? (
+            <span className="absolute -top-0.5 start-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[0.625rem] font-bold text-primary-foreground">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          ) : null}
+        </Link>
       </div>
 
       <div ref={profileWrapRef} className="relative">
@@ -241,10 +238,7 @@ export function StudentHeaderActions({
           aria-expanded={profileOpen}
           aria-controls={profileMenuId}
           aria-haspopup="menu"
-          onClick={() => {
-            setProfileOpen((v) => !v);
-            setNotifOpen(false);
-          }}
+          onClick={() => setProfileOpen((v) => !v)}
         >
           {loadingUser ? (
             <span
@@ -307,31 +301,20 @@ export function StudentHeaderActions({
                   )}
                   onClick={closeAll}
                 >
-                  <Icon
-                    className={cn(
-                      "h-4 w-4 shrink-0",
-                      isActive(href) ? "text-primary" : "text-muted-foreground",
-                    )}
-                    aria-hidden
-                  />
+                  <span className="relative inline-flex shrink-0">
+                    <Icon
+                      className={cn(
+                        "h-4 w-4",
+                        isActive(href) ? "text-primary" : "text-muted-foreground",
+                      )}
+                      aria-hidden
+                    />
+                    {href === "/student/notifications" && unreadCount > 0 ? (
+                      <span className="absolute -top-1 -start-1 h-2 w-2 rounded-full bg-primary" />
+                    ) : null}
+                  </span>
                   {label}
                 </Link>
-              ))}
-              {MENU_SOON.map(({ label, icon: Icon }) => (
-                <span
-                  key={label}
-                  role="menuitem"
-                  aria-disabled
-                  className="flex cursor-not-allowed items-center justify-between gap-3 px-4 py-2.5 text-sm text-muted-foreground/70"
-                >
-                  <span className="flex items-center gap-3">
-                    <Icon className="h-4 w-4 shrink-0 opacity-50" aria-hidden />
-                    {label}
-                  </span>
-                  <span className="text-[0.65rem] font-medium text-muted-foreground">
-                    قريبًا
-                  </span>
-                </span>
               ))}
               <button
                 type="button"

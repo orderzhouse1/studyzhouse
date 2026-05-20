@@ -70,7 +70,7 @@ export function StudentOnboardingPrompt({
             type="button"
             size="sm"
             className="h-9 rounded-full px-4 text-xs shadow-brand"
-            onClick={() => router.push("/student/onboarding")}
+            onClick={() => router.push("/student/onboarding?from=dashboard")}
           >
             أكمل الآن
             <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
