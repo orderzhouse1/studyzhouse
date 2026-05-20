@@ -1,7 +1,7 @@
-import { BookOpen } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
+import { SiteLogo } from "@/components/layout/site-logo";
 import { APP_NAME_AR } from "@studyhouse/shared";
 
 const AUTH_IMAGE =
@@ -27,17 +27,7 @@ export function AuthSplitLayout({
         {/* النموذج — يظهر أولًا على الموبايل؛ في RTL العمود الأول يمين */}
         <div className="flex flex-col">
           <header className="flex items-center justify-between px-4 py-4 sm:px-6 md:px-8">
-            <Link
-              href="/"
-              className="flex items-center gap-2 text-sm font-semibold text-[hsl(222_47%_12%)]"
-            >
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-                <BookOpen className="h-4 w-4" aria-hidden />
-              </span>
-              <span className="max-w-[9rem] truncate sm:max-w-none">
-                {APP_NAME_AR}
-              </span>
-            </Link>
+            <SiteLogo href="/" priority />
             <Link
               href="/"
               className="text-xs font-medium text-muted-foreground transition-colors hover:text-primary"

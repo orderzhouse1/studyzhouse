@@ -1,12 +1,12 @@
 import {
   ArrowUpLeft,
-  BookOpen,
   GraduationCap,
   Mail,
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 
+import { SiteLogo } from "@/components/layout/site-logo";
 import { Button } from "@/components/ui/button";
 import { APP_NAME_AR } from "@studyhouse/shared";
 import { cn } from "@/lib/utils";
@@ -91,7 +91,11 @@ export function SiteFooter({
         )}
       >
         <div
-          className="pointer-events-none absolute -start-24 top-8 h-64 w-64 rounded-full bg-primary/20 blur-3xl"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_75%_60%_at_100%_0%,hsl(24_95%_53%_/_0.32)_0%,hsl(24_95%_53%_/_0.1)_40%,transparent_68%)]"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -top-20 right-0 h-72 w-72 translate-x-1/4 rounded-full bg-primary/40 blur-[88px] sm:-top-24 sm:h-96 sm:w-96 sm:blur-[110px]"
           aria-hidden
         />
         <div
@@ -106,19 +110,10 @@ export function SiteFooter({
         <div className="relative mx-auto w-full max-w-[min(100%,88rem)] px-4 py-12 sm:px-6 md:px-8 md:py-14 lg:py-16">
           <div className="grid gap-10 lg:grid-cols-[1.35fr_1fr_1fr_1.1fr] lg:gap-8 xl:gap-10">
             <div className="space-y-4">
-              <Link href="/" className="inline-flex items-center gap-3 no-underline">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-[0_8px_24px_-6px_hsl(24_95%_53%_/_0.55)] ring-1 ring-white/20">
-                  <BookOpen className="h-5 w-5" aria-hidden />
-                </span>
-                <span>
-                  <span className="block text-lg font-bold leading-tight text-white">
-                    {APP_NAME_AR}
-                  </span>
-                  <span className="mt-0.5 block text-xs font-medium text-primary">
-                    تعلّم بخطوات واضحة
-                  </span>
-                </span>
-              </Link>
+              <SiteLogo
+                href="/"
+                imageClassName="h-11 max-w-[12.5rem] brightness-110 sm:h-12"
+              />
               <p className="max-w-md text-pretty text-sm leading-relaxed text-white/75">
                 منصّة تعليمية عربية تجمع بين كورسات منظّمة، تتبّع تقدّم حقيقي،
                 وتجربة واجهة نظيفة — للمتعلّم الذي يريد مسارًا واضحًا دون تعقيد.

@@ -66,7 +66,7 @@ export function StudentHeader(): React.ReactElement {
       <header className={HEADER_ROOT_CLASS}>
         <div className={HEADER_INNER_CLASS}>
           <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
-            <HeaderBrand href="/student" tagline="مساحة التعلّم" />
+            <HeaderBrand href="/student" />
 
             <span
               className="hidden h-9 w-px shrink-0 bg-border lg:block"

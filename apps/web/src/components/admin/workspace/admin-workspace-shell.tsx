@@ -1,11 +1,12 @@
 "use client";
 
-import { BookOpen, ExternalLink, Menu, X } from "lucide-react";
+import { ExternalLink, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { LogoutButton } from "@/components/auth/logout-button";
+import { SiteLogo } from "@/components/layout/site-logo";
 import {
   getSitePreviewFromPathname,
   getWorkspaceConfig,
@@ -14,7 +15,6 @@ import {
   type WorkspaceRole,
 } from "@/components/admin/workspace/admin-workspace-config";
 import { Button } from "@/components/ui/button";
-import { APP_NAME_AR } from "@studyhouse/shared";
 import { cn } from "@/lib/utils";
 
 /** خلفية الإطار الخارجي — رمادي فاتح موحّد (خارج اللوحة البيضاء) */
@@ -180,17 +180,10 @@ export function AdminWorkspaceShell({
                 </>
               ) : (
                 <>
-                  <Link
+                  <SiteLogo
                     href={brandHref}
-                    className="flex items-center gap-2 text-white no-underline"
-                  >
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                      <BookOpen className="h-4 w-4" aria-hidden />
-                    </span>
-                    <span className="text-sm font-bold tracking-tight sm:text-base">
-                      {APP_NAME_AR}
-                    </span>
-                  </Link>
+                    imageClassName="h-8 max-w-[9.5rem] brightness-110 sm:h-9"
+                  />
                   <span className="hidden text-xs text-white/60 sm:inline">
                     مساحة إدارة المنصّة
                   </span>
