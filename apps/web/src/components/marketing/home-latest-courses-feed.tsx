@@ -31,6 +31,8 @@ function FeedCard({ course }: { course: CourseCardCourse }): React.ReactElement 
           <img
             src={course.thumbnailUrl}
             alt=""
+            loading="lazy"
+            decoding="async"
             className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />
         ) : (

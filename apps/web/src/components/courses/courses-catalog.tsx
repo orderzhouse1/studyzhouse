@@ -11,7 +11,8 @@ import {
 import { CoursesCatalogSort } from "@/components/courses/courses-catalog-sort";
 import { EmptyState } from "@/components/layout/empty-state";
 import { Button } from "@/components/ui/button";
-import { fetchPublicApi } from "@/lib/server-api";
+import { PUBLIC_PAGES_REVALIDATE } from "@/lib/public-pages-cache";
+import { fetchPublicApiMaybe } from "@/lib/server-api";
 
 type CoursesJson = {
   success: true;
@@ -39,14 +40,12 @@ export type CoursesCatalogSearchParams = {
 };
 
 async function loadCategories(): Promise<{ name: string; slug: string }[]> {
-  try {
-    const json = (await fetchPublicApi(
-      "/api/v1/categories?page=1&pageSize=40",
-    )) as CategoriesJson;
-    return json.data.items.map((c) => ({ name: c.name, slug: c.slug }));
-  } catch {
-    return [];
-  }
+  const json = (await fetchPublicApiMaybe(
+    "/api/v1/categories?page=1&pageSize=40",
+    { revalidate: PUBLIC_PAGES_REVALIDATE },
+  )) as CategoriesJson | null;
+  if (!json?.success) return [];
+  return json.data.items.map((c) => ({ name: c.name, slug: c.slug }));
 }
 
 function buildPageHref(
@@ -98,23 +97,20 @@ export async function CoursesCatalog({
   if (filters.pricingType) qs.set("pricingType", filters.pricingType);
   if (filters.sort && filters.sort !== "newest") qs.set("sort", filters.sort);
 
-  let json: CoursesJson;
-  let categoryChips: { name: string; slug: string }[];
-  try {
-    const results = await Promise.all([
-      fetchPublicApi(`/api/v1/courses?${qs.toString()}`) as Promise<CoursesJson>,
-      loadCategories(),
-    ]);
-    json = results[0];
-    categoryChips = results[1];
-  } catch {
-    json = {
-      success: true,
-      data: { items: [] },
-      meta: { page: 1, pageSize: 12, total: 0, totalPages: 1 },
-    };
-    categoryChips = [];
-  }
+  const [coursesRaw, categoryChips] = await Promise.all([
+    fetchPublicApiMaybe(`/api/v1/courses?${qs.toString()}`, {
+      revalidate: PUBLIC_PAGES_REVALIDATE,
+    }) as Promise<CoursesJson | null>,
+    loadCategories(),
+  ]);
+
+  const json: CoursesJson = coursesRaw?.success
+    ? coursesRaw
+    : {
+        success: true,
+        data: { items: [] },
+        meta: { page: 1, pageSize: 12, total: 0, totalPages: 1 },
+      };
 
   const items = json.data.items;
   const meta = json.meta;

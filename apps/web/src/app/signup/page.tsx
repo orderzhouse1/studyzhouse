@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
 import { SignupForm } from "@/components/auth/signup-form";
 
+export const dynamic = "force-static";
+
 export const metadata: Metadata = {
   title: "إنشاء حساب",
 };

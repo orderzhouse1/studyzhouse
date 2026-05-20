@@ -1,4 +1,5 @@
 import type { CourseCardCourse } from "@/components/courses/course-card";
+import { PUBLIC_PAGES_REVALIDATE } from "@/lib/public-pages-cache";
 import { fetchPublicApiMaybe } from "@/lib/server-api";
 
 type CoursesJson = {
@@ -14,6 +15,7 @@ export async function fetchSameCategoryCourses(course: {
 
   const json = (await fetchPublicApiMaybe(
     `/api/v1/courses?categorySlug=${encodeURIComponent(course.category.slug)}&page=1&pageSize=8`,
+    { revalidate: PUBLIC_PAGES_REVALIDATE },
   )) as CoursesJson | null;
 
   if (!json?.success) return [];

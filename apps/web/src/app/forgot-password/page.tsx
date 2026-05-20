@@ -4,6 +4,8 @@ import { Suspense } from "react";
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 
+export const dynamic = "force-static";
+
 export const metadata: Metadata = {
   title: "نسيت كلمة المرور",
 };

@@ -1,22 +1,13 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
-import { notFound, redirect } from "next/navigation";
-import { AUTH_ACCESS_COOKIE_NAME } from "@studyhouse/shared";
-
-import { verifyAccessTokenFromCookie } from "@/lib/edge-access-token";
+import { notFound } from "next/navigation";
 
 import {
   CoursePublicDetail,
-  type PublicCourseDetail,
 } from "@/components/courses/course-public-detail";
-import { fetchPublicApiMaybe } from "@/lib/server-api";
+import { getPublicCourseBySlug } from "@/lib/public-course-data";
 
-export const dynamic = "force-dynamic";
-
-type CourseDetailJson = {
-  success: true;
-  data: { course: PublicCourseDetail };
-};
+/** ISR — كورس منشور عام — يجب أن يطابق PUBLIC_PAGES_REVALIDATE (300) */
+export const revalidate = 300;
 
 export async function generateMetadata({
   params,
@@ -24,18 +15,15 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const raw = await fetchPublicApiMaybe(
-    `/api/v1/courses/${encodeURIComponent(slug)}`,
-  );
-  const json = raw as CourseDetailJson | null;
+  const course = await getPublicCourseBySlug(slug);
 
-  if (!json?.success) {
+  if (!course) {
     return { title: "كورس غير موجود" };
   }
 
   return {
-    title: json.data.course.title,
-    description: json.data.course.shortDescription ?? undefined,
+    title: course.title,
+    description: course.shortDescription ?? undefined,
   };
 }
 
@@ -45,20 +33,11 @@ export default async function CourseDetailPage({
   params: Promise<{ slug: string }>;
 }): Promise<React.ReactElement> {
   const { slug } = await params;
+  const course = await getPublicCourseBySlug(slug);
 
-  const token = (await cookies()).get(AUTH_ACCESS_COOKIE_NAME)?.value;
-  const auth = await verifyAccessTokenFromCookie(token);
-  if (auth?.role === "STUDENT") {
-    redirect(`/student/courses/${encodeURIComponent(slug)}`);
-  }
-
-  const json = (await fetchPublicApiMaybe(
-    `/api/v1/courses/${encodeURIComponent(slug)}`,
-  )) as CourseDetailJson | null;
-
-  if (!json?.success) {
+  if (!course) {
     notFound();
   }
 
-  return <CoursePublicDetail course={json.data.course} />;
+  return <CoursePublicDetail course={course} />;
 }

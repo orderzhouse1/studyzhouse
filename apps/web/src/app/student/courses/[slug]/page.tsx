@@ -1,18 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import {
-  CoursePublicDetail,
-  type PublicCourseDetail,
-} from "@/components/courses/course-public-detail";
-import { fetchPublicApiMaybe } from "@/lib/server-api";
+import { CoursePublicDetail } from "@/components/courses/course-public-detail";
+import { getPublicCourseBySlug } from "@/lib/public-course-data";
 
-export const dynamic = "force-dynamic";
-
-type CourseDetailJson = {
-  success: true;
-  data: { course: PublicCourseDetail };
-};
+export const revalidate = 300;
 
 export async function generateMetadata({
   params,
@@ -20,18 +12,15 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const raw = await fetchPublicApiMaybe(
-    `/api/v1/courses/${encodeURIComponent(slug)}`,
-  );
-  const json = raw as CourseDetailJson | null;
+  const course = await getPublicCourseBySlug(slug);
 
-  if (!json?.success) {
+  if (!course) {
     return { title: "كورس غير موجود" };
   }
 
   return {
-    title: json.data.course.title,
-    description: json.data.course.shortDescription ?? undefined,
+    title: course.title,
+    description: course.shortDescription ?? undefined,
   };
 }
 
@@ -41,17 +30,15 @@ export default async function StudentCourseDetailPage({
   params: Promise<{ slug: string }>;
 }): Promise<React.ReactElement> {
   const { slug } = await params;
-  const json = (await fetchPublicApiMaybe(
-    `/api/v1/courses/${encodeURIComponent(slug)}`,
-  )) as CourseDetailJson | null;
+  const course = await getPublicCourseBySlug(slug);
 
-  if (!json?.success) {
+  if (!course) {
     notFound();
   }
 
   return (
     <CoursePublicDetail
-      course={json.data.course}
+      course={course}
       variant="student"
       catalogBackHref="/student/explore"
       hideShellHeader

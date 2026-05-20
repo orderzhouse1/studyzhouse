@@ -20,8 +20,28 @@ const ROLE_RULES = [
   { prefix: "/super-admin", roles: new Set(["SUPER_ADMIN"]) },
 ] as const;
 
+/** طالب مسجّل يفتح /courses/:slug → نسخة الطالب (يسمح بـ ISR للصفحة العامة بدون cookies). */
+const PUBLIC_COURSE_DETAIL = /^\/courses\/([^/]+)$/;
+
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
+
+  const publicCourseMatch = PUBLIC_COURSE_DETAIL.exec(pathname);
+  if (publicCourseMatch?.[1]) {
+    const slug = publicCourseMatch[1];
+    const token = request.cookies.get(AUTH_ACCESS_COOKIE_NAME)?.value;
+    const auth = await verifyAccessTokenFromCookie(token);
+    if (auth?.role === "STUDENT") {
+      return NextResponse.redirect(
+        new URL(
+          `/student/courses/${encodeURIComponent(slug)}`,
+          request.url,
+        ),
+      );
+    }
+    return NextResponse.next();
+  }
+
   const rule = ROLE_RULES.find((r) => pathname.startsWith(r.prefix));
   if (!rule) {
     return NextResponse.next();
@@ -45,6 +65,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
 export const config = {
   matcher: [
+    "/courses/:slug",
     "/student",
     "/student/:path*",
     "/learn",
