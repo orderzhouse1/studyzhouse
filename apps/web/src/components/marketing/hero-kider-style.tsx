@@ -70,7 +70,7 @@ export function HeroKiderStyle(): React.ReactElement {
         max-sm فقط: نص فوق الصورة | sm+: تخطيط سطح المكتب كما كان
       */}
       <div className="relative z-10 mx-auto flex min-h-[min(52vh,480px)] w-full max-w-[min(100%,88rem)] flex-col justify-center px-4 pb-8 pt-6 sm:px-6 sm:py-10 md:px-8 max-sm:min-h-[min(35svh,340px)] max-sm:justify-end max-sm:pb-5 max-sm:pt-4">
-        <div className="relative w-full max-w-[560px] sm:me-auto sm:ms-0 sm:ps-12 sm:pe-10 md:ps-14 md:pe-14 lg:ps-16 lg:pe-20 max-sm:ps-6 max-sm:pe-5">
+        <div className="relative w-full max-w-[560px] sm:me-auto sm:ms-0 sm:pe-8 md:pe-12 lg:pe-16">
           <Sparkles
             className="pointer-events-none absolute -top-1 end-0 hidden h-5 w-5 text-primary/50 sm:block sm:-top-0.5"
             aria-hidden
