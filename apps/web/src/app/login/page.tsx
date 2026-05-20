@@ -4,6 +4,9 @@ import { Suspense } from "react";
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
 import { LoginForm } from "@/components/auth/login-form";
 
+/** ثابتة — نموذج عميل فقط، بدون جلب API على الخادم */
+export const dynamic = "force-static";
+
 export const metadata: Metadata = {
   title: "تسجيل الدخول",
 };

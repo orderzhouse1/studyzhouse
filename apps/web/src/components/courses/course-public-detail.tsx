@@ -220,6 +220,8 @@ export function CoursePublicDetail({
             <img
               src={course.thumbnailUrl}
               alt=""
+              loading="lazy"
+              decoding="async"
               className="h-full w-full object-cover object-center"
             />
           </div>

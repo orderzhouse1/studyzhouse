@@ -2,7 +2,8 @@ import { ArrowLeft, BookOpen, Star } from "lucide-react";
 import Link from "next/link";
 
 import type { CourseCardCourse } from "@/components/courses/course-card";
-import { fetchPublicApi } from "@/lib/server-api";
+import { PUBLIC_PAGES_REVALIDATE } from "@/lib/public-pages-cache";
+import { fetchPublicApiMaybe } from "@/lib/server-api";
 import { APP_NAME_AR } from "@studyhouse/shared";
 
 type CoursesJson = {
@@ -15,21 +16,20 @@ export type PopularCategoryColumn = {
   courses: CourseCardCourse[];
 };
 
-/** جلب كورسات منشورة لكل تصنيف — بدون كاش حتى تظهر البيانات فورًا بعد التحديث أو الـ seed. */
+/** جلب كورسات منشورة لكل تصنيف (يُستخدم خارج الصفحة الرئيسية إن لزم). */
 export async function loadPopularByCategoryColumns(
   topCategories: { name: string; slug: string }[],
 ): Promise<PopularCategoryColumn[]> {
   return Promise.all(
     topCategories.map(async (category) => {
-      try {
-        const json = (await fetchPublicApi(
-          `/api/v1/courses?categorySlug=${encodeURIComponent(category.slug)}&page=1&pageSize=3`,
-          { noStore: true },
-        )) as CoursesJson;
-        return { category, courses: json.data.items };
-      } catch {
+      const json = await fetchPublicApiMaybe(
+        `/api/v1/courses?categorySlug=${encodeURIComponent(category.slug)}&page=1&pageSize=3`,
+        { revalidate: PUBLIC_PAGES_REVALIDATE },
+      );
+      if (!json || typeof json !== "object" || !("data" in json)) {
         return { category, courses: [] as CourseCardCourse[] };
       }
+      return { category, courses: (json as CoursesJson).data.items };
     }),
   );
 }
@@ -51,6 +51,8 @@ function PopularCourseRow({ course }: { course: CourseCardCourse }) {
           <img
             src={course.thumbnailUrl}
             alt=""
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover"
           />
         ) : (

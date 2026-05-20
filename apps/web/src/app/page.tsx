@@ -12,58 +12,17 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-import type { CourseCardCourse } from "@/components/courses/course-card";
 import { FeaturedCoursesBanner } from "@/components/marketing/featured-courses-banner";
 import { HeroKiderStyle } from "@/components/marketing/hero-kider-style";
 import { HomeFaqSection } from "@/components/marketing/home-faq";
 import { HomeLatestCoursesFeed } from "@/components/marketing/home-latest-courses-feed";
-import {
-  loadPopularByCategoryColumns,
-  PopularByCategorySection,
-} from "@/components/marketing/popular-by-category";
+import { PopularByCategorySection } from "@/components/marketing/popular-by-category";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
-import { Button } from "@/components/ui/button";
-import { fetchPublicApi } from "@/lib/server-api";
+import { loadHomePageData } from "@/lib/home-page-data";
 
-/** تجنّب جلب API أثناء التوليد الثابت — يُنفَّذ الجلب عند الطلب فقط (لا ECONNREFUSED في `next build` بدون خادم). */
-export const dynamic = "force-dynamic";
-
-type CoursesJson = {
-  success: true;
-  data: { items: CourseCardCourse[] };
-};
-
-type CategoriesJson = {
-  success: true;
-  data: { items: { id: string; name: string; slug: string }[] };
-};
-
-async function loadFeaturedCourses(): Promise<CourseCardCourse[]> {
-  try {
-    const json = (await fetchPublicApi(
-      "/api/v1/courses?page=1&pageSize=4",
-      { noStore: true },
-    )) as CoursesJson;
-    return json.data.items;
-  } catch {
-    return [];
-  }
-}
-
-async function loadCategoryChips(): Promise<
-  { name: string; slug: string }[]
-> {
-  try {
-    const json = (await fetchPublicApi(
-      "/api/v1/categories?page=1&pageSize=12",
-      { noStore: true },
-    )) as CategoriesJson;
-    return json.data.items.map((c) => ({ name: c.name, slug: c.slug }));
-  } catch {
-    return [];
-  }
-}
+/** ISR: بيانات عامة — يجب أن يطابق PUBLIC_PAGES_REVALIDATE (300) */
+export const revalidate = 300;
 
 function categoryChipIcon(slug: string, name: string): LucideIcon {
   const hay = `${slug} ${name}`.toLowerCase();
@@ -79,14 +38,7 @@ function categoryChipIcon(slug: string, name: string): LucideIcon {
 }
 
 export default async function HomePage(): Promise<React.ReactElement> {
-  const [featured, categories] = await Promise.all([
-    loadFeaturedCourses(),
-    loadCategoryChips(),
-  ]);
-  const popularColumns =
-    categories.length > 0
-      ? await loadPopularByCategoryColumns(categories.slice(0, 3))
-      : [];
+  const { featured, categories, popularColumns } = await loadHomePageData();
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-background">

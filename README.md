@@ -146,12 +146,17 @@ prisma/       — schema.prisma و seed.ts في جذر المشروع
 |---------|--------|-------------|---------|
 | `NODE_ENV` | يُفضّل | API + Next | `production` يفعّل كوكي `Secure` وسلوك الإنتاج. |
 | `DATABASE_URL` | **نعم** | API (`loadEnv`) | Prisma. |
-| `CLIENT_ORIGIN` | **نعم** | API | **CORS** + يجب أن يطابق أصل المتصفح (مثال: `https://app.example.com`). |
-| `JWT_ACCESS_SECRET` | **نعم** | API | ≥32 حرفًا، عشوائي قوي. |
+| `CLIENT_ORIGIN` | **نعم** | API | **CORS** + OAuth redirect + روابط الرفع. إنتاج: `https://YOUR_DOMAIN` — **لا localhost**. |
+| `JWT_ACCESS_SECRET` | **نعم** | API + Next (middleware) | ≥32 حرفًا؛ **نفس القيمة** في خدمتي API و Next. |
 | `JWT_EXPIRES_IN` | لا | API | افتراضي `12h`. |
 | `ACTIVATION_CODE_PEPPER` | لا | API | ≥32 حرفًا إن وُجد؛ **إن تغيّرت بعد إنشاء أكواد فعلية، تتوقف المطابقة للـ hash القديم** — أعد إصدار الأكواد أو احتفظ بنسخة احتياطية من القيمة. |
+| `GOOGLE_CLIENT_ID` | لـ Google OAuth | API | مع `GOOGLE_CLIENT_SECRET` و `GOOGLE_REDIRECT_URI`. |
+| `GOOGLE_CLIENT_SECRET` | لـ Google OAuth | API | سرّ من Google Cloud Console. |
+| `GOOGLE_REDIRECT_URI` | لـ Google OAuth | API | إنتاج: `https://YOUR_DOMAIN/api/v1/auth/google/callback` — يجب أن يطابق Console. |
+| `RESEND_API_KEY` | لـ OTP | API | إرسال بريد التسجيل / نسيت كلمة المرور. |
+| `EMAIL_FROM` | لـ OTP | API | عنوان مُتحقق في Resend. |
 | `API_PORT` | لا | API | افتراضي 4000. |
-| `API_INTERNAL_URL` | لا (للتطوير) | **Next** فقط (`next.config` rewrites + `server-api`) | عنوان Express من وجهة نظر خادم Next. في الإنتاج يجب أن يصل Next إلى API داخليًا. |
+| `API_INTERNAL_URL` | **نعم عمليًا في الإنتاج** | **Next** (`next.config` rewrites + `server-api` SSR) | من **خادم Next** إلى Express: حاوية واحدة → `http://127.0.0.1:4000`؛ خدمتا Cloud Run → **URL خدمة API**. |
 | `NEXT_PUBLIC_APP_URL` | لا | **حاليًا** لا يُقرأ في كود الواجهة | للروابط المطلقة المستقبلية. |
 | `YOUTUBE_API_KEY` | لا | **API فقط** (خادم) | استيراد قوائم YouTube — **لا يُعرض في المتصفح**. |
 | `REDIS_URL` | لا | API (stub) | غير موصول — للمراحل اللاحقة أو حدود معدل موزعة. |
@@ -179,13 +184,36 @@ prisma/       — schema.prisma و seed.ts في جذر المشروع
 
 ## قائمة تحقق الإنتاج (Production checklist)
 
-قائمة موسّعة: **`docs/PRODUCTION_READINESS_CHECKLIST.md`** — وسيناريوهات QA يدوية في **`docs/MANUAL_QA_CHECKLIST.md`**.
+- **تدقيق النشر (Google):** `docs/PRODUCTION_DEPLOYMENT_AUDIT.md`
+- **تحقق يدوي بعد النشر (P0):** `docs/PRODUCTION_DEPLOY_VERIFY.md`
+- **جاهزية موسّعة:** `docs/PRODUCTION_READINESS_CHECKLIST.md`
+- **QA يدوي:** `docs/MANUAL_QA_CHECKLIST.md`
+
+### متغيرات الإنتاج (ملخص — لا localhost)
+
+استبدل `YOUR_PRODUCTION_DOMAIN` بالنطاق مع HTTPS:
+
+| المتغير | خدمة | قيمة إنتاج |
+|---------|------|------------|
+| `CLIENT_ORIGIN` | API | `https://YOUR_PRODUCTION_DOMAIN` |
+| `GOOGLE_REDIRECT_URI` | API | `https://YOUR_PRODUCTION_DOMAIN/api/v1/auth/google/callback` |
+| `API_INTERNAL_URL` | Next | `http://127.0.0.1:4000` **فقط** إن API في نفس الحاوية؛ وإلا **URL خدمة API** |
+| `JWT_ACCESS_SECRET` | API + Next | نفس القيمة في الخدمتين |
+| `DATABASE_URL` | API | Postgres إنتاج (Neon، إلخ) |
+
+**Google Cloud Console (OAuth):** Authorized JavaScript origins = `https://YOUR_PRODUCTION_DOMAIN`؛ Authorized redirect URIs = نفس `GOOGLE_REDIRECT_URI`. لا تعتمد على `http://localhost:3000` في أسرار الإنتاج.
+
+**سجلات Next في الإنتاج:** عند فشل جلب الصفحات العامة يظهر `[studyhouse/web] Public API fetch failed for /api/v1/...` — راجع `API_INTERNAL_URL` وصحة API.
+
+**كورسات عامة:** فقط `PUBLISHED`؛ بعد النشر قد يتأخر الظهور على `/` و `/courses` حتى **5 دقائق** (`revalidate=300`).
 
 - [ ] توليد أسرار قوية (`JWT_ACCESS_SECRET`، `ACTIVATION_CODE_PEPPER`) وتخزينها في مدير أسرار، وليس في Git.
 - [ ] `NODE_ENV=production`.
 - [ ] `DATABASE_URL` لبيئة الإنتاج مع TLS مناسب.
-- [ ] `CLIENT_ORIGIN` = عنوان الواجهة الفعلي مع HTTPS.
-- [ ] `API_INTERNAL_URL` يشير إلى خدمة Express الداخلية التي يصل إليها Next (شبكة/Kubernetes داخلية).
+- [ ] `CLIENT_ORIGIN` = `https://YOUR_PRODUCTION_DOMAIN` (ليس localhost).
+- [ ] `GOOGLE_REDIRECT_URI` و Google Console يطابقان النطاق الإنتاجي.
+- [ ] `API_INTERNAL_URL` يصل من **خادم Next** إلى Express (انظر `.env.example`).
+- [ ] `RESEND_API_KEY` + `EMAIL_FROM` إن كان OTP مطلوبًا.
 - [ ] `YOUTUBE_API_KEY` إذا كان استيراد قائمة التشغيل مطلوبًا.
 - [ ] قاعدة البيانات: استخدام **`prisma migrate deploy`** (أو مسار migrations المعتمد)، وليس **`db push`** للإنتاج طويل الأمد.
 - [ ] الإصدارات المحلية والتجربة: `db push` مقبول لتطوير سريع.

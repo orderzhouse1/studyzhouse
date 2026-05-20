@@ -7,7 +7,7 @@ import { APP_NAME_AR } from "@studyhouse/shared";
 
 /** صورة تعليمية — أبعاد معتدلة للأداء */
 const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=1200&h=800";
+  "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=75&w=960&h=640";
 
 /** خلفية هيرو زرقاء غامقة (نفس عائلة ألوان المشروع 222°) */
 const heroBg = "hsl(222 47% 10%)";

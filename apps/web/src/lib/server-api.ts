@@ -2,6 +2,31 @@ export function getInternalApiOrigin(): string {
   return process.env.API_INTERNAL_URL ?? "http://127.0.0.1:4000";
 }
 
+function isProductionServer(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
+/** منشأ API للسجلات فقط — بدون مسارات سرية */
+function apiHostForLogs(): string {
+  try {
+    return new URL(getInternalApiOrigin()).host;
+  } catch {
+    return "(invalid API_INTERNAL_URL)";
+  }
+}
+
+function logPublicFetchFailure(
+  path: string,
+  reason: "network" | "http",
+  detail?: string,
+): void {
+  if (!isProductionServer()) return;
+  const suffix = detail ? ` — ${detail}` : "";
+  console.warn(
+    `[studyhouse/web] Public API fetch failed for ${path} (api host: ${apiHostForLogs()}, ${reason})${suffix}. Public pages may show empty courses until API_INTERNAL_URL and API health are fixed.`,
+  );
+}
+
 function isLikelyConnectionError(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
   const msg = err.message.toLowerCase();
@@ -13,6 +38,12 @@ function isLikelyConnectionError(err: unknown): boolean {
     cause.includes("econnrefused") ||
     cause.includes("fetch failed")
   );
+}
+
+function connectionErrorDetail(err: unknown): string {
+  if (!(err instanceof Error)) return "unknown error";
+  const cause = err.cause instanceof Error ? err.cause.message : "";
+  return cause ? `${err.message} (${cause})` : err.message;
 }
 
 function wrapFetchError(url: string, origin: string, err: unknown): Error {
@@ -33,7 +64,7 @@ function wrapFetchError(url: string, origin: string, err: unknown): Error {
  */
 export async function fetchPublicApi(
   path: string,
-  options?: { noStore?: boolean },
+  options?: { noStore?: boolean; revalidate?: number },
 ): Promise<unknown> {
   const origin = getInternalApiOrigin();
   const url = `${origin}${path}`;
@@ -43,12 +74,16 @@ export async function fetchPublicApi(
       headers: { Accept: "application/json" },
       ...(options?.noStore
         ? { cache: "no-store" as const }
-        : { next: { revalidate: 60 } }),
+        : { next: { revalidate: options?.revalidate ?? 60 } }),
     });
   } catch (err) {
+    if (isProductionServer()) {
+      logPublicFetchFailure(path, "network", connectionErrorDetail(err));
+    }
     throw wrapFetchError(url, origin, err);
   }
   if (!res.ok) {
+    logPublicFetchFailure(path, "http", `status ${res.status}`);
     throw new Error(`PUBLIC_API_${res.status}`);
   }
   return res.json();
@@ -57,18 +92,23 @@ export async function fetchPublicApi(
 /**
  * جلب اختياري: 404 → null. أخطاء اتصال (API غير متاح) → null بدون رمي،
  * لتجنّب كسر البناء/الميتاداتا عندما لا يعمل الخادم؛ وقت التشغيل يعرض notFound أو فراغًا حسب الصفحة.
+ * في الإنتاج: يُسجَّل تحذير في سجلات الخادم عند فشل الاتصال أو HTTP غير ناجح (ما عدا 404).
  */
-export async function fetchPublicApiMaybe(path: string): Promise<unknown | null> {
+export async function fetchPublicApiMaybe(
+  path: string,
+  options?: { revalidate?: number },
+): Promise<unknown | null> {
   const origin = getInternalApiOrigin();
   const url = `${origin}${path}`;
   let res: Response;
   try {
     res = await fetch(url, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      next: { revalidate: options?.revalidate ?? 60 },
     });
   } catch (err) {
     if (isLikelyConnectionError(err)) {
+      logPublicFetchFailure(path, "network", connectionErrorDetail(err));
       return null;
     }
     throw wrapFetchError(url, origin, err);
@@ -77,6 +117,7 @@ export async function fetchPublicApiMaybe(path: string): Promise<unknown | null>
     return null;
   }
   if (!res.ok) {
+    logPublicFetchFailure(path, "http", `status ${res.status}`);
     throw new Error(`PUBLIC_API_${res.status}`);
   }
   return res.json();

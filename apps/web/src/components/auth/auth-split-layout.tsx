@@ -4,8 +4,9 @@ import Link from "next/link";
 import { SiteLogo } from "@/components/layout/site-logo";
 import { APP_NAME_AR } from "@studyhouse/shared";
 
+/** لوحة جانبية — أبعاد معتدلة، بدون priority (النموذج هو LCP) */
 const AUTH_IMAGE =
-  "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=1400&h=1000";
+  "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=75&w=1200&h=900";
 
 type AuthSplitLayoutProps = {
   title: string;
@@ -62,7 +63,6 @@ export function AuthSplitLayout({
             src={AUTH_IMAGE}
             alt=""
             fill
-            priority
             className="object-cover object-center opacity-90"
             sizes="50vw"
           />
