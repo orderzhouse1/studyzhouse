@@ -234,9 +234,6 @@ export async function listCoursesAdmin(req: Request, res: Response): Promise<voi
   const { skip, take } = prismaSkipTake(query.page, query.pageSize);
 
   const where: Prisma.CourseWhereInput = {};
-  if (auth.role === UserRole.ADMIN) {
-    where.createdById = auth.userId;
-  }
   if (query.status) {
     where.status = query.status;
   }

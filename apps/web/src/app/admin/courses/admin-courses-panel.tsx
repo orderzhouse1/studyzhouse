@@ -149,7 +149,7 @@ export function AdminCoursesPanel(): React.ReactElement {
         <div>
           <h1 className="text-base font-bold text-heading">إدارة الكورسات</h1>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            قائمة الكورسات — بحث سريع وإجراءات مباشرة.
+            قائمة كورسات المنصة — بحث سريع وإجراءات مباشرة.
           </p>
         </div>
         <Button

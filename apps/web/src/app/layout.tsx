@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   },
   description:
     "منصة تعليمية عربية بتجربة نظيفة واحترافية — كورسات، تعلّم منظم، وتقدّم واضح.",
+  icons: {
+    icon: [{ url: "/S.png", type: "image/png" }],
+    shortcut: "/S.png",
+    apple: "/S.png",
+  },
 };
 
 export default function RootLayout({
