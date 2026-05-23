@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Search } from "lucide-react";
+import { Check, Copy, Plus, Search } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 type Row = {
   id: string;
-  maskedCode: string;
+  code: string;
   course: {
     id: string;
     title: string;
@@ -70,6 +70,7 @@ export function AdminActivationCodesPanel(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const composerScrollPending = useRef(false);
   const didApplyUrlState = useRef(false);
 
@@ -152,6 +153,16 @@ export function AdminActivationCodesPanel(): React.ReactElement {
     scrollToComposer();
   }, [composerOpen]);
 
+  async function copyCode(text: string, id: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      window.setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      window.alert("تعذّر النسخ — انسخ يدويًا.");
+    }
+  }
+
   async function disableCode(id: string): Promise<void> {
     if (
       !window.confirm(
@@ -177,13 +188,58 @@ export function AdminActivationCodesPanel(): React.ReactElement {
     }
   }
 
+  async function disableAndDeleteCode(id: string): Promise<void> {
+    if (
+      !window.confirm(
+        "تعطيل هذا الكود وحذفه نهائيًا؟ سيُزال من القائمة ولن يعمل للطلاب.",
+      )
+    ) {
+      return;
+    }
+    setBusyId(id);
+    try {
+      await adminFetchJson(`/admin/activation-codes/${id}`, {
+        method: "DELETE",
+      });
+      await load();
+    } catch (e) {
+      window.alert(
+        e instanceof AdminApiError ? e.message : "تعذّر الحذف.",
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function deleteCode(id: string): Promise<void> {
+    if (
+      !window.confirm("حذف هذا الكود نهائيًا من القائمة؟")
+    ) {
+      return;
+    }
+    setBusyId(id);
+    try {
+      await adminFetchJson(`/admin/activation-codes/${id}`, {
+        method: "DELETE",
+      });
+      await load();
+    } catch (e) {
+      window.alert(
+        e instanceof AdminApiError ? e.message : "تعذّر الحذف.",
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-base font-bold text-heading">أكواد التفعيل</h1>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            إنشاء أكواد للكورسات المنشورة وتتبّع الاستخدام.
+          <p className="mt-0.5 max-w-xl text-xs text-muted-foreground">
+            أنشئ كودًا مشتركًا لكل كورس وأرسله لجميع الطلاب. كل طالب يستخدمه
+            مرة واحدة؛ عطّل الكود من الجدول عند الانتهاء.
           </p>
         </div>
         <Button
@@ -299,7 +355,7 @@ export function AdminActivationCodesPanel(): React.ReactElement {
                   <th className="px-4 py-2 font-medium">الحالة</th>
                   <th className="px-4 py-2 font-medium">الاستخدام</th>
                   <th className="px-4 py-2 font-medium">ينتهي</th>
-                  <th className="w-24 px-4 py-2 font-medium">إجراءات</th>
+                  <th className="min-w-[11rem] px-4 py-2 font-medium">إجراءات</th>
                 </tr>
               </thead>
               <tbody>
@@ -311,11 +367,32 @@ export function AdminActivationCodesPanel(): React.ReactElement {
                       index % 2 === 1 ? "bg-muted/25" : "bg-card",
                     )}
                   >
-                    <td
-                      className="px-4 py-2.5 align-middle font-mono text-[0.625rem]"
-                      dir="ltr"
-                    >
-                      {row.maskedCode}
+                    <td className="px-4 py-2.5 align-middle">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <code
+                          className="font-mono text-[0.625rem] text-heading"
+                          dir="ltr"
+                        >
+                          {row.code}
+                        </code>
+                        {row.code !== "—" ? (
+                          <button
+                            type="button"
+                            onClick={() => void copyCode(row.code, row.id)}
+                            className="inline-flex shrink-0 items-center gap-0.5 rounded-md border border-border/70 bg-card px-1.5 py-0.5 text-[0.625rem] font-semibold text-muted-foreground transition hover:bg-muted/40 hover:text-heading"
+                          >
+                            {copiedId === row.id ? (
+                              <Check
+                                className="h-3 w-3 text-emerald-600"
+                                aria-hidden
+                              />
+                            ) : (
+                              <Copy className="h-3 w-3" aria-hidden />
+                            )}
+                            نسخ
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="max-w-[200px] px-4 py-2.5 align-middle">
                       <span className="line-clamp-2 font-semibold text-heading">
@@ -334,7 +411,19 @@ export function AdminActivationCodesPanel(): React.ReactElement {
                       </Badge>
                     </td>
                     <td className="px-4 py-2.5 align-middle tabular-nums text-muted-foreground">
-                      {row.usedCount} / {row.usageLimit}
+                      <span className="font-medium text-heading">
+                        {row.usedCount}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {" "}
+                        / {row.usageLimit}
+                      </span>
+                      {row.usageLimit > 1 ? (
+                        <span className="mt-0.5 block text-[0.625rem]">
+                          متبقٍ {Math.max(0, row.usageLimit - row.usedCount)}
+                          {row.usageLimit >= 100_000 ? " · مشترك" : ""}
+                        </span>
+                      ) : null}
                     </td>
                     <td className="px-4 py-2.5 align-middle text-[0.625rem] text-muted-foreground">
                       {row.expiresAt
@@ -342,18 +431,39 @@ export function AdminActivationCodesPanel(): React.ReactElement {
                         : "—"}
                     </td>
                     <td className="px-4 py-2.5 align-middle">
-                      {row.status === "ACTIVE" ? (
-                        <button
-                          type="button"
-                          disabled={busyId === row.id}
-                          onClick={() => void disableCode(row.id)}
-                          className="rounded-md bg-red-50 px-2 py-1 text-[0.6875rem] font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {busyId === row.id ? "جاري…" : "تعطيل"}
-                        </button>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
+                      <div className="flex flex-wrap items-center gap-1">
+                        {row.status === "ACTIVE" ? (
+                          <>
+                            <button
+                              type="button"
+                              disabled={busyId === row.id}
+                              onClick={() => void disableCode(row.id)}
+                              className="rounded-md bg-red-50 px-2 py-1 text-[0.6875rem] font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {busyId === row.id ? "جاري…" : "تعطيل"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busyId === row.id}
+                              onClick={() => void disableAndDeleteCode(row.id)}
+                              className="rounded-md border border-red-200 bg-card px-2 py-1 text-[0.6875rem] font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              تعطيل وحذف
+                            </button>
+                          </>
+                        ) : row.status === "DISABLED" ? (
+                          <button
+                            type="button"
+                            disabled={busyId === row.id}
+                            onClick={() => void deleteCode(row.id)}
+                            className="rounded-md border border-border/70 bg-card px-2 py-1 text-[0.6875rem] font-semibold text-muted-foreground transition hover:bg-muted/40 hover:text-heading disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {busyId === row.id ? "جاري…" : "حذف"}
+                          </button>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

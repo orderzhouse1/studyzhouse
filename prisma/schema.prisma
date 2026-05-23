@@ -372,7 +372,7 @@ model LessonProgress {
 model ActivationCode {
   id          String               @id @default(cuid())
   codeHash    String               @unique
-  /** بادئة آمنة للعرض في لوحة الإدارة فقط (مثل STUDY-AB12-****) */
+  /** الكود الكامل للعرض في لوحة الإدارة (مثل STUDY-AB12-XY89) */
   codePrefix  String               @default("")
   courseId    String
   status      ActivationCodeStatus @default(ACTIVE)

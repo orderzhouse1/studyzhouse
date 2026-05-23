@@ -527,18 +527,12 @@ async function main(): Promise<void> {
       .replace(/\s+/g, "")
       .replace(/−/g, "-");
     const hash = createHmac("sha256", pepper).update(normalized).digest("hex");
-    const parts = normalized.split("-").filter(Boolean);
-    const codePrefix =
-      parts.length >= 3
-        ? `${parts[0]}-${parts[1]}-****`
-        : `${normalized.slice(0, 8)}…`;
-
     await prisma.activationCode.upsert({
       where: { codeHash: hash },
       update: {},
       create: {
         codeHash: hash,
-        codePrefix,
+        codePrefix: normalized,
         courseId: paidActivationCourse.id,
         status: ActivationCodeStatus.ACTIVE,
         maxUses: 100,
