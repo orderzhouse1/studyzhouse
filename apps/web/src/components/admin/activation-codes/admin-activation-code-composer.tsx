@@ -1,12 +1,18 @@
 "use client";
 
-import { Check, Copy, KeyRound, Loader2, Sparkles, X } from "lucide-react";
+import { Check, Copy, KeyRound, Loader2, Sparkles, Users, X } from "lucide-react";
 import { useCallback, useEffect, useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AdminApiError, adminFetchJson } from "@/lib/courses-client-api";
+import { cn } from "@/lib/utils";
+
+/** يطابق الحد الأقصى في API — يُعرض كـ «غير محدود» */
+export const ACTIVATION_CODE_UNLIMITED_USES = 100_000;
+
+type CodeMode = "shared" | "batch";
 
 type CourseOpt = {
   id: string;
@@ -29,6 +35,34 @@ type CreateResponse = {
   };
 };
 
+const USAGE_PRESETS: Array<{ value: string; label: string }> = [
+  { value: "100", label: "١٠٠ طالب" },
+  { value: "500", label: "٥٠٠ طالب" },
+  { value: "1000", label: "١٬٠٠٠ طالب" },
+  { value: "5000", label: "٥٬٠٠٠ طالب" },
+  { value: "10000", label: "١٠٬٠٠٠ طالب" },
+  {
+    value: String(ACTIVATION_CODE_UNLIMITED_USES),
+    label: "غير محدود (حتى التعطيل)",
+  },
+  { value: "custom", label: "عدد مخصّص…" },
+];
+
+function resolveUsageLimit(
+  preset: string,
+  customLimit: string,
+): number | null {
+  if (preset === "custom") {
+    const n = Number(customLimit);
+    if (!Number.isInteger(n) || n < 1 || n > ACTIVATION_CODE_UNLIMITED_USES) {
+      return null;
+    }
+    return n;
+  }
+  const n = Number(preset);
+  return Number.isInteger(n) && n >= 1 ? n : null;
+}
+
 export function AdminActivationCodeComposer({
   onCancel,
   onSaved,
@@ -39,10 +73,10 @@ export function AdminActivationCodeComposer({
   const formId = useId();
   const [courses, setCourses] = useState<CourseOpt[]>([]);
   const [courseId, setCourseId] = useState("");
-  const [usageLimit, setUsageLimit] = useState("1");
-  const [expiresAt, setExpiresAt] = useState("");
-  const [note, setNote] = useState("");
-  const [count, setCount] = useState("1");
+  const [mode, setMode] = useState<CodeMode>("shared");
+  const [usagePreset, setUsagePreset] = useState("1000");
+  const [customLimit, setCustomLimit] = useState("");
+  const [batchCount, setBatchCount] = useState("10");
   const [busy, setBusy] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [created, setCreated] = useState<CreateResponse["data"] | null>(null);
@@ -67,16 +101,32 @@ export function AdminActivationCodeComposer({
     e.preventDefault();
     setBusy(true);
     setFieldError(null);
+
+    const usageLimit =
+      mode === "batch" ? 1 : resolveUsageLimit(usagePreset, customLimit);
+    if (usageLimit === null) {
+      setFieldError("أدخل عدد استخدامات صالحًا (من ١ إلى ١٠٠٬٠٠٠).");
+      setBusy(false);
+      return;
+    }
+
+    const count =
+      mode === "batch"
+        ? Number(batchCount)
+        : 1;
+
+    if (!Number.isInteger(count) || count < 1 || count > 50) {
+      setFieldError("عدد الأكواد في الوضع الفردي يجب أن يكون بين ١ و٥٠.");
+      setBusy(false);
+      return;
+    }
+
     try {
       const body: Record<string, unknown> = {
         courseId,
-        usageLimit: Number(usageLimit),
-        count: Number(count),
+        usageLimit,
+        count,
       };
-      if (note.trim()) body.note = note.trim();
-      if (expiresAt.trim()) {
-        body.expiresAt = new Date(expiresAt).toISOString();
-      }
       const json = await adminFetchJson<CreateResponse>(
         `/admin/activation-codes`,
         {
@@ -110,15 +160,16 @@ export function AdminActivationCodeComposer({
   function resetForAnother(): void {
     setCreated(null);
     setCourseId("");
-    setUsageLimit("1");
-    setExpiresAt("");
-    setNote("");
-    setCount("1");
+    setMode("shared");
+    setUsagePreset("1000");
+    setCustomLimit("");
+    setBatchCount("10");
     setFieldError(null);
     setCopiedIdx(null);
   }
 
   if (created) {
+    const isShared = created.codes.length === 1;
     return (
       <section
         id="admin-activation-code-composer"
@@ -131,10 +182,15 @@ export function AdminActivationCodeComposer({
             className="flex items-center gap-1 text-xs font-bold text-emerald-950"
           >
             <Check className="h-3.5 w-3.5 text-emerald-600" aria-hidden />
-            تم إنشاء {created.codes.length} كود
+            {isShared
+              ? "تم إنشاء كود مشترك"
+              : `تم إنشاء ${created.codes.length} كود`}
           </h2>
           <p className="mt-0.5 text-[0.625rem] text-emerald-900/80">
-            {created.course.title} — انسخ الأكواد الآن؛ لن تُعرض مجددًا بالكامل.
+            {created.course.title}
+            {isShared
+              ? " — انسخ الكود وأرسله لجميع الطلاب؛ كل طالب يستخدمه مرة واحدة حتى تُعطّله."
+              : " — انسخ الأكواد الآن؛ لن تُعرض مجددًا بالكامل."}
           </p>
         </div>
         <div className="space-y-2.5 px-3 py-3">
@@ -206,8 +262,9 @@ export function AdminActivationCodeComposer({
             <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden />
             إنشاء كود تفعيل
           </h2>
-          <p className="mt-0.5 text-[0.625rem] text-muted-foreground">
-            يُطبَّق على كورس منشور. يمكن توليد حتى ٥٠ كودًا دفعة واحدة.
+          <p className="mt-0.5 max-w-md text-[0.625rem] leading-relaxed text-muted-foreground">
+            الكود المشترك: كود واحد لكورس معيّن ترسله لآلاف الطلاب. كل طالب
+            يفعّل مرة واحدة؛ يمكنك تعطيل الكود متى شئت من الجدول أدناه.
           </p>
         </div>
         <button
@@ -250,62 +307,103 @@ export function AdminActivationCodeComposer({
           </select>
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-2">
-          <div className="space-y-1">
-            <Label htmlFor={`${formId}-limit`} className="text-[0.625rem]">
-              حد الاستخدام *
-            </Label>
-            <Input
-              id={`${formId}-limit`}
-              type="number"
-              min={1}
-              required
-              className="h-8 rounded-md px-2.5 text-[0.6875rem]"
-              value={usageLimit}
-              onChange={(e) => setUsageLimit(e.target.value)}
-            />
+        <fieldset className="space-y-1.5">
+          <legend className="text-[0.625rem] font-semibold text-heading">
+            نوع الكود
+          </legend>
+          <div className="grid gap-1.5 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setMode("shared")}
+              className={cn(
+                "rounded-lg border px-2.5 py-2 text-right text-[0.6875rem] transition",
+                mode === "shared"
+                  ? "border-primary/50 bg-primary/10 text-heading"
+                  : "border-border/70 bg-card text-muted-foreground hover:bg-muted/30",
+              )}
+            >
+              <span className="flex items-center gap-1 font-semibold">
+                <Users className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+                كود مشترك (موصى به)
+              </span>
+              <span className="mt-0.5 block text-[0.625rem] leading-snug opacity-90">
+                كود واحد يرسل لكل الطلاب
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("batch")}
+              className={cn(
+                "rounded-lg border px-2.5 py-2 text-right text-[0.6875rem] transition",
+                mode === "batch"
+                  ? "border-primary/50 bg-primary/10 text-heading"
+                  : "border-border/70 bg-card text-muted-foreground hover:bg-muted/30",
+              )}
+            >
+              <span className="flex items-center gap-1 font-semibold">
+                <KeyRound className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                أكواد فردية (دفعة)
+              </span>
+              <span className="mt-0.5 block text-[0.625rem] leading-snug opacity-90">
+                كل كود يُستخدم مرة واحدة فقط
+              </span>
+            </button>
           </div>
+        </fieldset>
+
+        {mode === "shared" ? (
           <div className="space-y-1">
-            <Label htmlFor={`${formId}-count`} className="text-[0.625rem]">
-              عدد الأكواد *
+            <Label htmlFor={`${formId}-preset`} className="text-[0.625rem]">
+              كم طالب يمكنه استخدام هذا الكود؟ *
+            </Label>
+            <select
+              id={`${formId}-preset`}
+              className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-[0.6875rem]"
+              value={usagePreset}
+              onChange={(e) => setUsagePreset(e.target.value)}
+            >
+              {USAGE_PRESETS.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+            {usagePreset === "custom" ? (
+              <Input
+                type="number"
+                min={1}
+                max={ACTIVATION_CODE_UNLIMITED_USES}
+                required
+                placeholder="مثال: 2500"
+                className="mt-1.5 h-8 rounded-md px-2.5 text-[0.6875rem]"
+                value={customLimit}
+                onChange={(e) => setCustomLimit(e.target.value)}
+              />
+            ) : null}
+            <p className="text-[0.625rem] text-muted-foreground">
+              يمكنك تعطيل الكود من القائمة في أي وقت قبل استنفاد العدد.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <Label htmlFor={`${formId}-batch`} className="text-[0.625rem]">
+              عدد الأكواد الفردية *
             </Label>
             <Input
-              id={`${formId}-count`}
+              id={`${formId}-batch`}
               type="number"
               min={1}
               max={50}
               required
               className="h-8 rounded-md px-2.5 text-[0.6875rem]"
-              value={count}
-              onChange={(e) => setCount(e.target.value)}
+              value={batchCount}
+              onChange={(e) => setBatchCount(e.target.value)}
             />
+            <p className="text-[0.625rem] text-muted-foreground">
+              يُنشأ حتى ٥٠ كودًا؛ كل كود لطالب واحد فقط.
+            </p>
           </div>
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor={`${formId}-exp`} className="text-[0.625rem]">
-            ينتهي (اختياري)
-          </Label>
-          <Input
-            id={`${formId}-exp`}
-            type="datetime-local"
-            className="h-8 rounded-md px-2.5 text-[0.6875rem]"
-            value={expiresAt}
-            onChange={(e) => setExpiresAt(e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor={`${formId}-note`} className="text-[0.625rem]">
-            ملاحظة داخلية (اختياري)
-          </Label>
-          <Input
-            id={`${formId}-note`}
-            className="h-8 rounded-md px-2.5 text-[0.6875rem]"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
-        </div>
+        )}
 
         <Button
           type="submit"
@@ -318,7 +416,7 @@ export function AdminActivationCodeComposer({
           ) : (
             <KeyRound className="h-3.5 w-3.5" aria-hidden />
           )}
-          توليد الكود
+          {mode === "shared" ? "توليد كود مشترك" : "توليد الأكواد"}
         </Button>
       </form>
     </section>

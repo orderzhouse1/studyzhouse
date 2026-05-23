@@ -36,6 +36,12 @@ adminActivationCodesRouter.post(
   asyncHandler(adminActivationCodeController.disableActivationCodeAdmin),
 );
 
+adminActivationCodesRouter.delete(
+  "/:codeId",
+  validateParams(activationCodeIdParamsSchema),
+  asyncHandler(adminActivationCodeController.deleteActivationCodeAdmin),
+);
+
 adminActivationCodesRouter.get(
   "/:codeId",
   validateParams(activationCodeIdParamsSchema),

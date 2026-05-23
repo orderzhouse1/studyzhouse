@@ -18,18 +18,6 @@ export function generateActivationPlain(): string {
   return `STUDY-${randomSegment(4)}-${randomSegment(4)}`;
 }
 
-export function maskPrefixFromPlain(plain: string): string {
-  const normalized = normalizeActivationCode(plain);
-  const parts = normalized.split("-").filter(Boolean);
-  if (parts.length >= 3) {
-    return `${parts[0]}-${parts[1]}-****`;
-  }
-  if (normalized.length >= 8) {
-    return `${normalized.slice(0, 8)}…`;
-  }
-  return "****";
-}
-
 export function normalizeActivationCode(input: string): string {
   return input
     .trim()

@@ -9,7 +9,6 @@ import { AppError } from "../lib/AppError.js";
 import {
   generateActivationPlain,
   hashActivationCode,
-  maskPrefixFromPlain,
   normalizeActivationCode,
 } from "../lib/activationCodeCrypto.js";
 import { prismaSkipTake } from "../lib/pagination.js";
@@ -75,7 +74,7 @@ export async function listActivationCodesAdmin(
     data: {
       items: rows.map((r) => ({
         id: r.id,
-        maskedCode: r.codePrefix || "—",
+        code: r.codePrefix || "—",
         course: {
           id: r.course.id,
           title: r.course.title,
@@ -156,11 +155,11 @@ export async function createActivationCodesAdmin(
         );
       }
 
-      const prefix = maskPrefixFromPlain(plain);
+      const displayCode = normalizeActivationCode(plain);
       const row = await tx.activationCode.create({
         data: {
           codeHash: hash,
-          codePrefix: prefix,
+          codePrefix: displayCode,
           courseId: course.id,
           status: ActivationCodeStatus.ACTIVE,
           maxUses: body.usageLimit,
@@ -235,7 +234,7 @@ export async function getActivationCodeAdmin(
     success: true,
     data: {
       id: row.id,
-      maskedCode: row.codePrefix || "—",
+      code: row.codePrefix || "—",
       course: row.course,
       status: row.status,
       usageLimit: row.maxUses,
@@ -300,7 +299,7 @@ export async function patchActivationCodeAdmin(
     success: true,
     data: {
       id: row.id,
-      maskedCode: row.codePrefix,
+      code: row.codePrefix,
       course: row.course,
       status: row.status,
       usageLimit: row.maxUses,
@@ -355,5 +354,45 @@ export async function disableActivationCodeAdmin(
       id: row.id,
       status: row.status,
     },
+  });
+}
+
+export async function deleteActivationCodeAdmin(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const codeId = String((req.validatedParams as { codeId: string }).codeId);
+  const actorId = req.auth?.userId;
+  if (!actorId) {
+    throw new AppError("UNAUTHORIZED", "يجب تسجيل الدخول.", 401);
+  }
+
+  const existing = await prisma.activationCode.findFirst({
+    where: { id: codeId },
+  });
+  if (!existing) {
+    throw new AppError("NOT_FOUND", "كود التفعيل غير موجود.", 404);
+  }
+
+  await prisma.activationCode.delete({
+    where: { id: codeId },
+  });
+
+  await writeAuditLog({
+    actorId,
+    action: "ACTIVATION_CODE_DELETED",
+    entityType: "ActivationCode",
+    entityId: codeId,
+    metadata: {
+      courseId: existing.courseId,
+      usedCount: existing.usedCount,
+      previousStatus: existing.status,
+    },
+    req,
+  });
+
+  res.status(200).json({
+    success: true,
+    data: { id: codeId },
   });
 }
