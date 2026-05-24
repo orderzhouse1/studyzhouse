@@ -378,9 +378,24 @@ export function SignupForm(): React.ReactElement {
           />
           <span>
             أوافق على{" "}
-            <span className="font-medium text-heading">شروط الاستخدام</span> و{" "}
-            <span className="font-medium text-heading">سياسة الخصوصية</span>{" "}
-            (عرض تفصيلي قريبًا).
+            <Link
+              href="/terms"
+              className="font-medium text-primary hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              الشروط والأحكام
+            </Link>{" "}
+            و{" "}
+            <Link
+              href="/privacy-policy"
+              className="font-medium text-primary hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              سياسة الخصوصية
+            </Link>
+            .
           </span>
         </label>
         {fieldError(fieldErrors, "acceptTerms") ? (

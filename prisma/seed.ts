@@ -582,6 +582,24 @@ async function main(): Promise<void> {
     }
   }
 
+  await prisma.appSetting.upsert({
+    where: { key: "platform_governance" },
+    update: {},
+    create: {
+      key: "platform_governance",
+      valueJson: {
+        platformName: "Studyhouse",
+        supportEmail: "support@studyhouse.app",
+        cliqAlias: "BATMAN0",
+        cliqInstructions:
+          "حوّل المبلغ إلى معرّف CliQ أعلاه، ثم أرسل طلب التفعيل مع رقم العملية أو صورة الإيصال.",
+        allowStudentSignup: true,
+        maintenanceMode: false,
+      },
+    },
+  });
+  console.log("[seed] Platform CliQ alias: BATMAN0 (platform_governance)");
+
   console.log("[seed] Users ready:", {
     superAdmin: superAdmin.email,
     admin: adminUser.email,
