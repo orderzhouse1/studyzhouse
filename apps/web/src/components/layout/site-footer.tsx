@@ -9,6 +9,7 @@ import Link from "next/link";
 import { SiteLogo } from "@/components/layout/site-logo";
 import { Button } from "@/components/ui/button";
 import { APP_NAME_AR } from "@studyhouse/shared";
+import { LEGAL_SUPPORT_EMAIL } from "@/lib/legal-content";
 import { cn } from "@/lib/utils";
 
 type FooterLink = { label: string; href: string };
@@ -22,6 +23,12 @@ const LEARNER_LINKS: FooterLink[] = [
   { label: "إنشاء حساب", href: "/signup" },
   { label: "تسجيل الدخول", href: "/login" },
   { label: "لوحة التعلّم", href: "/student/explore" },
+];
+
+const LEGAL_LINKS: FooterLink[] = [
+  { label: "سياسة الخصوصية", href: "/privacy-policy" },
+  { label: "الشروط والأحكام", href: "/terms" },
+  { label: "سياسة الاسترجاع", href: "/refund-policy" },
 ];
 
 function FooterNavColumn({
@@ -108,7 +115,7 @@ export function SiteFooter({
         />
 
         <div className="relative mx-auto w-full max-w-[min(100%,88rem)] px-4 py-12 sm:px-6 md:px-8 md:py-14 lg:py-16">
-          <div className="grid gap-10 lg:grid-cols-[1.35fr_1fr_1fr_1.1fr] lg:gap-8 xl:gap-10">
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[1.35fr_1fr_1fr_1fr_1.1fr] xl:gap-8">
             <div className="space-y-4">
               <SiteLogo
                 href="/"
@@ -132,6 +139,7 @@ export function SiteFooter({
 
             <FooterNavColumn title="المنصّة" links={platformLinks} />
             <FooterNavColumn title="للمتعلّم" links={LEARNER_LINKS} />
+            <FooterNavColumn title="قانوني" links={LEGAL_LINKS} />
 
             <div className="flex flex-col justify-between gap-5 rounded-2xl border border-white/15 bg-white/[0.06] p-5 backdrop-blur-sm sm:p-6">
               <div>
@@ -170,11 +178,11 @@ export function SiteFooter({
             </p>
             <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm">
               <a
-                href="mailto:support@studyhouse.app"
+                href={`mailto:${LEGAL_SUPPORT_EMAIL}`}
                 className="inline-flex items-center gap-1.5 text-white/70 transition hover:text-primary"
               >
                 <Mail className="h-3.5 w-3.5" aria-hidden />
-                support@studyhouse.app
+                {LEGAL_SUPPORT_EMAIL}
               </a>
               <Link
                 href="/"

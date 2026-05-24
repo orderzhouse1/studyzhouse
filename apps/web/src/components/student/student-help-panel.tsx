@@ -80,6 +80,38 @@ export function StudentHelpPanel(): React.ReactElement {
               </article>
             ))}
           </div>
+          <nav
+            className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-center"
+            aria-label="وثائق قانونية"
+          >
+            <p className="text-xs font-semibold text-heading">وثائق المنصة</p>
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs">
+              <Link
+                href="/privacy-policy"
+                className="font-medium text-primary hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                سياسة الخصوصية
+              </Link>
+              <Link
+                href="/terms"
+                className="font-medium text-primary hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                الشروط والأحكام
+              </Link>
+              <Link
+                href="/refund-policy"
+                className="font-medium text-primary hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                سياسة الاسترجاع
+              </Link>
+            </div>
+          </nav>
           <p className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <User className="h-3.5 w-3.5" aria-hidden />

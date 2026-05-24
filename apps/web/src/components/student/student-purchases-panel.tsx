@@ -90,6 +90,16 @@ export function StudentPurchasesPanel(): React.ReactElement {
       />
       <div className={cn("pb-16", STUDENT_CONTENT_PAD)}>
         <div className="mx-auto w-full max-w-3xl space-y-4 py-6 md:py-8">
+          <p className="text-center text-xs text-muted-foreground">
+            <Link
+              href="/refund-policy"
+              className="font-medium text-primary hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              اطلع على سياسة الاسترجاع
+            </Link>
+          </p>
           <div className="flex flex-wrap gap-2">
             {TABS.map((t) => (
               <button

@@ -42,8 +42,9 @@ type PlatformSettingsJson = {
 const DEFAULT_SETTINGS: PlatformSettingsJson = {
   platformName: "Studyhouse",
   supportEmail: "",
-  cliqAlias: "",
-  cliqInstructions: "",
+  cliqAlias: "BATMAN0",
+  cliqInstructions:
+    "حوّل المبلغ إلى معرّف CliQ أعلاه، ثم أرسل طلب التفعيل مع رقم العملية أو صورة الإيصال.",
   allowStudentSignup: true,
   maintenanceMode: false,
 };
@@ -114,10 +115,12 @@ async function loadPlatformSettings(): Promise<PlatformSettingsJson> {
         ? j.supportEmail
         : DEFAULT_SETTINGS.supportEmail,
     cliqAlias:
-      typeof j.cliqAlias === "string" ? j.cliqAlias : DEFAULT_SETTINGS.cliqAlias,
+      typeof j.cliqAlias === "string" && j.cliqAlias.trim()
+        ? j.cliqAlias.trim()
+        : DEFAULT_SETTINGS.cliqAlias,
     cliqInstructions:
-      typeof j.cliqInstructions === "string"
-        ? j.cliqInstructions
+      typeof j.cliqInstructions === "string" && j.cliqInstructions.trim()
+        ? j.cliqInstructions.trim()
         : DEFAULT_SETTINGS.cliqInstructions,
     allowStudentSignup:
       typeof j.allowStudentSignup === "boolean"

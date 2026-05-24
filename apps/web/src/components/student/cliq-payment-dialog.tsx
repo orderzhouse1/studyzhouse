@@ -1,6 +1,7 @@
 "use client";
 
 import { Copy, Loader2, Upload, Wallet, X } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import type { PublicCourseDetail } from "@/components/courses/course-public-detail";
@@ -338,6 +339,17 @@ export function CliqPaymentDialog({
               {error}
             </p>
           ) : null}
+
+          <p className="text-center text-[0.65rem] text-muted-foreground">
+            <Link
+              href="/refund-policy"
+              className="font-medium text-primary hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              اطلع على سياسة الاسترجاع
+            </Link>
+          </p>
 
           <Button
             type="submit"
