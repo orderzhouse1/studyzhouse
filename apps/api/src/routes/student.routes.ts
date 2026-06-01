@@ -27,7 +27,7 @@ import {
   studentProfilePatchBodySchema,
   studentNotificationsQuerySchema,
   notificationIdParamsSchema,
-  courseIdParamsSchema,
+  studentSavedCourseParamsSchema,
 } from "@studyhouse/shared";
 
 export const studentRouter = Router();
@@ -100,14 +100,14 @@ studentRouter.get(
 
 studentRouter.post(
   "/courses/:courseId/save",
-  validateParams(courseIdParamsSchema),
+  validateParams(studentSavedCourseParamsSchema),
   validateBody(emptyBodySchema),
   asyncHandler(studentSavedCoursesController.saveStudentCourse),
 );
 
 studentRouter.delete(
   "/courses/:courseId/save",
-  validateParams(courseIdParamsSchema),
+  validateParams(studentSavedCourseParamsSchema),
   asyncHandler(studentSavedCoursesController.unsaveStudentCourse),
 );
 
