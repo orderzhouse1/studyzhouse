@@ -8,7 +8,11 @@ import { prisma } from "../lib/prisma.js";
 import { parseDurationToMs } from "../lib/ttl.js";
 import { writeAuditLog } from "../services/audit.service.js";
 import type { LoginBody } from "@studyhouse/shared";
-import { AUTH_ACCESS_COOKIE_NAME, authUserSchema } from "@studyhouse/shared";
+import {
+  AUTH_ACCESS_COOKIE_NAME,
+  authUserSchema,
+  loginResponseDataSchema,
+} from "@studyhouse/shared";
 
 import { loadEnv } from "../config/env.js";
 
@@ -123,9 +127,14 @@ export async function login(req: Request, res: Response): Promise<void> {
     req,
   });
 
+  const safeUser = mapPublicUser(user);
+
   res.status(200).json({
     success: true,
-    data: { user: mapPublicUser(user) },
+    data: loginResponseDataSchema.parse({
+      user: safeUser,
+      accessToken: token,
+    }),
   });
 }
 

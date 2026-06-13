@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { StudentAccountPageHeader } from "@/components/student/student-account-page-header";
+import { WebPushToggle } from "@/components/student/web-push-toggle";
 import { STUDENT_CONTENT_PAD } from "@/components/student/student-dashboard-ui";
 import { Button } from "@/components/ui/button";
 import { fetchStudentProfilePage } from "@/lib/student-profile-api";
@@ -134,9 +135,9 @@ export function StudentSettingsPanel(): React.ReactElement {
               </SettingsSection>
 
               <SettingsSection title="التنبيهات">
+                <WebPushToggle />
                 <DisabledToggle label="إشعارات البريد الإلكتروني" />
                 <DisabledToggle label="تذكيرات الدراسة" />
-                <DisabledToggle label="تحديثات الكورسات" />
               </SettingsSection>
 
               <SettingsSection title="حذف الحساب">

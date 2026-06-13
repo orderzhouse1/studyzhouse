@@ -9,7 +9,11 @@ import { authRouter } from "./auth.routes.js";
 import { categoriesAdminRouter } from "./categoriesAdmin.routes.js";
 import { categoriesPublicRouter } from "./categoriesPublic.routes.js";
 import { adminActivationCodesRouter } from "./adminActivationCodes.routes.js";
+import { adminNotificationsRouter } from "./adminNotifications.routes.js";
+import { adminAnalyticsRouter } from "./adminAnalytics.routes.js";
+import { adminAuditLogsRouter } from "./adminAuditLogs.routes.js";
 import { adminPaymentRequestsRouter } from "./adminPaymentRequests.routes.js";
+import { adminReviewsRouter } from "./adminReviews.routes.js";
 import { adminStudentsRouter } from "./adminStudents.routes.js";
 import { adminUploadsRouter } from "./adminUploads.routes.js";
 import { coursesAdminRouter } from "./coursesAdmin.routes.js";
@@ -71,6 +75,34 @@ export function createApiRouter(): Router {
     requireAuth,
     requireRole(ADMIN_ACCESS_ROLES),
     adminUploadsRouter,
+  );
+
+  router.use(
+    `${base}/admin/notifications`,
+    requireAuth,
+    requireRole(ADMIN_ACCESS_ROLES),
+    adminNotificationsRouter,
+  );
+
+  router.use(
+    `${base}/admin/analytics`,
+    requireAuth,
+    requireRole(ADMIN_ACCESS_ROLES),
+    adminAnalyticsRouter,
+  );
+
+  router.use(
+    `${base}/admin/audit-logs`,
+    requireAuth,
+    requireRole(ADMIN_ACCESS_ROLES),
+    adminAuditLogsRouter,
+  );
+
+  router.use(
+    `${base}/admin/reviews`,
+    requireAuth,
+    requireRole(ADMIN_ACCESS_ROLES),
+    adminReviewsRouter,
   );
 
   router.use(

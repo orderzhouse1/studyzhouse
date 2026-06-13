@@ -7,6 +7,10 @@ import * as studentProfileController from "../controllers/studentProfile.control
 import * as studentNotificationsController from "../controllers/studentNotifications.controller.js";
 import * as studentPurchasesController from "../controllers/studentPurchases.controller.js";
 import * as studentSavedCoursesController from "../controllers/studentSavedCourses.controller.js";
+import * as lessonNoteController from "../controllers/lessonNote.controller.js";
+import * as courseReviewController from "../controllers/courseReview.controller.js";
+import * as studentRecommendationsController from "../controllers/studentRecommendations.controller.js";
+import * as studentWebPushController from "../controllers/studentWebPush.controller.js";
 import { activationRedeemRateLimiter } from "../middlewares/activationRedeemRateLimiter.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import {
@@ -17,7 +21,14 @@ import {
 import {
   emptyBodySchema,
   lessonIdParamsSchema,
+  lessonNoteCreateBodySchema,
+  lessonNoteIdParamsSchema,
+  lessonNotePatchBodySchema,
   lessonProgressBodySchema,
+  courseReviewCreateBodySchema,
+  courseReviewIdParamsSchema,
+  courseReviewPatchBodySchema,
+  courseSlugParamsSchema,
   studentActivationRedeemBodySchema,
   studentCourseSlugParamsSchema,
   studentLearnQuerySchema,
@@ -28,6 +39,10 @@ import {
   studentNotificationsQuerySchema,
   notificationIdParamsSchema,
   studentSavedCourseParamsSchema,
+  studentRecommendationsQuerySchema,
+  studentRecommendationDismissParamsSchema,
+  webPushSubscribeBodySchema,
+  webPushUnsubscribeBodySchema,
 } from "@studyhouse/shared";
 
 export const studentRouter = Router();
@@ -176,4 +191,86 @@ studentRouter.post(
   validateParams(lessonIdParamsSchema),
   validateBody(emptyBodySchema),
   asyncHandler(studentController.postStudentLessonComplete),
+);
+
+studentRouter.get(
+  "/lessons/:lessonId/notes",
+  validateParams(lessonIdParamsSchema),
+  asyncHandler(lessonNoteController.listLessonNotesStudent),
+);
+
+studentRouter.post(
+  "/lessons/:lessonId/notes",
+  validateParams(lessonIdParamsSchema),
+  validateBody(lessonNoteCreateBodySchema),
+  asyncHandler(lessonNoteController.createLessonNoteStudent),
+);
+
+studentRouter.patch(
+  "/lesson-notes/:noteId",
+  validateParams(lessonNoteIdParamsSchema),
+  validateBody(lessonNotePatchBodySchema),
+  asyncHandler(lessonNoteController.patchLessonNoteStudent),
+);
+
+studentRouter.delete(
+  "/lesson-notes/:noteId",
+  validateParams(lessonNoteIdParamsSchema),
+  asyncHandler(lessonNoteController.deleteLessonNoteStudent),
+);
+
+studentRouter.get(
+  "/courses/:slug/my-review",
+  validateParams(courseSlugParamsSchema),
+  asyncHandler(courseReviewController.getStudentMyCourseReview),
+);
+
+studentRouter.post(
+  "/courses/:slug/reviews",
+  validateParams(courseSlugParamsSchema),
+  validateBody(courseReviewCreateBodySchema),
+  asyncHandler(courseReviewController.createStudentCourseReviewHandler),
+);
+
+studentRouter.patch(
+  "/course-reviews/:reviewId",
+  validateParams(courseReviewIdParamsSchema),
+  validateBody(courseReviewPatchBodySchema),
+  asyncHandler(courseReviewController.patchStudentCourseReviewHandler),
+);
+
+studentRouter.delete(
+  "/course-reviews/:reviewId",
+  validateParams(courseReviewIdParamsSchema),
+  asyncHandler(courseReviewController.deleteStudentCourseReviewHandler),
+);
+
+studentRouter.get(
+  "/recommendations",
+  validateQuery(studentRecommendationsQuerySchema),
+  asyncHandler(studentRecommendationsController.listStudentRecommendations),
+);
+
+studentRouter.post(
+  "/recommendations/:courseId/dismiss",
+  validateParams(studentRecommendationDismissParamsSchema),
+  validateBody(emptyBodySchema),
+  asyncHandler(studentRecommendationsController.dismissStudentRecommendation),
+);
+
+studentRouter.get(
+  "/web-push/public-key",
+  asyncHandler(studentWebPushController.getStudentWebPushPublicKey),
+);
+
+studentRouter.post(
+  "/web-push/subscribe",
+  validateBody(webPushSubscribeBodySchema),
+  asyncHandler(studentWebPushController.subscribeStudentWebPush),
+);
+
+studentRouter.delete(
+  "/web-push/unsubscribe",
+  validateBody(webPushUnsubscribeBodySchema),
+  asyncHandler(studentWebPushController.unsubscribeStudentWebPush),
 );

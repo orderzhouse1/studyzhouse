@@ -88,37 +88,50 @@ curl http://localhost:4000/api/v1/health
 | `pnpm db:seed` | إعادة زرع مستخدمي التجربة |
 | `pnpm db:studio` | واجهة Prisma Studio |
 
-### اختبارات التكامل (API) — Phase 10B / 10B.1
+### اختبارات التكامل (API)
 
-- تُنفَّذ عبر **Vitest** و **Supertest** في `apps/api` (`src/integration/critical-flows.integration.test.ts`).
-- **التحقق المكتمل (Phase 10B.1):** تم تشغيل الحزمة بنجاح ضد قاعدة Neon معزولة عبر **`TEST_DATABASE_URL`**: **21** ناجح، **0** متخطّى، **0** فاشل (دمج مع إصلاح تمرير أخطاء async في Express).
-- **إلزام دائم:** كل تشغيل لـ `pnpm test:api` يجب أن يستخدم قاعدة Postgres **مخصّصة للاختبار فقط** عبر **`TEST_DATABASE_URL`** — **ممنوع** استخدام عنوان **`DATABASE_URL` للإنتاج** أو بيانات حرجة. أثناء التشغيل يضبط الاختبار `DATABASE_URL` من `TEST_DATABASE_URL` داخل عملية Vitest فقط.
-- **بدون `TEST_DATABASE_URL` في الطرفية:** يُتخطّى **21** اختبارًا تكامليًا — هذا **ليس** دليل نجاح كامل؛ صِغ خط CI أو شغّل يدويًا قبل الإصدار.
-- **تحضير قاعدة الاختبار** (مرة واحدة لكل قاعدة فارغة):
+- تُنفَّذ عبر **Vitest** و **Supertest** في `apps/api/src/integration/`.
+- **التوثيق الكامل:** [`docs/INTEGRATION_TESTING.md`](docs/INTEGRATION_TESTING.md)
 
-  **PowerShell (Windows):**
+#### قاعدة الاختبار
 
-  ```powershell
-  $env:TEST_DATABASE_URL = "postgresql://USER:PASSWORD@HOST/dbname?sslmode=require"
-  pnpm db:generate
-  $env:DATABASE_URL = $env:TEST_DATABASE_URL
-  pnpm exec prisma db push
-  pnpm test:api
-  ```
+| الحالة | السلوك |
+|--------|--------|
+| بدون `TEST_DATABASE_URL` | تُتخطّى كل suites التكامل **عمداً** — ليس دليل نجاح كامل |
+| مع `TEST_DATABASE_URL` | يجب أن تمر كل الاختبارات — لا skip بسبب اتصال عابر (retry في globalSetup) |
+| **ممنوع** | استخدام `DATABASE_URL` للإنتاج كـ `TEST_DATABASE_URL` |
 
-  **bash (Linux / macOS / Git Bash):**
+#### الإعداد الموصى به — Postgres محلي (Docker)
 
-  ```bash
-  export TEST_DATABASE_URL="postgresql://USER:PASSWORD@HOST/dbname?sslmode=require"
-  pnpm db:generate
-  DATABASE_URL="$TEST_DATABASE_URL" pnpm exec prisma db push
-  pnpm test:api
-  ```
+```powershell
+pnpm db:test:up
+$env:TEST_DATABASE_URL = "postgresql://studyhouse:studyhouse_test@127.0.0.1:5433/studyhouse_test"
+$env:DATABASE_URL = $env:TEST_DATABASE_URL
+pnpm db:test:migrate
+pnpm test:api
+pnpm db:test:down
+```
 
-  **ملاحظة:** Vitest لا يحمّل `.env` تلقائيًا — يجب تصدير المتغير في الطرفية نفسها.
+```bash
+pnpm db:test:up
+export TEST_DATABASE_URL="postgresql://studyhouse:studyhouse_test@127.0.0.1:5433/studyhouse_test"
+DATABASE_URL="$TEST_DATABASE_URL" pnpm db:test:migrate
+pnpm test:api
+pnpm db:test:down
+```
 
+#### بديل — Neon branch مخصص للاختبار
+
+```powershell
+$env:TEST_DATABASE_URL = "postgresql://USER:PASSWORD@HOST/test_branch?sslmode=require"
+$env:DATABASE_URL = $env:TEST_DATABASE_URL
+pnpm db:migrate:deploy
+pnpm test:api
+```
+
+- **Vitest لا يحمّل `.env` تلقائيًا** — صدّر `TEST_DATABASE_URL` في الطرفية.
 - **بيانات الاختبار:** بريد `@studyhouse-integration.test`؛ تُنظَّف في `afterAll`.
-- **من الجذر:** `pnpm test` يستدعي `pnpm test:api`.
+- **من الجذر:** `pnpm test` = `pnpm test:api`.
 
 ### توثيق الإنتاج والـ QA اليدوي (Phase 10C)
 

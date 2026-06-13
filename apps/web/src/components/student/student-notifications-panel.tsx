@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { StudentAccountPageHeader } from "@/components/student/student-account-page-header";
+import { WebPushToggle } from "@/components/student/web-push-toggle";
 import { STUDENT_CONTENT_PAD } from "@/components/student/student-dashboard-ui";
 import { Button } from "@/components/ui/button";
 import {
@@ -116,6 +117,10 @@ export function StudentNotificationsPanel(): React.ReactElement {
       />
 
       <div className={cn(STUDENT_CONTENT_PAD, "mx-auto w-full max-w-3xl py-6")}>
+        <div className="mb-6 rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
+          <WebPushToggle />
+        </div>
+
         {items.length > 0 ? (
           <div className="mb-4 flex justify-end">
             <Button

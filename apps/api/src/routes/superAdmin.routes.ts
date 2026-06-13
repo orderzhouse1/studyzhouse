@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import * as superAdminController from "../controllers/superAdmin.controller.js";
+import { getAdminAuditLog } from "../controllers/adminAuditLog.controller.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import {
   validateBody,
@@ -8,6 +9,7 @@ import {
   validateQuery,
 } from "../validators/validate.js";
 import {
+  auditLogIdParamsSchema,
   emptyBodySchema,
   superAdminAdminCreateBodySchema,
   superAdminAdminIdParamsSchema,
@@ -67,6 +69,12 @@ superAdminRouter.get(
   "/audit-logs",
   validateQuery(superAdminAuditLogsQuerySchema),
   asyncHandler(superAdminController.listSuperAdminAuditLogs),
+);
+
+superAdminRouter.get(
+  "/audit-logs/:auditLogId",
+  validateParams(auditLogIdParamsSchema),
+  asyncHandler(getAdminAuditLog),
 );
 
 superAdminRouter.get(

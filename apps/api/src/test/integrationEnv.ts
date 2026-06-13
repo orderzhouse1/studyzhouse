@@ -1,3 +1,42 @@
+/** True when Vitest should run integration suites (not skip them). */
+export function hasIntegrationTestDatabase(): boolean {
+  return Boolean(
+    process.env.TEST_DATABASE_URL &&
+      process.env.TEST_DATABASE_URL.length > 0,
+  );
+}
+
+/**
+ * Ping Postgres with retries — use in globalSetup and suite `beforeAll`.
+ * Throws if the database stays unreachable (fail fast instead of silent skip).
+ */
+export async function ensureIntegrationDatabaseReady(
+  prisma: { $queryRaw: (query: TemplateStringsArray) => Promise<unknown> },
+  options?: { attempts?: number; delayMs?: number },
+): Promise<void> {
+  const attempts = options?.attempts ?? 5;
+  const delayMs = options?.delayMs ?? 1500;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+
+  const detail =
+    lastError instanceof Error ? lastError.message : String(lastError);
+  throw new Error(
+    `Integration test database unreachable after ${attempts} attempts: ${detail}`,
+  );
+}
+
 /**
  * Call from vitest `beforeAll` only, after `TEST_DATABASE_URL` is confirmed.
  * Wires `DATABASE_URL` to the dedicated test database — never the production URL.

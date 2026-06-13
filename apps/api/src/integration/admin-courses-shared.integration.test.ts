@@ -111,13 +111,23 @@ describeIntegration("Admin courses shared workspace (TEST_DATABASE_URL)", () => 
   }, 120_000);
 
   afterAll(async () => {
+    if (!prisma) return;
     try {
+      await prisma.enrollment.deleteMany({
+        where: { course: { categoryId } },
+      });
+      await prisma.lesson.deleteMany({
+        where: { course: { categoryId } },
+      });
+      await prisma.courseSection.deleteMany({
+        where: { course: { categoryId } },
+      });
       await prisma.course.deleteMany({
-        where: { slug: { startsWith: `shared-course-${runId}` } },
+        where: {
+          OR: [{ categoryId }, { id: courseByAdminAId }],
+        },
       });
-      await prisma.category.deleteMany({
-        where: { slug: { startsWith: `shared-cat-${runId}` } },
-      });
+      await prisma.category.deleteMany({ where: { id: categoryId } });
       await prisma.adminProfile.deleteMany({
         where: {
           user: {

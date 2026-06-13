@@ -14,6 +14,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { LearnNotesPanel } from "@/components/learn/learn-notes-panel";
+import { LearnYoutubePlayer } from "@/components/learn/learn-youtube-player";
 import { LearnCourseSkeleton } from "@/components/student/student-page-skeletons";
 import { STUDENT_CONTENT_PAD } from "@/components/student/student-dashboard-ui";
 import { Button } from "@/components/ui/button";
@@ -105,6 +107,10 @@ export function LearnCourseClient({
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [learnTab, setLearnTab] = useState<"lesson" | "notes">("lesson");
+  const [videoStartSeconds, setVideoStartSeconds] = useState<number | null>(
+    null,
+  );
 
   const load = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -140,6 +146,11 @@ export function LearnCourseClient({
       body: "{}",
     }).catch(() => undefined);
   }, [data?.currentLesson?.id]);
+
+  useEffect(() => {
+    setVideoStartSeconds(null);
+    setLearnTab("lesson");
+  }, [data?.navigation.currentLessonId]);
 
   async function markComplete(): Promise<void> {
     if (!data?.currentLesson?.id) return;
@@ -337,25 +348,56 @@ export function LearnCourseClient({
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-border/80 bg-card p-3 shadow-card ring-1 ring-border/50 sm:p-4">
-            {vid ? (
-              <div className="mx-auto w-full max-w-2xl">
-                <div className="aspect-video w-full overflow-hidden rounded-lg bg-heading">
-                <iframe
+            <div className="mb-3 flex gap-1 rounded-xl bg-muted/40 p-1">
+              <button
+                type="button"
+                className={cn(
+                  "flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition",
+                  learnTab === "lesson"
+                    ? "bg-card text-heading shadow-sm"
+                    : "text-muted-foreground hover:text-heading",
+                )}
+                onClick={() => setLearnTab("lesson")}
+              >
+                الدرس
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition",
+                  learnTab === "notes"
+                    ? "bg-card text-heading shadow-sm"
+                    : "text-muted-foreground hover:text-heading",
+                )}
+                onClick={() => setLearnTab("notes")}
+              >
+                ملاحظاتي
+              </button>
+            </div>
+
+            {learnTab === "lesson" ? (
+              vid ? (
+                <LearnYoutubePlayer
+                  videoId={vid}
                   title={d.currentLesson.title}
-                  className="h-full w-full"
-                  src={`https://www.youtube.com/embed/${vid}?rel=0`}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
+                  startSeconds={videoStartSeconds}
                 />
+              ) : (
+                <div className="mx-auto flex aspect-video w-full max-w-2xl flex-col items-center justify-center gap-2 rounded-lg bg-muted/40 px-4 text-center">
+                  <PlayCircle className="h-10 w-10 text-muted-foreground/40" />
+                  <p className="text-xs font-medium text-foreground">
+                    لا يوجد فيديو مرتبط بهذا الدرس بعد.
+                  </p>
                 </div>
-              </div>
+              )
             ) : (
-              <div className="mx-auto flex aspect-video w-full max-w-2xl flex-col items-center justify-center gap-2 rounded-lg bg-muted/40 px-4 text-center">
-                <PlayCircle className="h-10 w-10 text-muted-foreground/40" />
-                <p className="text-xs font-medium text-foreground">
-                  لا يوجد فيديو مرتبط بهذا الدرس بعد.
-                </p>
-              </div>
+              <LearnNotesPanel
+                lessonId={d.navigation.currentLessonId}
+                onSeek={(seconds) => {
+                  setVideoStartSeconds(seconds);
+                  setLearnTab("lesson");
+                }}
+              />
             )}
           </div>
 

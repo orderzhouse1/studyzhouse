@@ -18,6 +18,10 @@ import { prismaSkipTake } from "../lib/pagination.js";
 import { prisma } from "../lib/prisma.js";
 import { slugFromTitle } from "../lib/slug.js";
 import { writeAuditLog } from "../services/audit.service.js";
+import {
+  getCourseRatingSummaries,
+  getCourseRatingSummary,
+} from "../services/courseReview.service.js";
 import { enforcePublishReadinessForAdminCourse } from "../services/coursePublishGuard.service.js";
 import type {
   CourseCreateBody,
@@ -25,6 +29,7 @@ import type {
 } from "@studyhouse/shared";
 import {
   adminCoursesQuerySchema,
+  normalizeCourseThumbnailUrl,
   publicCoursesQuerySchema,
 } from "@studyhouse/shared";
 
@@ -173,15 +178,21 @@ export async function listCoursesPublic(
     }),
   ]);
 
+  const ratingMap = await getCourseRatingSummaries(rows.map((r) => r.id));
+
   res.status(200).json({
     success: true,
     data: {
       items: rows.map((row) => {
         const { _count, ...course } = row;
-        return mapCoursePublic({
-          ...course,
-          lessonCount: _count.lessons,
-        });
+        const rating = ratingMap.get(course.id);
+        return mapCoursePublic(
+          {
+            ...course,
+            lessonCount: _count.lessons,
+          },
+          rating,
+        );
       }),
     },
     meta: {
@@ -216,12 +227,16 @@ export async function getCourseBySlugPublic(
   }
 
   const { _count, ...rest } = course;
-  const dto = mapCoursePublic({
-    ...rest,
-    lessonCount: _count.lessons,
-  });
+  const ratingSummary = await getCourseRatingSummary(course.id);
+  const dto = mapCoursePublic(
+    {
+      ...rest,
+      lessonCount: _count.lessons,
+    },
+    ratingSummary,
+  );
 
-  res.status(200).json({ success: true, data: { course: dto } });
+  res.status(200).json({ success: true, data: { course: dto, ratingSummary } });
 }
 
 export async function listCoursesAdmin(req: Request, res: Response): Promise<void> {
@@ -298,7 +313,7 @@ export async function createCourseAdmin(req: Request, res: Response): Promise<vo
 
   const thumb =
     body.thumbnailUrl && body.thumbnailUrl.length > 0
-      ? body.thumbnailUrl
+      ? normalizeCourseThumbnailUrl(body.thumbnailUrl)
       : null;
 
   const price = priceFromBody(body.pricingType, body.priceAmount);
@@ -443,7 +458,7 @@ export async function updateCourseAdmin(req: Request, res: Response): Promise<vo
     body.thumbnailUrl === undefined
       ? undefined
       : body.thumbnailUrl && body.thumbnailUrl.length > 0
-        ? body.thumbnailUrl
+        ? normalizeCourseThumbnailUrl(body.thumbnailUrl)
         : null;
 
   const updated = await prisma.course.update({

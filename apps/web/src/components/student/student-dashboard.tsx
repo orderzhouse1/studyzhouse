@@ -21,6 +21,7 @@ import {
   STUDENT_CONTENT_PAD,
 } from "@/components/student/student-dashboard-ui";
 import { StudentInterestCourses } from "@/components/student/student-interest-courses";
+import { StudentRecommendationsSection } from "@/components/student/student-recommendations-section";
 import { StudentOnboardingPrompt } from "@/components/student/student-onboarding-prompt";
 import { StudentDashboardSkeleton } from "@/components/student/student-page-skeletons";
 import { Button } from "@/components/ui/button";
@@ -394,6 +395,10 @@ export function StudentDashboard(): React.ReactElement {
               ))}
             </div>
           </DashboardSection>
+        ) : null}
+
+        {!profile?.needsOnboarding ? (
+          <StudentRecommendationsSection limit={4} />
         ) : null}
 
         {!profile?.needsOnboarding ? (

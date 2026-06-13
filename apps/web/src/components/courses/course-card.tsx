@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { normalizeCourseThumbnailUrl } from "@studyhouse/shared";
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,8 @@ export type CourseCardCourse = {
   category: null | { id: string; name: string; slug: string };
   lessonCount: number;
   publishedAt?: string | null;
+  averageRating?: number | null;
+  reviewCount?: number;
 };
 
 export function CourseCard({
@@ -29,6 +32,7 @@ export function CourseCard({
     course.pricingType === "FREE"
       ? "مجاني"
       : `${course.priceAmount ?? "—"} ${course.currency}`;
+  const thumbnailSrc = normalizeCourseThumbnailUrl(course.thumbnailUrl);
 
   return (
     <Link
@@ -39,9 +43,9 @@ export function CourseCard({
       )}
     >
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted/40">
-        {course.thumbnailUrl ? (
+        {thumbnailSrc ? (
           <img
-            src={course.thumbnailUrl}
+            src={thumbnailSrc}
             alt=""
             className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
           />

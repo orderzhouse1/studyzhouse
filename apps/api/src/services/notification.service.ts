@@ -5,6 +5,7 @@ import type {
   NotificationItem,
   PaginationQuery,
 } from "@studyhouse/shared";
+import { sendWebPushToUser } from "./webPushDelivery.service.js";
 
 export async function createNotification(input: {
   userId: string;
@@ -13,6 +14,7 @@ export async function createNotification(input: {
   body: string;
   actionUrl?: string | null;
   metadata?: Prisma.InputJsonValue;
+  skipWebPush?: boolean;
 }): Promise<void> {
   await prisma.notification.create({
     data: {
@@ -24,6 +26,19 @@ export async function createNotification(input: {
       metadata: input.metadata ?? undefined,
     },
   });
+
+  if (!input.skipWebPush) {
+    void sendWebPushToUser(input.userId, {
+      title: input.title,
+      body: input.body,
+      url: input.actionUrl ?? "/student/notifications",
+    }).catch((err) => {
+      console.warn("[web-push] createNotification hook failed", {
+        userId: input.userId,
+        message: err instanceof Error ? err.message : "unknown",
+      });
+    });
+  }
 }
 
 function mapNotification(row: {

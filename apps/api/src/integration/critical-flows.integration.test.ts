@@ -19,7 +19,7 @@ import {
   apiBasePath,
   AUTH_ACCESS_COOKIE_NAME,
 } from "@studyhouse/shared";
-import { applyIntegrationProcessEnv } from "../test/integrationEnv.js";
+import { applyIntegrationProcessEnv, ensureIntegrationDatabaseReady } from "../test/integrationEnv.js";
 
 const hasTestDb = Boolean(
   process.env.TEST_DATABASE_URL &&
@@ -67,6 +67,7 @@ describeIntegration("Critical API integration (TEST_DATABASE_URL)", () => {
     const { createApp } = await import("../app.js");
     const { prisma: p } = await import("../lib/prisma.js");
     prisma = p;
+    await ensureIntegrationDatabaseReady(prisma);
     app = createApp();
     base = apiBasePath(API_VERSION);
 
@@ -264,6 +265,8 @@ describeIntegration("Critical API integration (TEST_DATABASE_URL)", () => {
   it("login succeeds and sets HttpOnly auth cookie", async () => {
     const { res } = await loginAgent(sup.admin, pw.admin);
     expect(res.status).toBe(200);
+    expect(typeof res.body.data?.accessToken).toBe("string");
+    expect(res.body.data.accessToken.length).toBeGreaterThan(20);
     const raw = res.headers["set-cookie"];
     expect(raw).toBeDefined();
     const joined = Array.isArray(raw) ? raw.join(";") : String(raw);
@@ -759,154 +762,174 @@ describeIntegration("Critical API integration (TEST_DATABASE_URL)", () => {
     });
   });
 
-  it("activation: admin creates code, plain returned once, list has no hash", async () => {
-    await prisma.course.update({
-      where: { id: paidCourseId },
-      data: { status: CourseStatus.PUBLISHED },
-    });
-    await prisma.lesson.update({
-      where: { id: publishedLessonId },
-      data: { status: LessonStatus.PUBLISHED },
-    });
+  describe("activation codes", () => {
+    let plainMultiUse: string;
 
-    const { agent, res: loginRes } = await loginAgent(sup.admin, pw.admin);
-    expect(loginRes.status).toBe(200);
-
-    const created = await agent
-      .post(`${base}/admin/activation-codes`)
-      .set("Origin", "http://localhost:3000")
-      .send({
-        courseId: paidCourseId,
-        usageLimit: 2,
-        count: 1,
+    beforeAll(async () => {
+      await prisma.course.update({
+        where: { id: paidCourseId },
+        data: { status: CourseStatus.PUBLISHED },
       });
-    expect(created.status).toBe(201);
-    expect(created.body.data.codes[0]?.code).toBeTruthy();
-    const plain = created.body.data.codes[0].code as string;
-    const createdJson = JSON.stringify(created.body);
-    expect(createdJson).not.toMatch(/codeHash/i);
-
-    const list = await agent
-      .get(`${base}/admin/activation-codes?page=1&pageSize=20`)
-      .set("Origin", "http://localhost:3000");
-    expect(list.status).toBe(200);
-    expect(JSON.stringify(list.body)).not.toMatch(/codeHash/i);
-
-    const row = await prisma.activationCode.findFirst({
-      where: { courseId: paidCourseId },
-      orderBy: { createdAt: "desc" },
-    });
-    expect(row?.codeHash).toBeTruthy();
-    expect(row?.codeHash).not.toBe(plain);
-
-    const { agent: sAgent, res: sLogin } = await loginAgent(
-      sup.student2,
-      pw.student2,
-    );
-    expect(sLogin.status).toBe(200);
-    const redeem = await sAgent
-      .post(`${base}/student/activation-codes/redeem`)
-      .set("Origin", "http://localhost:3000")
-      .send({ code: plain });
-    expect(redeem.status).toBe(200);
-    expect(redeem.body.data.enrollment.status).toBe("ACTIVE");
-
-    const en = await prisma.enrollment.findFirst({
-      where: {
-        student: { email: sup.student2 },
-        courseId: paidCourseId,
-      },
-    });
-    expect(en?.source).toBe(EnrollmentSource.ACTIVATION_CODE);
-
-    const dup = await sAgent
-      .post(`${base}/student/activation-codes/redeem`)
-      .set("Origin", "http://localhost:3000")
-      .send({ code: plain });
-    expect(dup.status).toBe(409);
-    expect(dup.body?.error?.code).toBe("ALREADY_REDEEMED");
-
-    const bad = await sAgent
-      .post(`${base}/student/activation-codes/redeem`)
-      .set("Origin", "http://localhost:3000")
-      .send({ code: "ZZZZ-ZZZZ-ZZZZ" });
-    expect(bad.status).toBe(400);
-
-    const { agent: s3Agent, res: s3Login } = await loginAgent(
-      sup.student3,
-      pw.student3,
-    );
-    expect(s3Login.status).toBe(200);
-    const third = await s3Agent
-      .post(`${base}/student/activation-codes/redeem`)
-      .set("Origin", "http://localhost:3000")
-      .send({ code: plain });
-    expect(third.status).toBe(200);
-
-    const singleUse = await agent
-      .post(`${base}/admin/activation-codes`)
-      .set("Origin", "http://localhost:3000")
-      .send({
-        courseId: paidCourseId,
-        usageLimit: 1,
-        count: 1,
+      await prisma.lesson.update({
+        where: { id: publishedLessonId },
+        data: { status: LessonStatus.PUBLISHED },
       });
-    expect(singleUse.status).toBe(201);
-    const plainSingle = singleUse.body.data.codes[0].code as string;
-
-    await prisma.enrollment.deleteMany({
-      where: {
-        courseId: paidCourseId,
-        student: { email: { in: [sup.student, sup.student2] } },
-      },
     });
 
-    const { agent: su1 } = await loginAgent(sup.student, pw.student);
-    const firstRedeem = await su1
-      .post(`${base}/student/activation-codes/redeem`)
-      .set("Origin", "http://localhost:3000")
-      .send({ code: plainSingle });
-    expect(firstRedeem.status).toBe(200);
+    it("admin creates code, plain returned once, list has no hash", async () => {
+      const { agent, res: loginRes } = await loginAgent(sup.admin, pw.admin);
+      expect(loginRes.status).toBe(200);
 
-    const { agent: su2 } = await loginAgent(sup.student2, pw.student2);
-    const depletedOther = await su2
-      .post(`${base}/student/activation-codes/redeem`)
-      .set("Origin", "http://localhost:3000")
-      .send({ code: plainSingle });
-    expect(depletedOther.status).toBe(400);
-    expect(depletedOther.body?.error?.code).toBe("CODE_DEPLETED");
+      const created = await agent
+        .post(`${base}/admin/activation-codes`)
+        .set("Origin", "http://localhost:3000")
+        .send({
+          courseId: paidCourseId,
+          usageLimit: 2,
+          count: 1,
+        });
+      expect(created.status).toBe(201);
+      expect(created.body.data.codes[0]?.code).toBeTruthy();
+      plainMultiUse = created.body.data.codes[0].code as string;
+      const createdJson = JSON.stringify(created.body);
+      expect(createdJson).not.toMatch(/codeHash/i);
 
-    const disCreate = await agent
-      .post(`${base}/admin/activation-codes`)
-      .set("Origin", "http://localhost:3000")
-      .send({
-        courseId: paidCourseId,
-        usageLimit: 5,
-        count: 1,
+      const list = await agent
+        .get(`${base}/admin/activation-codes?page=1&pageSize=20`)
+        .set("Origin", "http://localhost:3000");
+      expect(list.status).toBe(200);
+      expect(JSON.stringify(list.body)).not.toMatch(/codeHash/i);
+
+      const row = await prisma.activationCode.findFirst({
+        where: { courseId: paidCourseId },
+        orderBy: { createdAt: "desc" },
       });
-    expect(disCreate.status).toBe(201);
-    const disId = disCreate.body.data.codes[0].id as string;
-    const disPlain = disCreate.body.data.codes[0].code as string;
-
-    await agent
-      .post(`${base}/admin/activation-codes/${disId}/disable`)
-      .set("Origin", "http://localhost:3000")
-      .send({});
-
-    await prisma.enrollment.deleteMany({
-      where: {
-        courseId: paidCourseId,
-        student: { email: sup.student3 },
-      },
+      expect(row?.codeHash).toBeTruthy();
+      expect(row?.codeHash).not.toBe(plainMultiUse);
     });
 
-    const { agent: disAgent } = await loginAgent(sup.student3, pw.student3);
-    const disRes = await disAgent
-      .post(`${base}/student/activation-codes/redeem`)
-      .set("Origin", "http://localhost:3000")
-      .send({ code: disPlain });
-    expect(disRes.status).toBe(400);
-    expect(disRes.body?.error?.code).toBe("CODE_INACTIVE");
+    it("student redeems code and duplicate redeem fails", async () => {
+      const { agent: sAgent, res: sLogin } = await loginAgent(
+        sup.student2,
+        pw.student2,
+      );
+      expect(sLogin.status).toBe(200);
+      const redeem = await sAgent
+        .post(`${base}/student/activation-codes/redeem`)
+        .set("Origin", "http://localhost:3000")
+        .send({ code: plainMultiUse });
+      expect(redeem.status).toBe(200);
+      expect(redeem.body.data.enrollment.status).toBe("ACTIVE");
+
+      const en = await prisma.enrollment.findFirst({
+        where: {
+          student: { email: sup.student2 },
+          courseId: paidCourseId,
+        },
+      });
+      expect(en?.source).toBe(EnrollmentSource.ACTIVATION_CODE);
+
+      const dup = await sAgent
+        .post(`${base}/student/activation-codes/redeem`)
+        .set("Origin", "http://localhost:3000")
+        .send({ code: plainMultiUse });
+      expect(dup.status).toBe(409);
+      expect(dup.body?.error?.code).toBe("ALREADY_REDEEMED");
+
+      const bad = await sAgent
+        .post(`${base}/student/activation-codes/redeem`)
+        .set("Origin", "http://localhost:3000")
+        .send({ code: "ZZZZ-ZZZZ-ZZZZ" });
+      expect(bad.status).toBe(400);
+    });
+
+    it("second student can redeem multi-use code", async () => {
+      const { agent: s3Agent, res: s3Login } = await loginAgent(
+        sup.student3,
+        pw.student3,
+      );
+      expect(s3Login.status).toBe(200);
+      const third = await s3Agent
+        .post(`${base}/student/activation-codes/redeem`)
+        .set("Origin", "http://localhost:3000")
+        .send({ code: plainMultiUse });
+      expect(third.status).toBe(200);
+    });
+
+    it("single-use code depletes after first redeem", async () => {
+      const { agent, res: loginRes } = await loginAgent(sup.admin, pw.admin);
+      expect(loginRes.status).toBe(200);
+
+      const singleUse = await agent
+        .post(`${base}/admin/activation-codes`)
+        .set("Origin", "http://localhost:3000")
+        .send({
+          courseId: paidCourseId,
+          usageLimit: 1,
+          count: 1,
+        });
+      expect(singleUse.status).toBe(201);
+      const plainSingle = singleUse.body.data.codes[0].code as string;
+
+      await prisma.enrollment.deleteMany({
+        where: {
+          courseId: paidCourseId,
+          student: { email: { in: [sup.student, sup.student2] } },
+        },
+      });
+
+      const { agent: su1 } = await loginAgent(sup.student, pw.student);
+      const firstRedeem = await su1
+        .post(`${base}/student/activation-codes/redeem`)
+        .set("Origin", "http://localhost:3000")
+        .send({ code: plainSingle });
+      expect(firstRedeem.status).toBe(200);
+
+      const { agent: su2 } = await loginAgent(sup.student2, pw.student2);
+      const depletedOther = await su2
+        .post(`${base}/student/activation-codes/redeem`)
+        .set("Origin", "http://localhost:3000")
+        .send({ code: plainSingle });
+      expect(depletedOther.status).toBe(400);
+      expect(depletedOther.body?.error?.code).toBe("CODE_DEPLETED");
+    });
+
+    it("disabled code returns CODE_INACTIVE", async () => {
+      const { agent, res: loginRes } = await loginAgent(sup.admin, pw.admin);
+      expect(loginRes.status).toBe(200);
+
+      const disCreate = await agent
+        .post(`${base}/admin/activation-codes`)
+        .set("Origin", "http://localhost:3000")
+        .send({
+          courseId: paidCourseId,
+          usageLimit: 5,
+          count: 1,
+        });
+      expect(disCreate.status).toBe(201);
+      const disId = disCreate.body.data.codes[0].id as string;
+      const disPlain = disCreate.body.data.codes[0].code as string;
+
+      await agent
+        .post(`${base}/admin/activation-codes/${disId}/disable`)
+        .set("Origin", "http://localhost:3000")
+        .send({});
+
+      await prisma.enrollment.deleteMany({
+        where: {
+          courseId: paidCourseId,
+          student: { email: sup.student3 },
+        },
+      });
+
+      const { agent: disAgent } = await loginAgent(sup.student3, pw.student3);
+      const disRes = await disAgent
+        .post(`${base}/student/activation-codes/redeem`)
+        .set("Origin", "http://localhost:3000")
+        .send({ code: disPlain });
+      expect(disRes.status).toBe(400);
+      expect(disRes.body?.error?.code).toBe("CODE_INACTIVE");
+    });
   });
 
   it("CliQ payment flow: create, duplicate pending, enroll guard, approve, reject", async () => {

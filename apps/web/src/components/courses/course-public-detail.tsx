@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { CourseRatingSummary } from "@/components/courses/course-rating-summary";
+import { CourseReviewsSection } from "@/components/courses/course-reviews-section";
 import { CourseStudentActions } from "@/components/courses/course-student-actions";
 import { SameCategoryCoursesAsync } from "@/components/courses/same-category-courses-async";
 import { SameCategoryCoursesSkeleton } from "@/components/courses/same-category-courses-skeleton";
@@ -19,7 +21,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { StudentHeader } from "@/components/layout/student-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { APP_NAME_AR } from "@studyhouse/shared";
+import { APP_NAME_AR, normalizeCourseThumbnailUrl } from "@studyhouse/shared";
 import { cn } from "@/lib/utils";
 
 export type PublicCourseDetail = {
@@ -37,6 +39,8 @@ export type PublicCourseDetail = {
   publishedAt: string | null;
   category: null | { id: string; name: string; slug: string };
   lessonCount: number;
+  averageRating?: number | null;
+  reviewCount?: number;
 };
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -178,6 +182,7 @@ export function CoursePublicDetail({
   const skills = buildSkillTags(course);
   const tools = buildToolTags(course);
   const duration = formatDuration(course.estimatedDurationMinutes);
+  const thumbnailSrc = normalizeCourseThumbnailUrl(course.thumbnailUrl);
   const price = priceLabel(course);
   const isStudent = variant === "student";
   const backHref = catalogBackHref ?? (isStudent ? "/student/explore" : "/courses");
@@ -212,13 +217,13 @@ export function CoursePublicDetail({
           className="pointer-events-none absolute -end-10 bottom-0 h-44 w-44 rounded-full border-[9px] border-sky-200/60"
           aria-hidden
         />
-        {course.thumbnailUrl ? (
+        {thumbnailSrc ? (
           <div
             className="pointer-events-none absolute end-0 top-0 hidden h-full w-[42%] max-w-xl opacity-[0.14] lg:block"
             aria-hidden
           >
             <img
-              src={course.thumbnailUrl}
+              src={thumbnailSrc}
               alt=""
               loading="lazy"
               decoding="async"
@@ -259,6 +264,11 @@ export function CoursePublicDetail({
               {course.lessonCount > 0 ? (
                 <Badge variant="outline">{course.lessonCount} درس</Badge>
               ) : null}
+              <CourseRatingSummary
+                averageRating={course.averageRating ?? null}
+                reviewCount={course.reviewCount ?? 0}
+                size="sm"
+              />
             </div>
 
             {isStudent ? (
@@ -442,6 +452,10 @@ export function CoursePublicDetail({
           ) : null}
         </div>
       </main>
+
+      <div className="mx-auto max-w-[min(100%,88rem)] px-4 pb-10 sm:px-6 md:px-8">
+        <CourseReviewsSection slug={course.slug} isStudentEnrolled={isStudent} />
+      </div>
 
       {course.category ? (
         <Suspense fallback={<SameCategoryCoursesSkeleton />}>

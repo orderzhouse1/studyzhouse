@@ -5,12 +5,13 @@ import type { CourseCardCourse } from "@/components/courses/course-card";
 import { Button } from "@/components/ui/button";
 import { catalogCtaButtonClassName } from "@/lib/catalog-cta-button";
 import { cn } from "@/lib/utils";
-import { APP_NAME_AR } from "@studyhouse/shared";
+import { APP_NAME_AR, normalizeCourseThumbnailUrl } from "@studyhouse/shared";
 
-function ratingFromId(id: string): string {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h + id.charCodeAt(i) * (i + 1)) % 97;
-  return (4.2 + (h % 8) * 0.1).toFixed(1);
+function formatRating(course: CourseCardCourse): string | null {
+  if (course.reviewCount && course.reviewCount > 0 && course.averageRating != null) {
+    return course.averageRating.toFixed(1);
+  }
+  return null;
 }
 
 function formatPrice(course: CourseCardCourse): string {
@@ -39,8 +40,9 @@ export function CatalogCourseCard({
   onToggleSave?: () => void;
 }): React.ReactElement {
   const detailHref = `${detailBasePath}/${course.slug}`;
-  const rating = ratingFromId(course.id);
+  const rating = formatRating(course);
   const categoryLabel = course.category?.name ?? "كورس تعليمي";
+  const thumbnailSrc = normalizeCourseThumbnailUrl(course.thumbnailUrl);
 
   return (
     <article
@@ -50,9 +52,9 @@ export function CatalogCourseCard({
       )}
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-[hsl(222_47%_12%)]">
-        {course.thumbnailUrl ? (
+        {thumbnailSrc ? (
           <img
-            src={course.thumbnailUrl}
+            src={thumbnailSrc}
             alt=""
             loading="lazy"
             decoding="async"
@@ -117,14 +119,20 @@ export function CatalogCourseCard({
               compact ? "text-[0.625rem]" : "text-xs",
             )}
           >
-            <Star
-              className={cn(
-                "fill-amber-400 text-amber-400",
-                compact ? "h-3 w-3" : "h-3.5 w-3.5",
-              )}
-              aria-hidden
-            />
-            {rating}
+            {rating ? (
+              <>
+                <Star
+                  className={cn(
+                    "fill-amber-400 text-amber-400",
+                    compact ? "h-3 w-3" : "h-3.5 w-3.5",
+                  )}
+                  aria-hidden
+                />
+                {rating}
+              </>
+            ) : (
+              <span className="text-muted-foreground">—</span>
+            )}
           </span>
         </div>
 

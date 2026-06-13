@@ -16,6 +16,9 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
   GOOGLE_REDIRECT_URI: z.string().url().optional(),
+  WEB_PUSH_PUBLIC_KEY: z.string().min(1).optional(),
+  WEB_PUSH_PRIVATE_KEY: z.string().min(1).optional(),
+  WEB_PUSH_SUBJECT: z.string().min(3).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
