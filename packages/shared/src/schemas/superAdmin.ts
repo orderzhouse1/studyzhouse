@@ -2,16 +2,10 @@ import { z } from "zod";
 
 import { paginationQuerySchema } from "./pagination";
 
-export const superAdminAuditLogsQuerySchema = paginationQuerySchema.extend({
-  actorId: z.string().cuid().optional(),
-  action: z.string().trim().min(1).max(120).optional(),
-  from: z.coerce.date().optional(),
-  to: z.coerce.date().optional(),
-});
-
-export type SuperAdminAuditLogsQuery = z.infer<
-  typeof superAdminAuditLogsQuerySchema
->;
+export {
+  auditLogsQuerySchema as superAdminAuditLogsQuerySchema,
+  type AuditLogsQuery as SuperAdminAuditLogsQuery,
+} from "./auditLog.js";
 
 export const superAdminAdminsQuerySchema = paginationQuerySchema.extend({
   search: z.string().trim().min(1).optional(),

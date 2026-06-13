@@ -15,6 +15,7 @@ import { hashPassword } from "../lib/password.js";
 import { prismaSkipTake } from "../lib/pagination.js";
 import { prisma } from "../lib/prisma.js";
 import { writeAuditLog } from "../services/audit.service.js";
+import { listAuditLogs } from "../services/auditLog.service.js";
 import type {
   SuperAdminAdminCreateBody,
   SuperAdminAdminPatchBody,
@@ -588,69 +589,13 @@ export async function listSuperAdminAuditLogs(
   const query = superAdminAuditLogsQuerySchema.parse(
     req.validatedQuery ?? req.query,
   ) as SuperAdminAuditLogsQuery;
-  const { skip, take } = prismaSkipTake(query.page, query.pageSize);
 
-  const where: Prisma.AuditLogWhereInput = {};
-
-  if (query.actorId) {
-    where.actorId = query.actorId;
-  }
-  if (query.action?.trim()) {
-    where.action = {
-      contains: query.action.trim(),
-      mode: "insensitive",
-    };
-  }
-  if (query.from || query.to) {
-    where.createdAt = {};
-    if (query.from) {
-      where.createdAt.gte = query.from;
-    }
-    if (query.to) {
-      where.createdAt.lte = query.to;
-    }
-  }
-
-  const [total, rows] = await prisma.$transaction([
-    prisma.auditLog.count({ where }),
-    prisma.auditLog.findMany({
-      where,
-      include: {
-        actor: {
-          select: { id: true, fullName: true, email: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-      skip,
-      take,
-    }),
-  ]);
+  const result = await listAuditLogs(query);
 
   res.status(200).json({
     success: true,
-    data: {
-      items: rows.map((a) => ({
-        id: a.id,
-        action: a.action,
-        entityType: a.entityType,
-        entityId: a.entityId,
-        metadata: sanitizeMetadata(a.metadataJson),
-        createdAt: a.createdAt.toISOString(),
-        actor: a.actor
-          ? {
-              id: a.actor.id,
-              fullName: a.actor.fullName,
-              email: a.actor.email,
-            }
-          : null,
-      })),
-    },
-    meta: {
-      page: query.page,
-      pageSize: query.pageSize,
-      total,
-      totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
-    },
+    data: { items: result.items },
+    meta: result.meta,
   });
 }
 

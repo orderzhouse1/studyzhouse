@@ -21,11 +21,11 @@ export async function uploadCourseThumbnailAdmin(
 ): Promise<void> {
   const body = req.body as CourseThumbnailUploadBody;
   const storedPath = await saveCourseThumbnailBase64(body.imageBase64);
-  const { url, path } = publicUploadUrl(storedPath);
+  const { path } = publicUploadUrl(storedPath);
 
   res.status(201).json({
     success: true,
-    data: { url, path },
+    data: { url: path, path },
   });
 }
 

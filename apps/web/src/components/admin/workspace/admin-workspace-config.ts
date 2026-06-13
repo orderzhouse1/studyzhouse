@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   BarChart3,
+  Bell,
   CreditCard,
   FolderTree,
   GraduationCap,
@@ -10,6 +11,7 @@ import {
   ScrollText,
   Settings,
   Shield,
+  Star,
   Users,
 } from "lucide-react";
 
@@ -120,12 +122,32 @@ export const ADMIN_SUB_NAV: WorkspaceNavItem[] = [
     match: (p) => startsWith(p, adminRoot, "activation-codes"),
   },
   {
+    id: "reviews",
+    label: "مراجعات الكورسات",
+    href: `${adminRoot}/reviews`,
+    icon: Star,
+    match: (p) => startsWith(p, adminRoot, "reviews"),
+  },
+  {
+    id: "notifications",
+    label: "إرسال إشعار",
+    href: `${adminRoot}/notifications`,
+    icon: Bell,
+    match: (p) => startsWith(p, adminRoot, "notifications"),
+  },
+  {
+    id: "audit",
+    label: "سجل العمليات",
+    href: `${adminRoot}/audit-logs`,
+    icon: ScrollText,
+    match: (p) => startsWith(p, adminRoot, "audit-logs"),
+  },
+  {
     id: "analytics",
     label: "التحليلات",
-    href: `${adminRoot}/preview/analytics`,
+    href: `${adminRoot}/analytics`,
     icon: BarChart3,
-    preview: true,
-    match: (p) => p.includes("/preview/analytics"),
+    match: (p) => startsWith(p, adminRoot, "analytics"),
   },
   {
     id: "governance",
@@ -211,10 +233,9 @@ export const SUPER_ADMIN_SUB_NAV: WorkspaceNavItem[] = [
   {
     id: "analytics",
     label: "التحليلات",
-    href: `${superRoot}/preview/analytics`,
+    href: `${superRoot}/analytics`,
     icon: BarChart3,
-    preview: true,
-    match: (p) => p.includes("/preview/analytics"),
+    match: (p) => startsWith(p, superRoot, "analytics"),
   },
 ];
 

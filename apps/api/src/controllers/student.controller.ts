@@ -16,7 +16,10 @@ import {
   flattenPublishedLessons,
   updateEnrollmentProgressPercent,
 } from "../services/studentLearning.service.js";
-import type { LessonProgressBody } from "@studyhouse/shared";
+import {
+  normalizeCourseThumbnailUrl,
+  type LessonProgressBody,
+} from "@studyhouse/shared";
 
 const DESCRIPTION_MAX = 8000;
 
@@ -137,7 +140,9 @@ export async function getStudentDashboard(
     ? {
         courseTitle: continueRow.lesson.course.title,
         courseSlug: continueRow.lesson.course.slug,
-        courseCoverUrl: continueRow.lesson.course.coverImageUrl,
+        courseCoverUrl: normalizeCourseThumbnailUrl(
+          continueRow.lesson.course.coverImageUrl,
+        ),
         lessonId: continueRow.lesson.id,
         lessonTitle: continueRow.lesson.title,
       }

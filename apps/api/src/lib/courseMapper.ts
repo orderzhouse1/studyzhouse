@@ -1,4 +1,5 @@
 import type { Category, Course } from "@prisma/client";
+import { normalizeCourseThumbnailUrl } from "@studyhouse/shared";
 
 type CourseWithCategory = Course & {
   category: Category | null;
@@ -19,6 +20,8 @@ export type PublicCourseDto = {
   publishedAt: string | null;
   category: null | { id: string; name: string; slug: string };
   lessonCount: number;
+  averageRating: number | null;
+  reviewCount: number;
 };
 
 export type AdminCourseDto = PublicCourseDto & {
@@ -35,6 +38,7 @@ export function decimalToString(value: Course["price"]): string | null {
 
 export function mapCoursePublic(
   course: CourseWithCategory & { lessonCount?: number },
+  rating?: { averageRating: number | null; reviewCount: number },
 ): PublicCourseDto {
   return {
     id: course.id,
@@ -42,7 +46,7 @@ export function mapCoursePublic(
     slug: course.slug,
     shortDescription: course.subtitle,
     description: course.description,
-    thumbnailUrl: course.coverImageUrl,
+    thumbnailUrl: normalizeCourseThumbnailUrl(course.coverImageUrl),
     pricingType: course.pricingType,
     priceAmount: decimalToString(course.price),
     currency: course.currency,
@@ -57,6 +61,8 @@ export function mapCoursePublic(
         }
       : null,
     lessonCount: course.lessonCount ?? 0,
+    averageRating: rating?.averageRating ?? null,
+    reviewCount: rating?.reviewCount ?? 0,
   };
 }
 

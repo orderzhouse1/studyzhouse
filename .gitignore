@@ -35,3 +35,10 @@ test-results
 
 # Misc
 *.tsbuildinfo
+
+# Flutter Android signing (never commit)
+apps/mobile/android/key.properties
+apps/mobile/android/upload-keystore.jks
+apps/mobile/android/**/*.jks
+apps/mobile/android/**/*.keystore
+apps/mobile/.env

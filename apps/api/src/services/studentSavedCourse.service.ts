@@ -7,7 +7,10 @@ import {
 import { AppError } from "../lib/AppError.js";
 import { prisma } from "../lib/prisma.js";
 import { decimalToString } from "../lib/courseMapper.js";
-import type { StudentSavedCourseItem } from "@studyhouse/shared";
+import {
+  normalizeCourseThumbnailUrl,
+  type StudentSavedCourseItem,
+} from "@studyhouse/shared";
 
 function learnUrl(slug: string): string {
   return `/learn/${slug}`;
@@ -40,7 +43,7 @@ function mapSavedRow(row: {
       id: row.course.id,
       title: row.course.title,
       slug: row.course.slug,
-      thumbnailUrl: row.course.coverImageUrl,
+      thumbnailUrl: normalizeCourseThumbnailUrl(row.course.coverImageUrl),
       pricingType: row.course.pricingType,
       priceAmount: decimalToString(row.course.price),
       currency: row.course.currency,

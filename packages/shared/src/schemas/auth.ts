@@ -97,6 +97,14 @@ export const authMeResponseSchema = z.object({
   user: authUserSchema,
 });
 
+/** POST /auth/login — cookie for web + accessToken for mobile */
+export const loginResponseDataSchema = z.object({
+  user: authUserSchema,
+  accessToken: z.string().min(1),
+});
+
+export type LoginResponseData = z.infer<typeof loginResponseDataSchema>;
+
 export const PASSWORD_RESET_GENERIC_MESSAGE =
   "إذا كان البريد مسجلًا لدينا، ستصلك رسالة تحتوي على رمز إعادة التعيين.";
 

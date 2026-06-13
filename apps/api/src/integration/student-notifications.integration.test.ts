@@ -13,7 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Express } from "express";
 
 import { API_VERSION, apiBasePath } from "@studyhouse/shared";
-import { applyIntegrationProcessEnv } from "../test/integrationEnv.js";
+import { applyIntegrationProcessEnv, ensureIntegrationDatabaseReady } from "../test/integrationEnv.js";
 import { createNotification } from "../services/notification.service.js";
 
 const hasTestDb = Boolean(
@@ -54,6 +54,7 @@ describeIntegration("Student notifications API (TEST_DATABASE_URL)", () => {
     const { createApp } = await import("../app.js");
     const { prisma: p } = await import("../lib/prisma.js");
     prisma = p;
+    await ensureIntegrationDatabaseReady(prisma);
     app = createApp();
     base = apiBasePath(API_VERSION);
 

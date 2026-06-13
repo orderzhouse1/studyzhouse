@@ -3,9 +3,9 @@ import type { NextFunction, Request, Response } from "express";
 import { UserStatus } from "@prisma/client";
 
 import { AppError } from "../lib/AppError.js";
+import { extractAccessTokenFromRequest } from "../lib/authToken.js";
 import { verifyAccessToken } from "../lib/jwt.js";
 import { prisma } from "../lib/prisma.js";
-import { AUTH_ACCESS_COOKIE_NAME } from "@studyhouse/shared";
 
 export async function requireAuth(
   req: Request,
@@ -13,7 +13,7 @@ export async function requireAuth(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const token = req.cookies?.[AUTH_ACCESS_COOKIE_NAME];
+    const token = extractAccessTokenFromRequest(req);
     if (!token) {
       next(new AppError("UNAUTHORIZED", "يجب تسجيل الدخول.", 401));
       return;

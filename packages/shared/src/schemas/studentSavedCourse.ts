@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-import { courseIdParamsSchema } from "./course";
-
 export const studentSavedCourseItemSchema = z.object({
   id: z.string(),
   courseId: z.string(),
@@ -36,7 +34,14 @@ export const studentSavedCourseIdsResponseSchema = z.object({
   courseIds: z.array(z.string()),
 });
 
-export { courseIdParamsSchema as studentSavedCourseIdParamsSchema };
+/** يطابق مسار POST/DELETE /student/courses/:courseId/save */
+export const studentSavedCourseParamsSchema = z.object({
+  courseId: z.string().cuid(),
+});
+
+export type StudentSavedCourseParams = z.infer<
+  typeof studentSavedCourseParamsSchema
+>;
 
 export type StudentSavedCourseItem = z.infer<
   typeof studentSavedCourseItemSchema
