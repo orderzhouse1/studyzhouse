@@ -135,4 +135,20 @@
   .shadow-brand {
     box-shadow: var(--shadow-brand);
   }
+
+  /* الصفحة الرئيسية — تمرير أفقي بدون شريط تمرير */
+  .home-mobile-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .home-mobile-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .home-mobile-snap-card {
+    scroll-snap-align: start;
+  }
 }

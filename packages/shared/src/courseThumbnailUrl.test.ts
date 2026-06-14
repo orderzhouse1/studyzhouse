@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { normalizeCourseThumbnailUrl } from "./courseThumbnailUrl.js";
+import {
+  courseThumbnailInputSchema,
+  normalizeCourseThumbnailUrl,
+} from "./courseThumbnailUrl.js";
 
 describe("normalizeCourseThumbnailUrl", () => {
   it("strips production host from upload paths", () => {
@@ -21,5 +24,26 @@ describe("normalizeCourseThumbnailUrl", () => {
   it("returns null for empty", () => {
     expect(normalizeCourseThumbnailUrl(null)).toBeNull();
     expect(normalizeCourseThumbnailUrl("")).toBeNull();
+  });
+});
+
+describe("courseThumbnailInputSchema", () => {
+  it("accepts local upload paths", () => {
+    const path =
+      "/api/v1/uploads/course-thumbnails/7c0933d5-fa36-4a76-96f9-5249d59f4ac2.png";
+    expect(courseThumbnailInputSchema.safeParse(path).success).toBe(true);
+  });
+
+  it("accepts external https urls", () => {
+    expect(
+      courseThumbnailInputSchema.safeParse("https://i.ytimg.com/vi/x/hqdefault.jpg")
+        .success,
+    ).toBe(true);
+  });
+
+  it("rejects invalid paths", () => {
+    expect(courseThumbnailInputSchema.safeParse("/not-a-valid-path").success).toBe(
+      false,
+    );
   });
 });

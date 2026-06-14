@@ -16,6 +16,7 @@ import { FeaturedCoursesBanner } from "@/components/marketing/featured-courses-b
 import { HeroKiderStyle } from "@/components/marketing/hero-kider-style";
 import { HomeFaqSection } from "@/components/marketing/home-faq";
 import { HomeLatestCoursesFeed } from "@/components/marketing/home-latest-courses-feed";
+import { HomePageMobile } from "@/components/marketing/mobile/home-page-mobile";
 import { PopularByCategorySection } from "@/components/marketing/popular-by-category";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -40,13 +41,23 @@ function categoryChipIcon(slug: string, name: string): LucideIcon {
 export default async function HomePage(): Promise<React.ReactElement> {
   const { featured, categories, popularColumns } = await loadHomePageData();
 
+  const showFeaturedLink = featured.length > 0;
+
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-background">
-      <SiteHeader showFeaturedLink={featured.length > 0} />
+    <>
+      <HomePageMobile
+        featured={featured}
+        categories={categories}
+        popularColumns={popularColumns}
+        showFeaturedLink={showFeaturedLink}
+      />
 
-      <HeroKiderStyle />
+      <div className="relative hidden min-h-screen overflow-x-hidden bg-background md:block">
+        <SiteHeader showFeaturedLink={showFeaturedLink} />
 
-      <main className="mx-auto flex w-full max-w-[min(100%,88rem)] flex-col gap-8 px-4 pb-14 pt-4 sm:px-6 sm:pt-5 md:px-8 md:gap-10">
+        <HeroKiderStyle />
+
+        <main className="mx-auto flex w-full max-w-[min(100%,88rem)] flex-col gap-8 px-4 pb-14 pt-4 sm:px-6 sm:pt-5 md:px-8 md:gap-10">
         {categories.length > 0 ? (
           <>
             <PopularByCategorySection columns={popularColumns} />
@@ -101,7 +112,8 @@ export default async function HomePage(): Promise<React.ReactElement> {
         <HomeFaqSection />
       </main>
 
-      <SiteFooter showFeaturedLink={featured.length > 0} showFaqLink />
-    </div>
+        <SiteFooter showFeaturedLink={showFeaturedLink} showFaqLink />
+      </div>
+    </>
   );
 }

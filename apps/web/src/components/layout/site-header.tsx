@@ -8,7 +8,7 @@ import { useEffect, useId, useMemo, useState } from "react";
 import {
   HeaderBrand,
   HEADER_INNER_CLASS,
-  HEADER_MOBILE_SEARCH_CLASS,
+  HEADER_MOBILE_SPACER_CLASS,
   HEADER_ROOT_CLASS,
 } from "@/components/layout/header-brand";
 import { HeaderSearchField } from "@/components/layout/header-search-field";
@@ -148,11 +148,9 @@ export function SiteHeader({
             </button>
           </div>
         </div>
-
-        <div className={HEADER_MOBILE_SEARCH_CLASS}>
-          <HeaderSearchField />
-        </div>
       </header>
+
+      <div className={HEADER_MOBILE_SPACER_CLASS} aria-hidden />
 
       <div
         className={cn(
