@@ -2,7 +2,9 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { uploadCourseThumbnailToCloudinary } from "./cloudinaryStorage.js";
 import { AppError } from "./AppError.js";
+import { isCloudinaryEnabled } from "./uploadConfig.js";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -16,9 +18,7 @@ export function getCourseThumbnailsDir(): string {
   return path.join(process.cwd(), "uploads", "course-thumbnails");
 }
 
-export async function saveCourseThumbnailBase64(
-  dataUrl: string,
-): Promise<string> {
+function parseImageBase64(dataUrl: string): { mime: string; ext: string; buf: Buffer } {
   const match = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/i.exec(
     dataUrl.trim(),
   );
@@ -49,9 +49,31 @@ export async function saveCourseThumbnailBase64(
     );
   }
 
+  return { mime, ext, buf };
+}
+
+async function saveCourseThumbnailLocal(dataUrl: string): Promise<string> {
+  const { ext, buf } = parseImageBase64(dataUrl);
+
   const dir = getCourseThumbnailsDir();
   await fs.mkdir(dir, { recursive: true });
   const filename = `${randomUUID()}.${ext}`;
   await fs.writeFile(path.join(dir, filename), buf);
   return `/api/v1/uploads/course-thumbnails/${filename}`;
+}
+
+/**
+ * يحفظ غلاف الكورس على Cloudinary إن وُجدت المفاتيح، وإلا على القرص المحلي.
+ * Cloudinary → رابط https كامل | محلي → مسار نسبي `/api/v1/uploads/...`
+ */
+export async function saveCourseThumbnailBase64(
+  dataUrl: string,
+): Promise<string> {
+  parseImageBase64(dataUrl);
+
+  if (isCloudinaryEnabled()) {
+    return uploadCourseThumbnailToCloudinary(dataUrl);
+  }
+
+  return saveCourseThumbnailLocal(dataUrl);
 }

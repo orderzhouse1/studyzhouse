@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { courseThumbnailInputSchema } from "../courseThumbnailUrl";
 import { paginationQuerySchema } from "./pagination";
 
 export const courseStatusSchema = z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
@@ -55,7 +56,7 @@ export const courseCreateBodySchema = z
       .optional(),
     description: z.string().trim().min(10, "الوصف مطلوب."),
     shortDescription: z.string().trim().max(500).optional(),
-    thumbnailUrl: z.union([z.string().url(), z.literal("")]).optional(),
+    thumbnailUrl: courseThumbnailInputSchema.optional(),
     categoryId: z.preprocess(
       (v) => (v === "" ? null : v),
       z.union([z.string().cuid(), z.null()]).optional(),
@@ -90,10 +91,7 @@ export const courseUpdateBodySchema = z.object({
     .optional(),
   description: z.string().trim().min(10).optional(),
   shortDescription: z.string().trim().max(500).nullable().optional(),
-  thumbnailUrl: z
-    .union([z.string().url(), z.literal("")])
-    .nullable()
-    .optional(),
+  thumbnailUrl: courseThumbnailInputSchema.nullable().optional(),
   categoryId: z.preprocess(
     (v) => (v === "" ? null : v),
     z.union([z.string().cuid(), z.null()]).optional(),

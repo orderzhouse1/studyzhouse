@@ -1,7 +1,15 @@
+import { z } from "zod";
+
 /** مسار رفع غلاف الكورس — يُخزَّن نسبياً ويُحلّ عند العرض حسب منشأ التطبيق. */
 export const COURSE_THUMBNAIL_UPLOAD_PATH_RE =
   /\/api\/v1\/uploads\/course-thumbnails\/[a-zA-Z0-9-]+\.(?:jpg|jpeg|png|webp)/i;
 
+/** قيمة مقبولة عند الإنشاء/التعديل: رابط خارجي، مسار رفع محلي، أو فارغ. */
+export const courseThumbnailInputSchema = z.union([
+  z.literal(""),
+  z.string().url(),
+  z.string().regex(COURSE_THUMBNAIL_UPLOAD_PATH_RE, "رابط صورة الغلاف غير صالح."),
+]);
 /**
  * يُرجع مسار الرفع النسبي إن وُجد، أو الرابط الخارجي كما هو (يوتيوب، unsplash، …).
  * يحوّل `https://studyzhouse.com/api/v1/uploads/...` إلى `/api/v1/uploads/...`

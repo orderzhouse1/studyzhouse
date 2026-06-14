@@ -20,12 +20,21 @@ export async function uploadCourseThumbnailAdmin(
   res: Response,
 ): Promise<void> {
   const body = req.body as CourseThumbnailUploadBody;
-  const storedPath = await saveCourseThumbnailBase64(body.imageBase64);
-  const { path } = publicUploadUrl(storedPath);
+  const stored = await saveCourseThumbnailBase64(body.imageBase64);
+
+  if (stored.startsWith("http://") || stored.startsWith("https://")) {
+    res.status(201).json({
+      success: true,
+      data: { url: stored, path: stored, absoluteUrl: stored },
+    });
+    return;
+  }
+
+  const { url, path } = publicUploadUrl(stored);
 
   res.status(201).json({
     success: true,
-    data: { url: path, path },
+    data: { url: path, path, absoluteUrl: url },
   });
 }
 

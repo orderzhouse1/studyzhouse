@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { CourseCardCourse } from "@/components/courses/course-card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { APP_NAME_AR } from "@studyhouse/shared";
+import { APP_NAME_AR, normalizeCourseThumbnailUrl } from "@studyhouse/shared";
 
 function courseTypeLabel(course: CourseCardCourse): string {
   if (course.category?.name) return course.category.name;
@@ -32,7 +32,7 @@ function FeaturedStripCard({
       <div className="relative aspect-[5/4] w-full overflow-hidden bg-muted/40 sm:aspect-[4/3]">
         {course.thumbnailUrl ? (
           <img
-            src={course.thumbnailUrl}
+            src={normalizeCourseThumbnailUrl(course.thumbnailUrl) ?? course.thumbnailUrl}
             alt=""
             loading="lazy"
             decoding="async"

@@ -5,7 +5,7 @@ import { paginationQuerySchema } from "./pagination";
 export {
   auditLogsQuerySchema as superAdminAuditLogsQuerySchema,
   type AuditLogsQuery as SuperAdminAuditLogsQuery,
-} from "./auditLog.js";
+} from "./auditLog";
 
 export const superAdminAdminsQuerySchema = paginationQuerySchema.extend({
   search: z.string().trim().min(1).optional(),
