@@ -73,8 +73,7 @@ Uninstall old `com.studyzhouse.studyzhouse_mobile` debug APKs on test devices be
 | Field | Value |
 |-------|--------|
 | Display name | STUDYZHOUSE |
-| Bundle ID | Flutter default (`com.studyzhouse.studyzhouseMobile` or project setting) |
-| Recommended | `com.studyzhouse.app` |
+| Bundle ID | `com.studyzhouse.app` |
 
 ### Apple setup (future)
 
