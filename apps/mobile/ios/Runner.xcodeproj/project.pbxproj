@@ -485,7 +485,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = com.studyzhouse.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.battechno.studyzhouse;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
