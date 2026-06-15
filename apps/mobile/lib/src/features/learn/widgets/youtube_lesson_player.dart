@@ -1,6 +1,6 @@
 import "package:flutter/material.dart";
 import "package:url_launcher/url_launcher.dart";
-import "package:youtube_player_iframe/youtube_player_iframe.dart";
+import "package:webview_flutter/webview_flutter.dart";
 
 import "../../../core/theme/app_colors.dart";
 import "../../../core/widgets/app_button.dart";
@@ -11,7 +11,8 @@ bool isValidYoutubeVideoId(String? id) {
   return RegExp(r"^[a-zA-Z0-9_-]{11}$").hasMatch(id.trim());
 }
 
-/// مشغّل YouTube — origin صحيح لتجنّب خطأ 152 على Android.
+/// مشغّل YouTube عبر WebView + iframe (نفس أسلوب الويب).
+/// baseUrl يوفّر Referer مطلوب من يوتيوب لتجنّب خطأ 152.
 class YoutubeLessonPlayer extends StatefulWidget {
   const YoutubeLessonPlayer({
     required this.videoId,
@@ -31,18 +32,11 @@ class YoutubeLessonPlayer extends StatefulWidget {
 }
 
 class _YoutubeLessonPlayerState extends State<YoutubeLessonPlayer> {
-  YoutubePlayerController? _controller;
+  WebViewController? _controller;
   String? _loadedId;
   bool _embedFailed = false;
 
-  static const _embedParams = YoutubePlayerParams(
-    showFullscreenButton: true,
-    strictRelatedVideos: true,
-    enableJavaScript: true,
-    playsInline: true,
-    // مطلوب على Android WebView — يقلّل خطأ 152 / 153.
-    origin: "https://www.youtube-nocookie.com",
-  );
+  static const _embedBaseUrl = "https://www.youtube-nocookie.com";
 
   @override
   void didUpdateWidget(YoutubeLessonPlayer oldWidget) {
@@ -61,47 +55,61 @@ class _YoutubeLessonPlayerState extends State<YoutubeLessonPlayer> {
   void _loadVideo(String? rawId) {
     final id = rawId?.trim();
     if (!isValidYoutubeVideoId(id)) {
-      _disposeController();
-      setState(() {
-        _loadedId = null;
-        _embedFailed = false;
-      });
+      _controller = null;
+      _loadedId = null;
+      _embedFailed = false;
+      if (mounted) setState(() {});
       return;
     }
 
     if (id == _loadedId && _controller != null) return;
 
-    _disposeController();
+    final controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0xFF000000))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onWebResourceError: (_) {
+            if (!mounted) return;
+            setState(() => _embedFailed = true);
+          },
+        ),
+      )
+      ..loadHtmlString(_embedHtml(id!), baseUrl: _embedBaseUrl);
 
-    try {
-      final controller = YoutubePlayerController(
-        params: _embedParams,
-        key: id,
-      );
-      controller.cueVideoById(videoId: id!);
-      controller.listen((value) {
-        if (!mounted) return;
-        final failed = value.hasError;
-        if (failed != _embedFailed) {
-          setState(() => _embedFailed = failed);
-        }
-      });
-      _controller = controller;
-      _loadedId = id;
-      _embedFailed = false;
-    } catch (_) {
-      _controller = null;
-      _loadedId = null;
-      _embedFailed = true;
-    }
+    _controller = controller;
+    _loadedId = id;
+    _embedFailed = false;
     if (mounted) setState(() {});
   }
 
-  void _disposeController() {
-    _controller?.close();
-    _controller = null;
-    _loadedId = null;
-    _embedFailed = false;
+  static String _embedHtml(String videoId) {
+    final src =
+        "https://www.youtube.com/embed/$videoId"
+        "?playsinline=1&rel=0&modestbranding=1&enablejsapi=1";
+    return """
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
+    iframe { width: 100%; height: 100%; border: 0; }
+  </style>
+</head>
+<body>
+  <iframe
+    src="$src"
+    title="YouTube"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    allowfullscreen
+    referrerpolicy="strict-origin-when-cross-origin"
+  ></iframe>
+</body>
+</html>
+""";
   }
 
   Future<void> _openInYoutube() async {
@@ -114,16 +122,9 @@ class _YoutubeLessonPlayerState extends State<YoutubeLessonPlayer> {
   }
 
   @override
-  void dispose() {
-    _disposeController();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final valid = isValidYoutubeVideoId(widget.videoId);
-    final showPlayer =
-        valid && _controller != null && !_embedFailed;
+    final showPlayer = valid && _controller != null && !_embedFailed;
 
     final player = AspectRatio(
       aspectRatio: 16 / 9,
@@ -133,7 +134,7 @@ class _YoutubeLessonPlayerState extends State<YoutubeLessonPlayer> {
               onDark: widget.embeddedInHero,
             )
           : showPlayer
-          ? YoutubePlayer(controller: _controller!, aspectRatio: 16 / 9)
+          ? WebViewWidget(controller: _controller!)
           : _embedErrorFallback(),
     );
 
