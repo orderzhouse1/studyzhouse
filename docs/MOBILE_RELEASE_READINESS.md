@@ -37,7 +37,7 @@ Priority:
 
 | Asset | Notes |
 |-------|--------|
-| App name | STUDYZHOUSE or ستادي هاوس |
+| App name | STUDYZHOUSE or ستاديز هاوس |
 | Short description | ~80 chars, Arabic + English if needed |
 | Full description | Features: courses, learn, redeem, CliQ |
 | Screenshots | Phone 6–8 screens: home, explore, learn, profile, redeem |

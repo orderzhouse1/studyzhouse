@@ -8,10 +8,10 @@ export const dynamic = "force-static";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "سياسة الخصوصية | منصة ستادي هاوس",
+    absolute: "سياسة الخصوصية | منصة ستاديز هاوس",
   },
   description:
-    "تعرف على كيفية جمع منصة ستادي هاوس لبياناتك واستخدامها وحمايتها عند التعلم عبر الإنترنت.",
+    "تعرف على كيفية جمع منصة ستاديز هاوس لبياناتك واستخدامها وحمايتها عند التعلم عبر الإنترنت.",
 };
 
 export default function PrivacyPolicyPage(): React.ReactElement {

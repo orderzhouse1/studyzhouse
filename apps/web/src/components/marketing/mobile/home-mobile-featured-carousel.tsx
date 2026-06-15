@@ -5,7 +5,7 @@ import type { CourseCardCourse } from "@/components/courses/course-card";
 import { cn } from "@/lib/utils";
 
 const CARD_THEMES = [
-  "from-[hsl(265_45%_88%)] to-[hsl(265_40%_78%)] text-[hsl(222_47%_14%)]",
+  "from-[hsl(222_47%_14%)] to-[hsl(222_47%_22%)] text-white",
   "from-[hsl(24_95%_88%)] to-[hsl(24_90%_78%)] text-[hsl(222_47%_14%)]",
   "from-[hsl(192_60%_88%)] to-[hsl(192_55%_78%)] text-[hsl(222_47%_14%)]",
   "from-[hsl(222_35%_88%)] to-[hsl(222_30%_78%)] text-[hsl(222_47%_14%)]",
@@ -26,6 +26,7 @@ function FeaturedCarouselCard({
   themeIndex: number;
 }): React.ReactElement {
   const theme = CARD_THEMES[themeIndex % CARD_THEMES.length];
+  const isDarkCard = themeIndex % CARD_THEMES.length === 0;
 
   return (
     <article
@@ -44,8 +45,18 @@ function FeaturedCarouselCard({
         <p className="mt-auto text-xs font-medium opacity-75">
           {lessonLabel(course.lessonCount)}
         </p>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/10">
-          <div className="h-full w-1/3 rounded-full bg-[hsl(222_47%_14%)]/35" />
+        <div
+          className={cn(
+            "mt-2 h-1.5 overflow-hidden rounded-full",
+            isDarkCard ? "bg-white/15" : "bg-black/10",
+          )}
+        >
+          <div
+            className={cn(
+              "h-full w-1/3 rounded-full",
+              isDarkCard ? "bg-white/45" : "bg-[hsl(222_47%_14%)]/35",
+            )}
+          />
         </div>
       </div>
 
