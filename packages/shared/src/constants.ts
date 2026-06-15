@@ -6,7 +6,7 @@ export function apiBasePath(version: string = API_VERSION): string {
   return `/api/${version}`;
 }
 
-export const APP_NAME_AR = "منصة ستاديهاوس";
+export const APP_NAME_AR = "منصة ستاديز هاوس";
 
 export const DEFAULT_PAGE_SIZE = 20;
 

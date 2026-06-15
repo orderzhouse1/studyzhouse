@@ -8,17 +8,17 @@ export const dynamic = "force-static";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "الشروط والأحكام | منصة ستادي هاوس",
+    absolute: "الشروط والأحكام | منصة ستاديز هاوس",
   },
   description:
-    "شروط استخدام منصة ستادي هاوس للتعلم: الحسابات، الكورسات، الدفع اليدوي، أكواد التفعيل، والسلوك المقبول.",
+    "شروط استخدام منصة ستاديز هاوس للتعلم: الحسابات، الكورسات، الدفع اليدوي، أكواد التفعيل، والسلوك المقبول.",
 };
 
 export default function TermsPage(): React.ReactElement {
   return (
     <LegalPageShell
       title="الشروط والأحكام"
-      description="باستخدامك لمنصة ستادي هاوس فإنك توافق على هذه الشروط التي تنظّم حسابك، والكورسات، والدفع، وسلوكك على المنصة."
+      description="باستخدامك لمنصة ستاديز هاوس فإنك توافق على هذه الشروط التي تنظّم حسابك، والكورسات، والدفع، وسلوكك على المنصة."
     >
       <LegalSections sections={TERMS_SECTIONS} />
     </LegalPageShell>

@@ -8,10 +8,10 @@ export const dynamic = "force-static";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "سياسة الاسترجاع | منصة ستادي هاوس",
+    absolute: "سياسة الاسترجاع | منصة ستاديز هاوس",
   },
   description:
-    "سياسة الاسترجاع في ستادي هاوس للدفع اليدوي عبر CliQ وأكواد التفعيل — الشروط، الحالات، وآلية التواصل مع الإدارة.",
+    "سياسة الاسترجاع في ستاديز هاوس للدفع اليدوي عبر CliQ وأكواد التفعيل — الشروط، الحالات، وآلية التواصل مع الإدارة.",
 };
 
 export default function RefundPolicyPage(): React.ReactElement {

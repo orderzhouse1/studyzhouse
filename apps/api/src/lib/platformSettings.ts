@@ -12,7 +12,7 @@ export type PlatformSettingsJson = {
 };
 
 const DEFAULT_SETTINGS: PlatformSettingsJson = {
-  platformName: "Studyhouse",
+  platformName: "ستاديز هاوس",
   supportEmail: "",
   cliqAlias: "BATMAN0",
   cliqInstructions:

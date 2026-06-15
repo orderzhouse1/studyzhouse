@@ -588,7 +588,7 @@ async function main(): Promise<void> {
     create: {
       key: "platform_governance",
       valueJson: {
-        platformName: "Studyhouse",
+        platformName: "ستاديز هاوس",
         supportEmail: "support@studyhouse.app",
         cliqAlias: "BATMAN0",
         cliqInstructions:
