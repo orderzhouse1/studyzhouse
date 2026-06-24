@@ -1,5 +1,6 @@
 import type { CourseCardCourse } from "@/components/courses/course-card";
 import type { PopularCategoryColumn } from "@/components/marketing/popular-by-category";
+import type { HomepageHeroStatPublicItem } from "@studyhouse/shared";
 import { SiteHeader } from "@/components/layout/site-header";
 import { HomeMobileCategoryChips } from "@/components/marketing/mobile/home-mobile-category-chips";
 import { HomeMobileFaq } from "@/components/marketing/mobile/home-mobile-faq";
@@ -17,6 +18,7 @@ export type HomePageMobileProps = {
   categories: { name: string; slug: string }[];
   popularColumns: PopularCategoryColumn[];
   showFeaturedLink: boolean;
+  heroStats: HomepageHeroStatPublicItem[];
 };
 
 /**
@@ -28,12 +30,13 @@ export function HomePageMobile({
   categories,
   popularColumns,
   showFeaturedLink,
+  heroStats,
 }: HomePageMobileProps): React.ReactElement {
   return (
     <div className="relative min-h-[100dvh] w-full overflow-x-hidden bg-[hsl(215_22%_97%)] md:hidden">
       <SiteHeader showFeaturedLink={showFeaturedLink} />
 
-      <HomeMobileHero />
+      <HomeMobileHero stats={heroStats} />
 
       <main className="flex flex-col gap-6 px-4 pt-2">
         {featured.length > 0 ? (

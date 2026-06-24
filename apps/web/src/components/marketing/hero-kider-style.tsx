@@ -2,8 +2,9 @@ import { ArrowLeft, GraduationCap, Sparkles, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
+import { HomeHeroStatsLive } from "@/components/marketing/home-hero-stats-live";
 import { Button } from "@/components/ui/button";
-import { APP_NAME_AR } from "@studyhouse/shared";
+import { APP_NAME_AR, type HomepageHeroStatPublicItem } from "@studyhouse/shared";
 
 /** صورة تعليمية — أبعاد معتدلة للأداء */
 const HERO_IMAGE =
@@ -15,7 +16,11 @@ const heroBg = "hsl(222 47% 10%)";
 /**
  * هيرو banner واحد: صورة مطلقة + تدرجات دمج نحو أزرق غامق، مع لمسات برتقالية (primary).
  */
-export function HeroKiderStyle(): React.ReactElement {
+export function HeroKiderStyle({
+  stats = [],
+}: {
+  stats?: HomepageHeroStatPublicItem[];
+}): React.ReactElement {
   return (
     <section
       className="relative isolate w-full overflow-hidden pb-6 pt-2 max-sm:pb-3 max-sm:pt-1 sm:pb-8 sm:pt-3"
@@ -95,6 +100,10 @@ export function HeroKiderStyle(): React.ReactElement {
             كورسات منظمة، تقدّم واضح، وتجربة عربية مريحة — خطوة بخطوة حتى تصل إلى
             هدفك دون تعقيد.
           </p>
+          <HomeHeroStatsLive
+            initialStats={stats}
+            className="relative mt-3 max-sm:mt-2.5 sm:mt-5"
+          />
           <div className="relative mt-2.5 flex flex-wrap items-center justify-start gap-2 max-sm:mt-2 sm:mt-6 sm:gap-3">
             <Button
               asChild

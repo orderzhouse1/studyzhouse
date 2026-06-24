@@ -1,14 +1,19 @@
 import { Search } from "lucide-react";
 import Link from "next/link";
 
-import { APP_NAME_AR } from "@studyhouse/shared";
+import { HomeHeroStatsLive } from "@/components/marketing/home-hero-stats-live";
+import { APP_NAME_AR, type HomepageHeroStatPublicItem } from "@studyhouse/shared";
 
 const PAGE_BG = "hsl(215 22% 97%)";
 
 /**
  * هيرو جوال — تصميم ناعم: تدرج كحلي خفيف، موجة هادئة، ودمج سلس مع الصفحة.
  */
-export function HomeMobileHero(): React.ReactElement {
+export function HomeMobileHero({
+  stats = [],
+}: {
+  stats?: HomepageHeroStatPublicItem[];
+}): React.ReactElement {
   return (
     <section
       className="relative w-full overflow-hidden pb-5"
@@ -51,6 +56,11 @@ export function HomeMobileHero(): React.ReactElement {
             {APP_NAME_AR}
           </h1>
         </div>
+
+        <HomeHeroStatsLive
+          initialStats={stats}
+          className="relative z-10 mt-4"
+        />
 
         <Link
           href="/courses"

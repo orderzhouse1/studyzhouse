@@ -108,6 +108,13 @@ export const ADMIN_SUB_NAV: WorkspaceNavItem[] = [
     match: (p) => startsWith(p, adminRoot, "categories"),
   },
   {
+    id: "homepage-stats",
+    label: "إحصائيات الرئيسية",
+    href: `${adminRoot}/homepage-hero-stats`,
+    icon: Home,
+    match: (p) => startsWith(p, adminRoot, "homepage-hero-stats"),
+  },
+  {
     id: "payments",
     label: "طلبات الدفع",
     href: `${adminRoot}/payment-requests`,
@@ -221,6 +228,13 @@ export const SUPER_ADMIN_SUB_NAV: WorkspaceNavItem[] = [
     href: `${superRoot}/settings`,
     icon: Settings,
     match: (p) => p.startsWith(`${superRoot}/settings`),
+  },
+  {
+    id: "homepage-stats",
+    label: "إحصائيات الرئيسية",
+    href: `${superRoot}/homepage-hero-stats`,
+    icon: Home,
+    match: (p) => startsWith(p, superRoot, "homepage-hero-stats"),
   },
   {
     id: "payments",

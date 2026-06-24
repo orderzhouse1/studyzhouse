@@ -14,6 +14,7 @@ import Link from "next/link";
 
 import { FeaturedCoursesBanner } from "@/components/marketing/featured-courses-banner";
 import { HeroKiderStyle } from "@/components/marketing/hero-kider-style";
+import { HomepageVisitRecorder } from "@/components/marketing/homepage-visit-recorder";
 import { HomeFaqSection } from "@/components/marketing/home-faq";
 import { HomeLatestCoursesFeed } from "@/components/marketing/home-latest-courses-feed";
 import { HomePageMobile } from "@/components/marketing/mobile/home-page-mobile";
@@ -39,23 +40,26 @@ function categoryChipIcon(slug: string, name: string): LucideIcon {
 }
 
 export default async function HomePage(): Promise<React.ReactElement> {
-  const { featured, categories, popularColumns } = await loadHomePageData();
+  const { featured, categories, popularColumns, heroStats } =
+    await loadHomePageData();
 
   const showFeaturedLink = featured.length > 0;
 
   return (
     <>
+      <HomepageVisitRecorder />
       <HomePageMobile
         featured={featured}
         categories={categories}
         popularColumns={popularColumns}
         showFeaturedLink={showFeaturedLink}
+        heroStats={heroStats}
       />
 
       <div className="relative hidden min-h-screen overflow-x-hidden bg-background md:block">
         <SiteHeader showFeaturedLink={showFeaturedLink} />
 
-        <HeroKiderStyle />
+        <HeroKiderStyle stats={heroStats} />
 
         <main className="mx-auto flex w-full max-w-[min(100%,88rem)] flex-col gap-8 px-4 pb-14 pt-4 sm:px-6 sm:pt-5 md:px-8 md:gap-10">
         {categories.length > 0 ? (
