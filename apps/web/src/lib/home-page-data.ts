@@ -1,5 +1,6 @@
 import type { CourseCardCourse } from "@/components/courses/course-card";
 import type { PopularCategoryColumn } from "@/components/marketing/popular-by-category";
+import type { HomepageHeroStatPublicItem } from "@studyhouse/shared";
 import { PUBLIC_PAGES_REVALIDATE } from "@/lib/public-pages-cache";
 import { fetchPublicApiMaybe } from "@/lib/server-api";
 
@@ -14,6 +15,11 @@ type CoursesJson = {
 type CategoriesJson = {
   success: true;
   data: { items: { id: string; name: string; slug: string }[] };
+};
+
+type HeroStatsJson = {
+  success: true;
+  data: { items: HomepageHeroStatPublicItem[] };
 };
 
 const fetchOpts = { revalidate: PUBLIC_PAGES_REVALIDATE } as const;
@@ -56,7 +62,18 @@ export type HomePageData = {
   featured: CourseCardCourse[];
   categories: { name: string; slug: string }[];
   popularColumns: PopularCategoryColumn[];
+  heroStats: HomepageHeroStatPublicItem[];
 };
+
+async function loadHeroStats(): Promise<HomepageHeroStatPublicItem[]> {
+  const json = await fetchPublicApiMaybe(
+    "/api/v1/marketing/homepage-hero-stats",
+    fetchOpts,
+  );
+  if (!json || typeof json !== "object" || !("data" in json)) return [];
+  const items = (json as HeroStatsJson).data.items;
+  return Array.isArray(items) ? items : [];
+}
 
 /**
  * جلب بيانات الصفحة الرئيسية:
@@ -65,9 +82,10 @@ export type HomePageData = {
  * عند فشل API يُرجع فراغًا دون كسر الصفحة.
  */
 export async function loadHomePageData(): Promise<HomePageData> {
-  const [featured, categories] = await Promise.all([
+  const [featured, categories, heroStats] = await Promise.all([
     loadFeaturedCourses(),
     loadCategoryChips(),
+    loadHeroStats(),
   ]);
 
   const topCategories = categories.slice(0, 3);
@@ -85,5 +103,5 @@ export async function loadHomePageData(): Promise<HomePageData> {
     popularColumns = lists;
   }
 
-  return { featured, categories, popularColumns };
+  return { featured, categories, popularColumns, heroStats };
 }

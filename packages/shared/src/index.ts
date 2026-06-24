@@ -26,4 +26,5 @@ export * from "./schemas/adminAnalytics";
 export * from "./schemas/webPush";
 export * from "./schemas/adminNotification";
 export * from "./schemas/studentRecommendations";
+export * from "./schemas/homepageHeroStats";
 export * from "./youtube";

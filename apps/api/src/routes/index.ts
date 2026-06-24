@@ -19,6 +19,8 @@ import { adminUploadsRouter } from "./adminUploads.routes.js";
 import { coursesAdminRouter } from "./coursesAdmin.routes.js";
 import { coursesPublicRouter } from "./coursesPublic.routes.js";
 import { healthRouter } from "./health.routes.js";
+import { marketingPublicRouter } from "./marketingPublic.routes.js";
+import { adminHomepageHeroStatsRouter } from "./adminHomepageHeroStats.routes.js";
 import { studentRouter } from "./student.routes.js";
 import { superAdminRouter } from "./superAdmin.routes.js";
 
@@ -32,6 +34,7 @@ export function createApiRouter(): Router {
 
   router.use(`${base}/health`, healthRouter);
   router.use(`${base}/auth`, authRouter);
+  router.use(`${base}/marketing`, marketingPublicRouter);
 
   router.use(`${base}/categories`, categoriesPublicRouter);
   router.use(
@@ -103,6 +106,13 @@ export function createApiRouter(): Router {
     requireAuth,
     requireRole(ADMIN_ACCESS_ROLES),
     adminReviewsRouter,
+  );
+
+  router.use(
+    `${base}/admin/homepage-hero-stats`,
+    requireAuth,
+    requireRole(ADMIN_ACCESS_ROLES),
+    adminHomepageHeroStatsRouter,
   );
 
   router.use(
