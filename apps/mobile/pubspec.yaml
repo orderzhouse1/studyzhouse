@@ -1,7 +1,8 @@
 name: studyzhouse_mobile
-description: STUDYZHOUSE student mobile app (Flutter).
+description: STUDYZHOUSE student mobile app .
 publish_to: "none"
 version: 1.0.2+3
+
 
 environment:
   sdk: ^3.11.0

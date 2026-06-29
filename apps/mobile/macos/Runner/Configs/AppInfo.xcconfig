@@ -8,7 +8,7 @@
 PRODUCT_NAME = studyzhouse_mobile
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.studyzhouse.studyzhouseMobile
+PRODUCT_BUNDLE_IDENTIFIER = com.studyzhouse.app
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 com.studyzhouse. All rights reserved.
