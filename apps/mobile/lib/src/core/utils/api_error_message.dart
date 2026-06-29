@@ -98,6 +98,8 @@ String codeToArabic(String code) {
       return "تم تعليق حسابك. تواصل مع الدعم.";
     case "ACCOUNT_NOT_ACTIVE":
       return "حسابك غير مفعّل بعد.";
+    case "ACCOUNT_DELETED":
+      return "تم تعطيل هذا الحساب. يمكنك التواصل مع الإدارة لاستعادته لاحقًا.";
     case "ACCOUNT_PENDING":
       return "حسابك قيد المراجعة.";
     case "FORBIDDEN":

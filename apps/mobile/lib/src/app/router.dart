@@ -66,7 +66,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: "/purchases",
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const PurchasesScreen(),
+        builder: (context, state) => PurchasesScreen(
+          initialCourseId: state.uri.queryParameters["courseId"],
+        ),
       ),
       GoRoute(
         path: "/notifications",

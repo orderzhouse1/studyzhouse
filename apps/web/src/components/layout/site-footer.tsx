@@ -29,6 +29,7 @@ const LEGAL_LINKS: FooterLink[] = [
   { label: "سياسة الخصوصية", href: "/privacy-policy" },
   { label: "الشروط والأحكام", href: "/terms" },
   { label: "سياسة الاسترجاع", href: "/refund-policy" },
+  { label: "حذف الحساب", href: "/account-deletion" },
 ];
 
 function FooterNavColumn({

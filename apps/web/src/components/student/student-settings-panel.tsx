@@ -1,14 +1,19 @@
 "use client";
 
-import { KeyRound, Loader2, Lock, Mail } from "lucide-react";
+import { KeyRound, Loader2, Lock, Mail, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { StudentAccountPageHeader } from "@/components/student/student-account-page-header";
 import { WebPushToggle } from "@/components/student/web-push-toggle";
 import { STUDENT_CONTENT_PAD } from "@/components/student/student-dashboard-ui";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { logoutRequest } from "@/lib/auth-api";
+import { deactivateStudentAccount } from "@/lib/student-account-api";
 import { fetchStudentProfilePage } from "@/lib/student-profile-api";
+import { StudentApiError } from "@/lib/student-client-api";
 import { cn } from "@/lib/utils";
 import type { StudentAccount } from "@studyhouse/shared";
 
@@ -46,8 +51,13 @@ function DisabledToggle({ label }: { label: string }): React.ReactElement {
 }
 
 export function StudentSettingsPanel(): React.ReactElement {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [account, setAccount] = useState<StudentAccount | null>(null);
+  const [deleteStep, setDeleteStep] = useState<"confirm" | "type" | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deactivating, setDeactivating] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const load = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -62,6 +72,35 @@ export function StudentSettingsPanel(): React.ReactElement {
   useEffect(() => {
     void load();
   }, [load]);
+
+  function closeDeleteFlow(): void {
+    setDeleteStep(null);
+    setDeleteConfirmText("");
+    setDeleteError(null);
+  }
+
+  async function handleDeactivateAccount(): Promise<void> {
+    setDeactivating(true);
+    setDeleteError(null);
+    try {
+      await deactivateStudentAccount();
+      await logoutRequest();
+      closeDeleteFlow();
+      window.alert(
+        "تم تعطيل حسابك بنجاح. يمكنك التواصل مع الإدارة لاستعادته لاحقًا.",
+      );
+      router.replace("/login");
+      router.refresh();
+    } catch (e) {
+      setDeleteError(
+        e instanceof StudentApiError
+          ? e.message
+          : "تعذر حذف الحساب الآن، يرجى المحاولة لاحقًا.",
+      );
+    } finally {
+      setDeactivating(false);
+    }
+  }
 
   return (
     <>
@@ -140,15 +179,120 @@ export function StudentSettingsPanel(): React.ReactElement {
                 <DisabledToggle label="تذكيرات الدراسة" />
               </SettingsSection>
 
-              <SettingsSection title="حذف الحساب">
-                <p className="text-sm text-muted-foreground">
-                  لإغلاق حسابك نهائيًا، تواصل مع الإدارة. لا يتوفر حذف ذاتي حاليًا.
+              <SettingsSection title="حذف الحساب والبيانات">
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  يمكنك إغلاق حسابك وتعطيله. بعد التأكيد سيتم تسجيل خروجك ولن
+                  تتمكن من استخدام الحساب إلا بعد التواصل مع الإدارة لإعادة
+                  تفعيله. لا يتم حذف بياناتك نهائيًا من قاعدة البيانات.
                 </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive"
+                  onClick={() => {
+                    setDeleteError(null);
+                    setDeleteStep("confirm");
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden />
+                  حذف الحساب
+                </Button>
               </SettingsSection>
             </>
           ) : null}
         </div>
       </div>
+
+      {deleteStep === "confirm" ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-account-title"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-lg">
+            <h2
+              id="delete-account-title"
+              className="text-base font-bold text-heading"
+            >
+              تأكيد حذف الحساب
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              هل أنت متأكد أنك تريد حذف حسابك؟ سيتم تعطيل حسابك وتسجيل خروجك من
+              المنصة. يمكنك التواصل مع الإدارة لاحقًا لطلب استعادة الحساب.
+            </p>
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <Button type="button" variant="outline" onClick={closeDeleteFlow}>
+                إلغاء
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => {
+                  setDeleteConfirmText("");
+                  setDeleteStep("type");
+                }}
+              >
+                متابعة
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {deleteStep === "type" ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-account-final-title"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-lg">
+            <h2
+              id="delete-account-final-title"
+              className="text-base font-bold text-heading"
+            >
+              تأكيد نهائي
+            </h2>
+            <p className="mt-3 text-sm text-muted-foreground">
+              لتأكيد التعطيل، اكتب «حذف» في الحقل أدناه:
+            </p>
+            <Input
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              className="mt-3 text-center"
+              placeholder="حذف"
+              autoComplete="off"
+            />
+            {deleteError ? (
+              <p className="mt-2 text-xs text-destructive">{deleteError}</p>
+            ) : null}
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeDeleteFlow}
+                disabled={deactivating}
+              >
+                إلغاء
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={deleteConfirmText.trim() !== "حذف" || deactivating}
+                onClick={() => void handleDeactivateAccount()}
+              >
+                {deactivating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  "نعم، حذف الحساب"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }

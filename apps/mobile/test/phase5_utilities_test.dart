@@ -142,7 +142,38 @@ void main() {
     test("payment validators", () {
       expect(validatePaymentAmount("10"), isNull);
       expect(validatePaymentAmount("0"), isNotNull);
-      expect(validatePaymentReference("REF"), isNull);
+      expect(validateOptionalPaymentReference(""), isNull);
+      expect(validateOptionalPaymentReference("REF"), isNull);
+      expect(validateOptionalPaymentReference("AB"), isNotNull);
+      expect(
+        paymentRequestHasRequiredProof(
+          paymentReference: "1234",
+          note: "",
+        ),
+        isTrue,
+      );
+      expect(
+        paymentRequestHasRequiredProof(
+          paymentReference: "",
+          note: "تفاصيل كافية للحوالة",
+        ),
+        isTrue,
+      );
+      expect(
+        paymentRequestHasRequiredProof(
+          paymentReference: "",
+          note: "قصير",
+          proofImageBase64: "data:image/png;base64,abc",
+        ),
+        isTrue,
+      );
+      expect(
+        paymentRequestHasRequiredProof(
+          paymentReference: "12",
+          note: "قصير",
+        ),
+        isFalse,
+      );
     });
 
     test("profile selection validation", () {

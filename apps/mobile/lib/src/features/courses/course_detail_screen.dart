@@ -57,14 +57,64 @@ class CourseDetailScreen extends ConsumerWidget {
   }
 }
 
-class _CourseDetailBody extends ConsumerWidget {
+class _CourseDetailBody extends ConsumerStatefulWidget {
   const _CourseDetailBody({required this.course, required this.slug});
 
   final Course course;
   final String slug;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_CourseDetailBody> createState() => _CourseDetailBodyState();
+}
+
+class _CourseDetailBodyState extends ConsumerState<_CourseDetailBody> {
+  bool _enrolling = false;
+
+  Course get course => widget.course;
+  String get slug => widget.slug;
+
+  Future<void> _enrollFree() async {
+    setState(() => _enrolling = true);
+    try {
+      await ref.read(learningRepositoryProvider).enrollInFreeCourse(slug);
+      ref.invalidate(courseAccessProvider(slug));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("تم التسجيل في الكورس بنجاح.")),
+      );
+    } on ApiException catch (e) {
+      if (e.code == "ALREADY_ENROLLED") {
+        ref.invalidate(courseAccessProvider(slug));
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("أنت مسجّل بالفعل في هذا الكورس.")),
+        );
+        return;
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("تعذّر التسجيل في الكورس.")),
+      );
+    } finally {
+      if (mounted) setState(() => _enrolling = false);
+    }
+  }
+
+  void _openPurchases() {
+    context.push("/purchases?courseId=${Uri.encodeComponent(course.id)}");
+  }
+
+  void _openRedeem() {
+    context.push("/redeem");
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final accessAsync = ref.watch(courseAccessProvider(slug));
     final isEnrolled = accessAsync.value?.isEnrolled ?? false;
 
@@ -114,29 +164,21 @@ class _CourseDetailBody extends ConsumerWidget {
             label: "متابعة التعلّم",
             onPressed: () => context.push("/learn/$slug"),
           )
+        else if (course.isFree)
+          AppButton(
+            label: "التسجيل مجانًا",
+            isLoading: _enrolling,
+            onPressed: _enrolling ? null : _enrollFree,
+          )
         else
           AppButton(
-            label: course.isFree ? "عرض الكورس" : "طلب تفعيل",
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    course.isFree
-                        ? "سجّل في الكورس من الويب أو فعّله لاحقًا"
-                        : "التفعيل والدفع — مرحلة لاحقة",
-                  ),
-                ),
-              );
-            },
+            label: "طلب تفعيل عبر CliQ",
+            onPressed: _openPurchases,
           ),
         if (!course.isFree) ...[
           const SizedBox(height: 8),
           OutlinedButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("تفعيل بكود — مرحلة لاحقة")),
-              );
-            },
+            onPressed: _openRedeem,
             child: const Text("تفعيل بكود"),
           ),
         ],

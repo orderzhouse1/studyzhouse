@@ -357,9 +357,16 @@ export async function patchStudentAdmin(
       auditAction = "STUDENT_SUSPENDED_BY_ADMIN";
     } else if (
       user.status === UserStatus.ACTIVE &&
+      existing.status === UserStatus.DELETED
+    ) {
+      auditAction = "STUDENT_RESTORED_BY_ADMIN";
+    } else if (
+      user.status === UserStatus.ACTIVE &&
       existing.status !== UserStatus.ACTIVE
     ) {
       auditAction = "STUDENT_REACTIVATED_BY_ADMIN";
+    } else if (user.status === UserStatus.DELETED) {
+      auditAction = "STUDENT_DELETED_BY_ADMIN";
     }
   }
 

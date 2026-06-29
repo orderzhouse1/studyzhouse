@@ -51,10 +51,38 @@ class LessonCompleteResult {
   }
 }
 
+class FreeEnrollResult {
+  const FreeEnrollResult({required this.courseSlug});
+
+  final String courseSlug;
+
+  factory FreeEnrollResult.fromEnvelope(Map<String, dynamic> json) {
+    final data = requireSuccessData(json);
+    final course = data["course"] as Map<String, dynamic>? ?? {};
+    final slug = course["slug"] as String?;
+    if (slug == null || slug.isEmpty) {
+      throw const FormatException("Missing course slug in enroll response.");
+    }
+    return FreeEnrollResult(courseSlug: slug);
+  }
+}
+
 class LearningRepository {
   LearningRepository(this._client);
 
   final ApiClient _client;
+
+  Future<FreeEnrollResult> enrollInFreeCourse(String slug) async {
+    try {
+      final response = await _client.post<Map<String, dynamic>>(
+        "/student/courses/$slug/enroll",
+        data: <String, dynamic>{},
+      );
+      return FreeEnrollResult.fromEnvelope(response.data ?? {});
+    } on DioException catch (e) {
+      throw apiExceptionFromDio(e);
+    }
+  }
 
   Future<LearnCourseResponse> getLearnCourse(
     String slug, {

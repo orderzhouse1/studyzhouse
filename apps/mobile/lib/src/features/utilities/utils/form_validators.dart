@@ -15,12 +15,28 @@ String? validatePaymentAmount(String? value) {
   return null;
 }
 
-String? validatePaymentReference(String? value) {
+String? validateOptionalPaymentReference(String? value) {
   final ref = value?.trim() ?? "";
-  if (ref.isEmpty) return "أدخل رقم مرجع التحويل.";
+  if (ref.isEmpty) return null;
   if (ref.length < 3) return "رقم المرجع قصير جدًا.";
-  if (ref.length > 120) return "رقم المرجع طويل جدًا.";
+  if (ref.length > 200) return "رقم المرجع طويل جدًا.";
   return null;
+}
+
+/// يطابق تحقق الويب: مرجع ≥4 أو ملاحظة ≥8 أو صورة إيصال.
+bool paymentRequestHasRequiredProof({
+  required String paymentReference,
+  required String note,
+  String? proofImageBase64,
+}) {
+  final refOk = paymentReference.trim().length >= 4;
+  final noteOk = note.trim().length >= 8;
+  final imgOk = proofImageBase64?.startsWith("data:image/") ?? false;
+  return refOk || noteOk || imgOk;
+}
+
+String paymentRequestProofValidationMessage() {
+  return "أدخل رقم العملية، أو اكتب تفاصيل الحوالة، أو أرفق صورة الإيصال.";
 }
 
 String? validateOptionalPhone(String? value) {
