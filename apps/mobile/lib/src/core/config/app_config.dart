@@ -22,6 +22,14 @@ class AppConfig {
     const fromDefine = String.fromEnvironment("API_BASE_URL");
     final defineTrimmed = fromDefine.trim();
 
+    // Release: never read bundled/local .env — production or explicit dart-define only.
+    if (kReleaseMode) {
+      if (defineTrimmed.isNotEmpty) {
+        return AppConfig(apiBaseUrl: defineTrimmed);
+      }
+      return AppConfig(apiBaseUrl: defaultApiBaseUrl);
+    }
+
     if (kDebugMode && fromEnv != null) {
       if (defineTrimmed.isNotEmpty && defineTrimmed != fromEnv) {
         // ignore: avoid_print

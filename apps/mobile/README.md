@@ -21,8 +21,8 @@ API URL (public, no secrets): edit **`apps/mobile/.env`** (copy from `.env.examp
 
 | Mode | Priority |
 |------|----------|
-| **Debug** (`flutter run`) | `.env` أولاً — يتجاهل `--dart-define` إن وُجد |
-| **Release** | `--dart-define` → ثم الإنتاج الافتراضي |
+| **Debug** (`flutter run`) | `--dart-define=API_BASE_URL=...` أو ملف `.env` محلي (اختياري — لم يعد مضمّنًا في الـ assets) |
+| **Release** | `--dart-define=API_BASE_URL=https://studyzhouse.com/api/v1` أو الإنتاج الافتراضي فقط (لا يقرأ `.env`) |
 
 | Environment | `.env` value |
 |---------------|----------------|

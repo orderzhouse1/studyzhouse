@@ -1,5 +1,8 @@
+import "dart:typed_data";
+
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:image_picker/image_picker.dart";
 import "package:intl/intl.dart";
 import "package:url_launcher/url_launcher.dart";
 
@@ -7,6 +10,7 @@ import "../../core/constants/legal_urls.dart";
 import "../../core/network/api_exception.dart";
 import "../../core/network/pagination_meta.dart";
 import "../../core/theme/app_colors.dart";
+import "../../core/utils/image_data_url.dart";
 import "../../core/widgets/account_page_header.dart";
 import "../../core/widgets/app_button.dart";
 import "../../core/widgets/app_card.dart";
@@ -23,7 +27,10 @@ import "utils/form_validators.dart";
 import "widgets/status_badge.dart";
 
 class PurchasesScreen extends ConsumerStatefulWidget {
-  const PurchasesScreen({super.key});
+  const PurchasesScreen({this.initialCourseId, super.key});
+
+  /// يُمرَّر من تفاصيل الكورس لاختيار الكورس مسبقًا.
+  final String? initialCourseId;
 
   @override
   ConsumerState<PurchasesScreen> createState() => _PurchasesScreenState();
@@ -46,6 +53,10 @@ class _PurchasesScreenState extends ConsumerState<PurchasesScreen> {
   List<StudentPurchaseItem> _purchases = [];
   List<Course> _paidCourses = [];
   String? _selectedCourseId;
+  Uint8List? _proofBytes;
+  String? _proofMime;
+  String? _proofFileName;
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -85,6 +96,7 @@ class _PurchasesScreenState extends ConsumerState<PurchasesScreen> {
         _paidCourses = (results[3] as PaginatedResult<Course>).items;
         _loading = false;
       });
+      _applyInitialCourseSelection();
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -100,12 +112,95 @@ class _PurchasesScreenState extends ConsumerState<PurchasesScreen> {
     }
   }
 
+  void _applyInitialCourseSelection() {
+    final id = widget.initialCourseId?.trim();
+    if (id == null || id.isEmpty) return;
+    Course? match;
+    for (final c in _paidCourses) {
+      if (c.id == id) {
+        match = c;
+        break;
+      }
+    }
+    if (match == null) return;
+    setState(() {
+      _selectedCourseId = match!.id;
+      if (_amountController.text.trim().isEmpty &&
+          match.priceAmount != null &&
+          match.priceAmount!.isNotEmpty) {
+        _amountController.text = match.priceAmount!;
+      }
+    });
+  }
+
+  void _clearProofImage() {
+    setState(() {
+      _proofBytes = null;
+      _proofMime = null;
+      _proofFileName = null;
+    });
+  }
+
+  Future<void> _pickProofImage() async {
+    try {
+      final picked = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 1920,
+      );
+      if (picked == null) return;
+
+      final bytes = await picked.readAsBytes();
+      if (bytes.length > 5 * 1024 * 1024) {
+        if (!mounted) return;
+        setState(() => _submitError = "حجم الصورة يجب أن لا يتجاوز 5 ميجابايت.");
+        return;
+      }
+
+      final mime =
+          mimeTypeFromPath(picked.path) ??
+          (picked.mimeType?.startsWith("image/") == true
+              ? picked.mimeType
+              : "image/jpeg");
+
+      setState(() {
+        _proofBytes = bytes;
+        _proofMime = mime ?? "image/jpeg";
+        _proofFileName = picked.name;
+        _submitError = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _submitError = "تعذّر اختيار الصورة.");
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCourseId == null) {
       setState(() => _submitError = "اختر الكورس.");
       return;
     }
+
+    final reference = _referenceController.text.trim();
+    final note = _noteController.text.trim();
+    String? proofImageBase64;
+    if (_proofBytes != null) {
+      proofImageBase64 = imageBytesToDataUrl(
+        _proofBytes!,
+        mimeType: _proofMime ?? "image/jpeg",
+      );
+    }
+
+    if (!paymentRequestHasRequiredProof(
+      paymentReference: reference,
+      note: note,
+      proofImageBase64: proofImageBase64,
+    )) {
+      setState(() => _submitError = paymentRequestProofValidationMessage());
+      return;
+    }
+
     setState(() {
       _submitting = true;
       _submitError = null;
@@ -116,10 +211,11 @@ class _PurchasesScreenState extends ConsumerState<PurchasesScreen> {
           .createPaymentRequest(
             courseId: _selectedCourseId!,
             paidAmount: _amountController.text.trim(),
-            paymentReference: _referenceController.text.trim(),
+            paymentReference: reference.length >= 4 ? reference : null,
             payerName: _payerNameController.text.trim(),
             payerPhone: _payerPhoneController.text.trim(),
-            note: _noteController.text.trim(),
+            note: note.isNotEmpty ? note : null,
+            proofImageBase64: proofImageBase64,
           );
       if (!mounted) return;
       _amountController.clear();
@@ -127,7 +223,8 @@ class _PurchasesScreenState extends ConsumerState<PurchasesScreen> {
       _payerNameController.clear();
       _payerPhoneController.clear();
       _noteController.clear();
-      _selectedCourseId = null;
+      _selectedCourseId = widget.initialCourseId;
+      _clearProofImage();
       await _load();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -183,7 +280,7 @@ class _PurchasesScreenState extends ConsumerState<PurchasesScreen> {
                 const AccountPageHeader(
                   title: "مشترياتي وطلبات الدفع",
                   description:
-                      "طلبات الدفع عبر CliQ تُراجع يدويًا من الإدارة. بعد الموافقة يظهر الكورس في كورساتي.",
+                      "طلبات الدفع عبر CliQ تُراجع يدويًا من الإدارة. أرفق رقم العملية أو تفاصيل الحوالة أو صورة الإيصال.",
                 ),
                 const SizedBox(height: 16),
                 if (_paymentInfo != null &&
@@ -253,8 +350,8 @@ class _PurchasesScreenState extends ConsumerState<PurchasesScreen> {
                       const SizedBox(height: 12),
                       AppTextField(
                         controller: _referenceController,
-                        label: "رقم مرجع التحويل",
-                        validator: validatePaymentReference,
+                        label: "رقم مرجع التحويل (اختياري)",
+                        validator: validateOptionalPaymentReference,
                       ),
                       const SizedBox(height: 12),
                       AppTextField(
@@ -270,8 +367,46 @@ class _PurchasesScreenState extends ConsumerState<PurchasesScreen> {
                       const SizedBox(height: 12),
                       AppTextField(
                         controller: _noteController,
-                        label: "ملاحظة (اختياري)",
+                        label: "ملاحظة / تفاصيل الحوالة (اختياري)",
                       ),
+                      const SizedBox(height: 12),
+                      Text(
+                        "صورة الإيصال (اختياري)",
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      if (_proofBytes != null) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.memory(
+                            _proofBytes!,
+                            height: 160,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _proofFileName ?? "صورة مرفقة",
+                                style: Theme.of(context).textTheme.bodySmall,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: _clearProofImage,
+                              child: const Text("إزالة"),
+                            ),
+                          ],
+                        ),
+                      ] else
+                        OutlinedButton.icon(
+                          onPressed: _submitting ? null : _pickProofImage,
+                          icon: const Icon(Icons.upload_outlined),
+                          label: const Text("اختيار صورة الإيصال"),
+                        ),
                       if (_submitError != null) ...[
                         const SizedBox(height: 8),
                         Text(

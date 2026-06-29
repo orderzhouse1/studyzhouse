@@ -6,8 +6,8 @@ self.addEventListener("push", (event) => {
     title: "StudyHouse",
     body: "لديك إشعار جديد",
     url: "/student/notifications",
-    icon: "/favicon.ico",
-    badge: "/favicon.ico",
+    icon: "/favicon-192.png",
+    badge: "/favicon-32.png",
   };
 
   try {

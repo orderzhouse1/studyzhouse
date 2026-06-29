@@ -98,7 +98,16 @@ export const ADMIN_SUB_NAV: WorkspaceNavItem[] = [
     label: "الطلاب",
     href: `${adminRoot}/students`,
     icon: Users,
-    match: (p) => startsWith(p, adminRoot, "students"),
+    match: (p) =>
+      startsWith(p, adminRoot, "students") &&
+      p !== `${adminRoot}/students/deleted`,
+  },
+  {
+    id: "deleted-students",
+    label: "الحسابات المحذوفة",
+    href: `${adminRoot}/students/deleted`,
+    icon: Users,
+    match: (p) => p === `${adminRoot}/students/deleted`,
   },
   {
     id: "categories",

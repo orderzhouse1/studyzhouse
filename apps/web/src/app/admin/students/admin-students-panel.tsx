@@ -1,12 +1,13 @@
 "use client";
 
-import { Plus, Search } from "lucide-react";
+import { Plus, RotateCcw, Search } from "lucide-react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AdminStudentComposer } from "@/components/admin/students/admin-student-composer";
 import { Button } from "@/components/ui/button";
-import { adminFetchJson } from "@/lib/courses-client-api";
+import { adminFetchJson, AdminApiError } from "@/lib/courses-client-api";
 import { cn } from "@/lib/utils";
 
 type StudentRow = {
@@ -64,6 +65,7 @@ export function AdminStudentsPanel(): React.ReactElement {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
+  const [restoringId, setRestoringId] = useState<string | null>(null);
 
   const qs = useMemo(() => {
     const p = new URLSearchParams();
@@ -149,6 +151,31 @@ export function AdminStudentsPanel(): React.ReactElement {
     scrollToComposer();
   }, [composerOpen, editingStudentId]);
 
+  async function restoreStudent(studentId: string, fullName: string): Promise<void> {
+    if (
+      !window.confirm(
+        `استعادة حساب «${fullName}»؟ سيتمكن الطالب من تسجيل الدخول مجددًا.`,
+      )
+    ) {
+      return;
+    }
+    setRestoringId(studentId);
+    try {
+      await adminFetchJson(`/admin/students/${studentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "ACTIVE" }),
+      });
+      await load();
+    } catch (e) {
+      window.alert(
+        e instanceof AdminApiError ? e.message : "تعذّر استعادة الحساب.",
+      );
+    } finally {
+      setRestoringId(null);
+    }
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -158,21 +185,26 @@ export function AdminStudentsPanel(): React.ReactElement {
             قائمة الطلاب — بحث سريع وإجراءات مباشرة.
           </p>
         </div>
-        <Button
-          type="button"
-          size="sm"
-          className="h-8 shrink-0 gap-1.5 rounded-full px-3 text-xs shadow-brand"
-          onClick={() => {
-            if (composerOpen && !editingStudentId) {
-              setComposerOpen(false);
-              return;
-            }
-            openNewStudent();
-          }}
-        >
-          <Plus className="h-3.5 w-3.5" aria-hidden />
-          {composerOpen && !editingStudentId ? "إخفاء الإضافة" : "طالب جديد"}
-        </Button>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
+            <Link href="/admin/students/deleted">الحسابات المحذوفة</Link>
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 shrink-0 gap-1.5 rounded-full px-3 text-xs shadow-brand"
+            onClick={() => {
+              if (composerOpen && !editingStudentId) {
+                setComposerOpen(false);
+                return;
+              }
+              openNewStudent();
+            }}
+          >
+            <Plus className="h-3.5 w-3.5" aria-hidden />
+            {composerOpen && !editingStudentId ? "إخفاء الإضافة" : "طالب جديد"}
+          </Button>
+        </div>
       </div>
 
       {composerOpen ? (
@@ -319,13 +351,28 @@ export function AdminStudentsPanel(): React.ReactElement {
                       {row.averageProgressPercent}%
                     </td>
                     <td className="px-4 py-2.5 align-middle">
-                      <button
-                        type="button"
-                        onClick={() => openEditStudent(row.id)}
-                        className="text-[0.6875rem] font-semibold text-primary hover:underline"
-                      >
-                        تعديل
-                      </button>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEditStudent(row.id)}
+                          className="text-[0.6875rem] font-semibold text-primary hover:underline"
+                        >
+                          تعديل
+                        </button>
+                        {row.status === "DELETED" ? (
+                          <button
+                            type="button"
+                            disabled={restoringId === row.id}
+                            onClick={() =>
+                              void restoreStudent(row.id, row.fullName)
+                            }
+                            className="inline-flex items-center gap-1 text-[0.6875rem] font-semibold text-emerald-700 hover:underline disabled:opacity-50"
+                          >
+                            <RotateCcw className="h-3 w-3" aria-hidden />
+                            استعادة
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -90,6 +90,26 @@ export async function login(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  if (user.status === UserStatus.DELETED) {
+    await writeAuditLog({
+      actorId: user.id,
+      action: "AUTH_LOGIN_FAILURE",
+      entityType: "User",
+      entityId: user.id,
+      metadata: { reason: "deleted_user", status: user.status },
+      req,
+    });
+    res.status(403).json({
+      success: false,
+      error: {
+        code: "ACCOUNT_DELETED",
+        message:
+          "تم تعطيل هذا الحساب. يمكنك التواصل مع الإدارة لاستعادته لاحقًا.",
+      },
+    });
+    return;
+  }
+
   if (user.status !== UserStatus.ACTIVE) {
     await writeAuditLog({
       actorId: user.id,

@@ -60,6 +60,7 @@ class StudentUtilitiesRepository {
     String? payerName,
     String? payerPhone,
     String? note,
+    String? proofImageBase64,
   }) async {
     try {
       final response = await _client.post<Map<String, dynamic>>(
@@ -73,6 +74,8 @@ class StudentUtilitiesRepository {
           if (payerPhone != null && payerPhone.isNotEmpty)
             "payerPhone": payerPhone,
           if (note != null && note.isNotEmpty) "note": note,
+          if (proofImageBase64 != null && proofImageBase64.isNotEmpty)
+            "proofImageBase64": proofImageBase64,
         },
       );
       final data = requireSuccessData(response.data ?? {});
@@ -166,6 +169,18 @@ class StudentUtilitiesRepository {
         data: body,
       );
       return StudentProfilePage.fromEnvelope(response.data ?? {});
+    } on DioException catch (e) {
+      throw apiExceptionFromDio(e);
+    }
+  }
+
+  Future<void> deactivateAccount() async {
+    try {
+      final response = await _client.post<Map<String, dynamic>>(
+        "/student/account/deactivate",
+        data: <String, dynamic>{},
+      );
+      requireSuccessData(response.data ?? {});
     } on DioException catch (e) {
       throw apiExceptionFromDio(e);
     }

@@ -38,6 +38,9 @@ Record: device model, OS version, build mode (debug/release), tester name, date.
 | C4 | Category filter | Tap category chip | Filtered by category | ☐ |
 | C5 | Pricing filter | مجاني / مدفوع chips | Filtered by pricing type | ☐ |
 | C6 | Course detail | Tap course card | Detail page, thumbnail, actions | ☐ |
+| C6a | Free enroll | Free course → التسجيل مجانًا | Success message, enrolled, can open learn | ☐ |
+| C6b | Paid CliQ CTA | Paid course → طلب تفعيل عبر CliQ | Opens purchases with course preselected | ☐ |
+| C6c | Redeem CTA | Paid course → تفعيل بكود | Opens `/redeem` screen | ☐ |
 | C7 | Save course | Tap save on explore/detail | Saved state updates | ☐ |
 | C8 | Unsave course | Tap save again | Removed from saved | ☐ |
 | C9 | My courses — empty | New student with no enrollments | Empty state + CTA to explore | ☐ |
@@ -70,6 +73,8 @@ Record: device model, OS version, build mode (debug/release), tester name, date.
 | U3 | Redeem — expired | Expired code | CODE_EXPIRED message | ☐ |
 | U4 | Redeem — already used | Reuse code | ALREADY_REDEEMED message | ☐ |
 | U5 | Payment submit | Purchases → fill form → submit | Success snackbar, appears in history | ☐ |
+| U5a | Payment proof image | Attach receipt image + submit | Request accepted (or with ref/note per rules) | ☐ |
+| U5b | Payment validation | Submit without ref, note, or image | Arabic validation message | ☐ |
 | U6 | Purchases/history | Open purchases screen | CliQ info, requests, purchase list | ☐ |
 | U7 | Notifications list | Open notifications | List loads, read/unread styling | ☐ |
 | U8 | Mark one read | Tap notification | Marked read, navigates if actionUrl | ☐ |
@@ -77,6 +82,7 @@ Record: device model, OS version, build mode (debug/release), tester name, date.
 | U10 | Profile edit | Edit fields → save | Success, data persists on reload | ☐ |
 | U11 | Settings | Open settings | Account, password link, legal, logout | ☐ |
 | U12 | Help | Open help | FAQ expands, links open externally | ☐ |
+| U13 | Logout | Settings → تسجيل الخروج | Token cleared, returns to login, back can't re-enter | ☐ |
 
 ---
 
@@ -89,6 +95,9 @@ Record: device model, OS version, build mode (debug/release), tester name, date.
 | N3 | API 401 | Expired token mid-session | Redirect to login | ☐ |
 | N4 | API 500 | Simulate server error (proxy) | Arabic server error, retry where offered | ☐ |
 | N5 | Broken thumbnail | Course with bad image URL | Placeholder, no crash | ☐ |
+| N6 | Release API URL | Release build, no dev `.env` | Uses `https://studyzhouse.com/api/v1` | ☐ |
+| N7 | Production API connection | Release build → login + load real course | Connects to prod over HTTPS, real data loads | ☐ |
+| N8 | Image loading (network) | Browse courses with thumbnails on real device | Images load over HTTPS, placeholder on failure | ☐ |
 
 ---
 

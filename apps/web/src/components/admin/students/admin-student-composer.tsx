@@ -235,6 +235,38 @@ export function AdminStudentComposer({
     }
   }
 
+  async function restoreAccount(): Promise<void> {
+    if (!editStudentId) return;
+    if (
+      !window.confirm(
+        "استعادة هذا الحساب؟ سيتمكن الطالب من تسجيل الدخول مجددًا.",
+      )
+    ) {
+      return;
+    }
+    setFieldError(null);
+    setBusy(true);
+    try {
+      await adminFetchJson(`/admin/students/${editStudentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "ACTIVE" }),
+      });
+      setEditStatus("ACTIVE");
+      setSavedLabel("تم استعادة الحساب");
+      await loadDetail();
+      onSaved();
+    } catch (err) {
+      setFieldError(
+        err instanceof AdminApiError
+          ? err.message
+          : "تعذّر استعادة الحساب.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function enroll(): Promise<void> {
     if (!editStudentId || !enrollCourseId) return;
     setEnrolling(true);
@@ -508,6 +540,19 @@ export function AdminStudentComposer({
                     )}
                   </select>
                 </div>
+                {isEditMode && detail?.student.status === "DELETED" ? (
+                  <div className="sm:col-span-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-8 w-full rounded-md text-[0.6875rem] font-semibold"
+                      disabled={busy}
+                      onClick={() => void restoreAccount()}
+                    >
+                      استعادة الحساب
+                    </Button>
+                  </div>
+                ) : null}
                 <div className={cn("space-y-1", !isEditMode && "sm:col-span-2")}>
                   <Label htmlFor={`${formId}-pw`} className="text-[0.625rem]">
                     {isEditMode ? "كلمة مرور جديدة (اختياري)" : "كلمة المرور (اختياري)"}

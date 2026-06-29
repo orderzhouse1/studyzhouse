@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import * as studentActivationRedeemController from "../controllers/studentActivationRedeem.controller.js";
+import * as studentAccountController from "../controllers/studentAccount.controller.js";
 import * as studentController from "../controllers/student.controller.js";
 import * as studentPaymentRequestController from "../controllers/studentPaymentRequest.controller.js";
 import * as studentProfileController from "../controllers/studentProfile.controller.js";
@@ -273,4 +274,10 @@ studentRouter.delete(
   "/web-push/unsubscribe",
   validateBody(webPushUnsubscribeBodySchema),
   asyncHandler(studentWebPushController.unsubscribeStudentWebPush),
+);
+
+studentRouter.post(
+  "/account/deactivate",
+  validateBody(emptyBodySchema),
+  asyncHandler(studentAccountController.deactivateStudentAccountHandler),
 );
