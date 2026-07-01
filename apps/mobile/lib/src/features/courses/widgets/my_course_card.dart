@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/platform/platform_purchase_policy.dart";
 import "../../../core/theme/app_colors.dart";
 import "../../../core/widgets/app_card.dart";
 import "../../../core/widgets/course_thumbnail.dart";
@@ -42,8 +43,8 @@ class MyCourseCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (item.isPendingPayment)
-                  const _StatusChip(
-                    label: "بانتظار الدفع",
+                  _StatusChip(
+                    label: PlatformPurchasePolicy.pendingEnrollmentStatusLabel,
                     color: AppColors.orange,
                   ),
                 Text(

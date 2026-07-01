@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/platform/platform_purchase_policy.dart";
 import "../../../core/theme/app_colors.dart";
 import "../../../core/theme/app_gradients.dart";
 import "../../../core/widgets/course_thumbnail.dart";
@@ -117,7 +118,9 @@ class MyCoursesPageHeader extends StatelessWidget {
       parts.add("$inProgressCount قيد التعلّم");
     }
     if (pendingPayments > 0) {
-      parts.add("$pendingPayments بانتظار الدفع");
+      parts.add(
+        "$pendingPayments ${PlatformPurchasePolicy.pendingEnrollmentStatusLabel}",
+      );
     }
     return parts.join(" · ");
   }

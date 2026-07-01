@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:url_launcher/url_launcher.dart";
 
 import "../../core/constants/legal_urls.dart";
+import "../../core/platform/platform_purchase_policy.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/widgets/account_page_header.dart";
 import "../../core/widgets/app_screen.dart";
@@ -10,7 +11,7 @@ import "../../core/widgets/legal_link_row.dart";
 class HelpScreen extends StatelessWidget {
   const HelpScreen({super.key});
 
-  static const _faqs = [
+  static const _allFaqs = [
     (
       "كيف أفعّل كورس بكود؟",
       "من حسابي اختر «تفعيل كورس»، أدخل كود التفعيل، ثم اضغط «تفعيل الكورس». بعد النجاح يمكنك البدء من «ابدأ التعلّم».",
@@ -36,6 +37,29 @@ class HelpScreen extends StatelessWidget {
       "راسلنا على support@studyhouse.app أو من خلال روابط المساعدة والسياسات أدناه.",
     ),
   ];
+
+  static const _iosSafeFaqs = [
+    (
+      "لماذا لا يظهر الكورس في كورساتي؟",
+      "قد يكون الكورس غير متاح أو لم يكتمل التسجيل. راجع «كورساتي» والإشعارات.",
+    ),
+    (
+      "كيف أغيّر كلمة المرور؟",
+      "من الإعدادات اختر «تغيير كلمة المرور» واتبع خطوات استعادة كلمة المرور عبر البريد.",
+    ),
+    (
+      "كيف أعدّل ملفي الشخصي؟",
+      "من حسابي اختر «الملف الشخصي» وعدّل الاهتمامات والأهداف وبيانات التواصل ثم احفظ.",
+    ),
+    (
+      "كيف أتواصل مع الإدارة؟",
+      "راسلنا على support@studyhouse.app أو من خلال روابط المساعدة والسياسات أدناه.",
+    ),
+  ];
+
+  List<(String, String)> get _faqs => PlatformPurchasePolicy.showExternalPaymentFlows
+      ? _allFaqs
+      : _iosSafeFaqs;
 
   Future<void> _emailSupport() async {
     final uri = Uri.parse(LegalUrls.supportEmail);

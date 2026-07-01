@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../core/network/api_exception.dart";
+import "../../core/platform/platform_purchase_policy.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/widgets/app_button.dart";
 import "../../core/widgets/app_card.dart";
@@ -10,6 +11,7 @@ import "../../core/widgets/course_thumbnail.dart";
 import "../../core/widgets/error_state.dart";
 import "../../core/widgets/loading_view.dart";
 import "../learn/repositories/learning_repository.dart";
+import "../purchases/purchase_course_service.dart";
 import "models/course.dart";
 import "providers/saved_course_ids_provider.dart";
 import "repositories/course_repository.dart";
@@ -69,6 +71,7 @@ class _CourseDetailBody extends ConsumerStatefulWidget {
 
 class _CourseDetailBodyState extends ConsumerState<_CourseDetailBody> {
   bool _enrolling = false;
+  static const _purchaseService = PurchaseCourseService();
 
   Course get course => widget.course;
   String get slug => widget.slug;
@@ -111,6 +114,27 @@ class _CourseDetailBodyState extends ConsumerState<_CourseDetailBody> {
 
   void _openRedeem() {
     context.push("/redeem");
+  }
+
+  Future<void> _purchaseWithIap() async {
+    try {
+      await _purchaseService.purchaseCourse(
+        courseId: course.id,
+        storeProductId: _purchaseService.storeProductIdForCourse(course.id),
+      );
+    } on UnimplementedError {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(PlatformPurchasePolicy.paidCourseIosUnavailableLabel),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
   }
 
   @override
@@ -172,10 +196,15 @@ class _CourseDetailBodyState extends ConsumerState<_CourseDetailBody> {
           )
         else
           AppButton(
-            label: "طلب تفعيل عبر CliQ",
-            onPressed: _openPurchases,
+            label: _purchaseService.paidCourseActionLabel(),
+            onPressed: _purchaseService.isPaidCourseActionEnabled
+                ? (_purchaseService.canPurchaseInApp
+                      ? () => _purchaseWithIap()
+                      : _openPurchases)
+                : null,
           ),
-        if (!course.isFree) ...[
+        if (!course.isFree &&
+            PlatformPurchasePolicy.showExternalPaymentFlows) ...[
           const SizedBox(height: 8),
           OutlinedButton(
             onPressed: _openRedeem,

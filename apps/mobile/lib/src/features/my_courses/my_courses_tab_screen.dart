@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
+import "../../core/platform/platform_purchase_policy.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/utils/friendly_error_message.dart";
 import "../../core/widgets/app_button.dart";
@@ -187,7 +188,8 @@ class _FilterRow extends StatelessWidget {
           if (pendingCount > 0) ...[
             const SizedBox(width: 8),
             AppFilterChip(
-              label: "بانتظار الدفع ($pendingCount)",
+              label:
+                  "${PlatformPurchasePolicy.pendingEnrollmentStatusLabel} ($pendingCount)",
               selected: filter == _MyCoursesFilter.pending,
               onTap: () => onChanged(_MyCoursesFilter.pending),
             ),

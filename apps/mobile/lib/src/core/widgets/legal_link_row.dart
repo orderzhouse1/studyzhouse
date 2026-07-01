@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:url_launcher/url_launcher.dart";
 
 import "../constants/legal_urls.dart";
+import "../platform/platform_purchase_policy.dart";
 import "../theme/app_colors.dart";
 
 class LegalLinkRow extends StatelessWidget {
@@ -26,10 +27,11 @@ class LegalLinkRow extends StatelessWidget {
           onTap: () => _open(context, LegalUrls.privacy),
         ),
         _Link(label: "الشروط", onTap: () => _open(context, LegalUrls.terms)),
-        _Link(
-          label: "سياسة الاسترجاع",
-          onTap: () => _open(context, LegalUrls.refund),
-        ),
+        if (PlatformPurchasePolicy.showExternalPaymentFlows)
+          _Link(
+            label: "سياسة الاسترجاع",
+            onTap: () => _open(context, LegalUrls.refund),
+          ),
       ],
     );
   }
