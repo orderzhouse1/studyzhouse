@@ -8,6 +8,7 @@ import "package:url_launcher/url_launcher.dart";
 
 import "../../core/constants/legal_urls.dart";
 import "../../core/network/api_exception.dart";
+import "../../core/platform/platform_purchase_policy.dart";
 import "../../core/network/pagination_meta.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/utils/image_data_url.dart";
@@ -21,6 +22,7 @@ import "../../core/widgets/loading_view.dart";
 import "../../core/widgets/legal_link_row.dart";
 import "../courses/models/course.dart";
 import "../courses/repositories/course_repository.dart";
+import "../purchases/widgets/ios_external_payment_blocked_content.dart";
 import "models/payment_request.dart";
 import "repositories/student_utilities_repository.dart";
 import "utils/form_validators.dart";
@@ -267,6 +269,16 @@ class _PurchasesScreenState extends ConsumerState<PurchasesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!PlatformPurchasePolicy.showExternalPaymentFlows) {
+      return const AppScreen(
+        showAppBar: true,
+        title: PlatformPurchasePolicy.iosBlockedFeatureTitle,
+        child: IosExternalPaymentBlockedContent(
+          title: PlatformPurchasePolicy.iosBlockedFeatureTitle,
+        ),
+      );
+    }
+
     return AppScreen(
       showAppBar: true,
       title: "مشترياتي وطلبات الدفع",

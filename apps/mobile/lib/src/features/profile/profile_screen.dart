@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../core/auth/current_user_provider.dart";
+import "../../core/platform/platform_purchase_policy.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/widgets/app_button.dart";
 import "../auth/auth_repository.dart";
@@ -46,11 +47,13 @@ class ProfileScreen extends ConsumerWidget {
             label: "المحفوظات",
             onTap: () => context.push("/saved"),
           ),
-          _ProfileMenuTile(
-            icon: Icons.vpn_key_outlined,
-            label: "تفعيل كورس",
-            onTap: () => context.push("/redeem"),
-          ),
+          if (PlatformPurchasePolicy.showExternalPaymentFlows) ...[
+            _ProfileMenuTile(
+              icon: Icons.vpn_key_outlined,
+              label: "تفعيل كورس",
+              onTap: () => context.push("/redeem"),
+            ),
+          ],
           const SizedBox(height: 8),
           const _SectionLabel(title: "الحساب"),
           _ProfileMenuTile(
@@ -58,11 +61,12 @@ class ProfileScreen extends ConsumerWidget {
             label: "الملف الشخصي",
             onTap: () => context.push("/profile/edit"),
           ),
-          _ProfileMenuTile(
-            icon: Icons.payments_outlined,
-            label: "مشترياتي وطلبات الدفع",
-            onTap: () => context.push("/purchases"),
-          ),
+          if (PlatformPurchasePolicy.showExternalPaymentFlows)
+            _ProfileMenuTile(
+              icon: Icons.payments_outlined,
+              label: "مشترياتي وطلبات الدفع",
+              onTap: () => context.push("/purchases"),
+            ),
           _ProfileMenuTile(
             icon: Icons.notifications_outlined,
             label: "الإشعارات",

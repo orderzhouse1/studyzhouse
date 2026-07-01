@@ -4,6 +4,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../../core/auth/current_user_provider.dart";
+import "../../../core/platform/platform_purchase_policy.dart";
 import "../../../core/theme/app_colors.dart";
 import "../../../core/theme/app_gradients.dart";
 import "../../../core/widgets/course_thumbnail.dart";
@@ -461,6 +462,31 @@ class _ActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!PlatformPurchasePolicy.showExternalPaymentFlows) {
+      return SizedBox(
+        width: double.infinity,
+        child: OutlinedButton(
+          onPressed: onMyCourses,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.textOnDark,
+            backgroundColor: Colors.transparent,
+            minimumSize: const Size.fromHeight(52),
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: 0.85),
+              width: 1.5,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          child: const Text(
+            "كورساتي",
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+          ),
+        ),
+      );
+    }
+
     return Row(
       children: [
         Expanded(

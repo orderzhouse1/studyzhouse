@@ -3,12 +3,14 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../core/network/api_exception.dart";
+import "../../core/platform/platform_purchase_policy.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/widgets/account_page_header.dart";
 import "../../core/widgets/app_button.dart";
 import "../../core/widgets/app_card.dart";
 import "../../core/widgets/app_screen.dart";
 import "../../core/widgets/app_text_field.dart";
+import "../purchases/widgets/ios_external_payment_blocked_content.dart";
 import "models/activation_redeem.dart";
 import "repositories/student_utilities_repository.dart";
 import "utils/form_validators.dart";
@@ -66,6 +68,16 @@ class _RedeemScreenState extends ConsumerState<RedeemScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!PlatformPurchasePolicy.showExternalPaymentFlows) {
+      return const AppScreen(
+        showAppBar: true,
+        title: PlatformPurchasePolicy.iosBlockedFeatureTitle,
+        child: IosExternalPaymentBlockedContent(
+          title: PlatformPurchasePolicy.iosBlockedFeatureTitle,
+        ),
+      );
+    }
+
     return AppScreen(
       showAppBar: true,
       title: "تفعيل كورس",

@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:go_router/go_router.dart";
 
+import "../../../core/platform/platform_purchase_policy.dart";
 import "../../../core/theme/app_colors.dart";
 
 class HomeQuickAction {
@@ -19,7 +20,7 @@ class HomeQuickAction {
 class HomeQuickActionsGrid extends StatelessWidget {
   const HomeQuickActionsGrid({super.key});
 
-  static const _actions = [
+  static const _allActions = [
     HomeQuickAction(
       icon: Icons.explore_outlined,
       label: "استكشف",
@@ -52,14 +53,23 @@ class HomeQuickActionsGrid extends StatelessWidget {
     ),
   ];
 
+  static List<HomeQuickAction> get _visibleActions {
+    if (PlatformPurchasePolicy.showExternalPaymentFlows) {
+      return _allActions;
+    }
+    const hidden = {"/redeem", "/purchases"};
+    return _allActions.where((a) => !hidden.contains(a.route)).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final actions = _visibleActions;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 22, 16, 0),
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: _actions.length,
+        itemCount: actions.length,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
           mainAxisSpacing: 4,
@@ -67,7 +77,7 @@ class HomeQuickActionsGrid extends StatelessWidget {
           childAspectRatio: 1.05,
         ),
         itemBuilder: (context, index) {
-          return _ActionTile(action: _actions[index]);
+          return _ActionTile(action: actions[index]);
         },
       ),
     );

@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../core/auth/current_user_provider.dart";
+import "../../core/platform/platform_purchase_policy.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/utils/friendly_error_message.dart";
 import "../../core/widgets/error_state.dart";
@@ -53,7 +54,8 @@ class HomeScreen extends ConsumerWidget {
   String _statusLine(HomeData data) {
     final n = data.dashboard.enrolledCoursesCount;
     if (n == 0) return "ابدأ رحلتك التعليمية اليوم";
-    if (data.pendingPayments > 0) {
+    if (PlatformPurchasePolicy.showExternalPaymentFlows &&
+        data.pendingPayments > 0) {
       return "$n كورس • ${data.pendingPayments} طلب دفع";
     }
     return "$n كورس مسجّل • تابع تقدّمك";
