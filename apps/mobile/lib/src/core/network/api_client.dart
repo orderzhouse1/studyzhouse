@@ -7,6 +7,7 @@ import "../config/app_config.dart";
 import "../storage/auth_storage.dart";
 import "auth_interceptor.dart";
 import "unauthorized_interceptor.dart";
+import "../platform/platform_client_interceptor.dart";
 
 class ApiClient {
   ApiClient(this._dio);
@@ -64,11 +65,12 @@ final dioProvider = Provider<Dio>((ref) {
     ),
   );
 
+  dio.interceptors.add(PlatformClientInterceptor());
   dio.interceptors.add(authInterceptorFromStorage(storage));
   dio.interceptors.add(
     UnauthorizedInterceptor(
       onUnauthorized: () async {
-        await storage.clearAccessToken();
+        await storage.clearSession();
         ref.read(currentUserProvider.notifier).state = null;
         ref.read(sessionExpiredProvider.notifier).state = true;
       },

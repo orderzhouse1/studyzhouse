@@ -1,31 +1,38 @@
 # App Store Review Notes — STUDYZHOUSE iOS
 
-Use this text in **App Review Information → Notes** (and adjust if IAP ships before submission).
+Use this text in **App Review Information → Notes**.
 
-## Payments and digital course access (iOS)
+## iOS is a free-courses-only app
 
-- The iOS app **does not offer external payment** for digital courses (no CliQ, bank transfer, WhatsApp, website checkout, or activation-code unlock in the UI).
-- Students can:
-  - **Browse** the course catalog
-  - **Enroll in free courses** inside the app
-  - **Continue learning** courses already enrolled via web, Android, or admin activation (existing entitlements are honored)
-- **Paid courses not yet enrolled** show a neutral disabled state: «هذا الكورس غير متاح داخل iOS حاليًا» — no link or instruction to pay outside the app.
-- **Apple In-App Purchase** for paid digital courses is planned for a future release (`iapEnabled` flag + `PurchaseCourseService` stub in the Flutter app). Until then, new paid enrollments on iOS are not sold in-app.
+The iOS app is **limited to free digital courses only** to comply with App Store Guideline 3.1.1.
 
-## Account deletion
+- **No paid courses** appear in catalog, search, home, My Courses, saved courses, or course detail.
+- **No access to paid lesson content** on iOS — even if the student enrolled on web or Android.
+- **No external payment** flows: no CliQ, payment proof upload, activation-code unlock, or purchase CTAs.
+- **No Apple In-App Purchase** in this build (planned for a future phase).
 
-- Signed-in students can **delete/deactivate their account in-app** from **Settings → حذف الحساب والبيانات**, with a two-step confirmation (type «حذف»).
-- Deactivation calls `POST /api/v1/student/account/deactivate` and signs the user out.
+## What reviewers can test
+
+1. Log in with the test account.
+2. Browse **Courses** — only free courses are listed.
+3. Enroll in a **free** course and open lessons.
+4. Open **My Courses** — only free enrollments appear.
+5. Attempt a direct link to a paid course slug (if provided) — neutral “غير متاح” message, no lesson content.
+6. **Settings → حذف الحساب والبيانات** — account deactivation with confirmation.
 
 ## Test account
 
-Provide a sandbox reviewer account with at least:
+Provide a reviewer account with at least one **free** course available for enrollment.
 
-1. One **free** course available for enrollment
-2. One **paid** course the account is **already enrolled** in (to verify learning access)
-3. One **paid** course the account is **not** enrolled in (to verify the disabled purchase state)
+Do **not** rely on paid-course entitlements for iOS review — they are intentionally hidden and blocked.
 
-## Platform parity
+## Technical
 
-- **Android** continues to support CliQ payment requests, payment proof upload, and activation-code redeem (unchanged).
-- **Web** student flows are unchanged.
+- Client sends `X-Client-Platform: ios` on API requests.
+- API filters paid courses and denies paid learn/access endpoints for iOS clients.
+- Backend: `https://studyzhouse.com/api/v1`
+- Account deletion: `https://studyzhouse.com/account-deletion`
+
+## Android / web
+
+Paid course purchase (CliQ, activation codes) remains on **Android** and **web** only.

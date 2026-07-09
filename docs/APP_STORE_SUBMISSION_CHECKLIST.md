@@ -8,10 +8,11 @@ Primary category: **Education**
 
 ## Pre-submission code gates (done in app)
 
+- [x] iOS is **free-courses-only** (paid courses hidden/blocked everywhere)
 - [x] iOS hides external payment flows (CliQ, proof upload, activation-code redeem UI)
 - [x] iOS hides purchases/redeem navigation entry points
-- [x] Paid course CTA on iOS: disabled «هذا الكورس غير متاح داخل iOS حاليًا»
-- [x] Free enrollment + already-enrolled learning work on iOS
+- [x] Paid enrollments from web/Android are **not visible or accessible** on iOS
+- [x] Free enrollment + free course learning work on iOS
 - [x] In-app account deletion in Settings (two-step, type «حذف»)
 - [x] Production API: `https://studyzhouse.com/api/v1` (HTTPS)
 - [ ] Apple In-App Purchase — **not implemented** (future phase; not required for first submission if paid courses show unavailable state only)
@@ -32,7 +33,7 @@ Primary category: **Education**
 
 ### Paid courses (reviewer note)
 
-> On iOS, the app does **not** expose external payments. Students can browse courses, enroll in **free** courses, and continue **already-enrolled** courses. New paid course purchase is **not available on iOS** in this release; Apple In-App Purchase is planned for a future phase.
+> On iOS, the app is **free-courses-only**. Paid courses are not listed, not enrolled, and not learnable on iOS — including entitlements from web/Android. No external payments. Apple IAP is planned for a future phase.
 
 ---
 
@@ -70,10 +71,11 @@ Capture on iPhone 6.7" and 6.5" (required sizes per App Store Connect):
 1. **Home** — dashboard with quick actions (no redeem/purchases on iOS)
 2. **Course catalog** — browse courses
 3. **Course detail — free** — «التسجيل مجانًا»
-4. **Course detail — paid locked** — «هذا الكورس غير متاح داخل iOS حاليًا»
-5. **My Courses** — enrolled course with progress
-6. **Lesson player** — video/lesson in progress
-7. **Settings** — account section showing «حذف الحساب والبيانات»
+4. **Course detail — free** — enroll and learn
+5. **My Courses** — only free enrollments (paid hidden even if owned elsewhere)
+6. **Lesson player** — free course only
+7. **Direct paid slug / notification link** — neutral block, no lesson content
+8. **Settings** — account deletion section
 
 ---
 
@@ -86,11 +88,7 @@ Create a dedicated reviewer account on production (or staging if review build po
 | Email | `appstore.review@studyhouse.app` |
 | Password | `[SET_SECURE_PASSWORD_BEFORE_SUBMISSION]` |
 
-Account should have:
-
-1. At least one **free** course not yet enrolled
-2. At least one **paid** course **already enrolled** (learning access)
-3. At least one **paid** course **not enrolled** (disabled CTA)
+Account should have at least one **free** course available for enrollment. Do not use paid-course access for iOS review.
 
 ---
 
@@ -108,13 +106,13 @@ HOW TO TEST
 2. Browse courses from the Courses tab.
 3. Open a FREE course → tap «التسجيل مجانًا» → confirm enrollment.
 4. Open My Courses → open an enrolled course → tap «متابعة التعلّم» → start a lesson and mark progress.
-5. Open a PAID course the account does NOT own → primary button is disabled with «هذا الكورس غير متاح داخل iOS حاليًا» (no external payment or website instructions).
-6. Account deletion: Profile → Settings → «حذف الحساب والبيانات» → «حذف الحساب» → confirm → type «حذف» → account is deactivated and user is signed out.
+5. Open **My Courses** — paid courses from web/Android must not appear.
+6. Attempt a direct `/learn/{paid-slug}` link — blocked with neutral message, no video/content.
+7. Account deletion: Settings → «حذف الحساب والبيانات» → type «حذف».
 
 PAYMENTS (iOS)
-- External payment flows are NOT available on iOS: no CliQ, bank transfer, payment proof upload, or activation-code unlock in the app.
-- CliQ and activation-code flows exist on Android/web only.
-- iOS supports free course enrollment and access to courses already enrolled on the account (from web, Android, or admin).
+- iOS is free-courses-only. No paid catalog, no paid learning, no external payment, no activation codes.
+- Android/web retain CliQ and activation-code flows.
 - Paid in-app purchase via Apple IAP is planned for a future release; not included in this build.
 
 TECHNICAL

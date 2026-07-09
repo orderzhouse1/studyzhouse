@@ -29,3 +29,11 @@ class SessionNotActive extends SessionValidationResult {
 
   final String message;
 }
+
+/// Token exists but session could not be restored (e.g. transient network error).
+/// Token is preserved so the user can retry without re-entering credentials.
+class SessionRestoreFailed extends SessionValidationResult {
+  const SessionRestoreFailed({this.message});
+
+  final String? message;
+}

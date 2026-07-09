@@ -2,6 +2,7 @@ import "package:dio/dio.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../core/network/api_client.dart";
+import "../../../core/platform/ios_course_policy.dart";
 import "../../../core/utils/api_error_message.dart";
 import "../models/my_course_item.dart";
 import "../models/saved_course.dart";
@@ -17,7 +18,9 @@ class StudentCoursesRepository {
       final response = await _client.get<Map<String, dynamic>>(
         "/student/dashboard",
       );
-      return StudentDashboard.fromEnvelope(response.data ?? {});
+      return IosCoursePolicy.filterDashboardForPlatform(
+        StudentDashboard.fromEnvelope(response.data ?? {}),
+      );
     } on DioException catch (e) {
       throw apiExceptionFromDio(e);
     }
@@ -28,7 +31,11 @@ class StudentCoursesRepository {
       final response = await _client.get<Map<String, dynamic>>(
         "/student/my-courses",
       );
-      return MyCoursesResponse.fromEnvelope(response.data ?? {});
+      return MyCoursesResponse(
+        items: IosCoursePolicy.filterMyCourseItemsForPlatform(
+          MyCoursesResponse.fromEnvelope(response.data ?? {}).items,
+        ),
+      );
     } on DioException catch (e) {
       throw apiExceptionFromDio(e);
     }
@@ -39,7 +46,11 @@ class StudentCoursesRepository {
       final response = await _client.get<Map<String, dynamic>>(
         "/student/saved-courses",
       );
-      return SavedCoursesResponse.fromEnvelope(response.data ?? {});
+      return SavedCoursesResponse(
+        items: IosCoursePolicy.filterSavedCoursesForPlatform(
+          SavedCoursesResponse.fromEnvelope(response.data ?? {}).items,
+        ),
+      );
     } on DioException catch (e) {
       throw apiExceptionFromDio(e);
     }

@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../core/platform/platform_purchase_policy.dart";
+import "../../core/platform/ios_course_policy.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/utils/friendly_error_message.dart";
 import "../../core/widgets/app_button.dart";
@@ -185,7 +186,7 @@ class _FilterRow extends StatelessWidget {
             selected: filter == _MyCoursesFilter.learning,
             onTap: () => onChanged(_MyCoursesFilter.learning),
           ),
-          if (pendingCount > 0) ...[
+          if (pendingCount > 0 && !IosCoursePolicy.isIOSPlatform) ...[
             const SizedBox(width: 8),
             AppFilterChip(
               label:
