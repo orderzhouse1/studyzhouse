@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../core/network/api_exception.dart";
+import "../../core/platform/ios_course_policy.dart";
 import "../../core/platform/platform_purchase_policy.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/widgets/app_button.dart";
@@ -15,6 +16,7 @@ import "../purchases/purchase_course_service.dart";
 import "models/course.dart";
 import "providers/saved_course_ids_provider.dart";
 import "repositories/course_repository.dart";
+import "widgets/ios_paid_course_blocked_view.dart";
 
 final courseDetailProvider = FutureProvider.autoDispose.family<Course, String>((
   ref,
@@ -48,11 +50,25 @@ class CourseDetailScreen extends ConsumerWidget {
       body: SafeArea(
         child: async.when(
           loading: () => const LoadingView(message: "جاري التحميل…"),
-          error: (e, _) => ErrorState(
-            message: e is ApiException ? e.message : "تعذّر تحميل الكورس",
-            onRetry: () => ref.invalidate(courseDetailProvider(slug)),
-          ),
-          data: (course) => _CourseDetailBody(course: course, slug: slug),
+          error: (e, _) {
+            if (IosCoursePolicy.isIOSPlatform &&
+                e is ApiException &&
+                (e.statusCode == 404 ||
+                    e.code == "NOT_FOUND" ||
+                    e.code == "COURSE_NOT_FOUND")) {
+              return const IosPaidCourseBlockedView();
+            }
+            return ErrorState(
+              message: e is ApiException ? e.message : "تعذّر تحميل الكورس",
+              onRetry: () => ref.invalidate(courseDetailProvider(slug)),
+            );
+          },
+          data: (course) {
+            if (!IosCoursePolicy.isCourseAllowedOnIOS(course: course)) {
+              return const IosPaidCourseBlockedView();
+            }
+            return _CourseDetailBody(course: course, slug: slug);
+          },
         ),
       ),
     );

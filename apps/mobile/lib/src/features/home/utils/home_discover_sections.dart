@@ -1,5 +1,6 @@
 import "../../courses/models/course.dart";
 import "course_interest_match.dart";
+import "../../../core/platform/ios_course_policy.dart";
 
 class HomeDiscoverRow {
   const HomeDiscoverRow({
@@ -19,6 +20,7 @@ List<HomeDiscoverRow> buildHomeDiscoverRows({
   required List<Course> courses,
   required List<String> interests,
 }) {
+  final visibleCourses = IosCoursePolicy.filterCoursesForPlatform(courses);
   final rows = <HomeDiscoverRow>[];
 
   void add(String id, String title, List<Course> picked) {
@@ -30,7 +32,7 @@ List<HomeDiscoverRow> buildHomeDiscoverRows({
     add(
       "interests",
       "حسب اهتماماتك",
-      courses
+      visibleCourses
           .where((c) => courseMatchesInterests(c, interests))
           .take(10)
           .toList(growable: false),
@@ -40,19 +42,19 @@ List<HomeDiscoverRow> buildHomeDiscoverRows({
   add(
     "short",
     "كورسات قصيرة",
-    courses.where(isShortCourse).take(10).toList(growable: false),
+    visibleCourses.where(isShortCourse).take(10).toList(growable: false),
   );
 
   add(
     "ai",
     "الذكاء الاصطناعي",
-    courses
+    visibleCourses
         .where(courseMatchesAiTopic)
         .take(10)
         .toList(growable: false),
   );
 
-  final newest = List<Course>.from(courses)
+  final newest = List<Course>.from(visibleCourses)
     ..sort((a, b) {
       final ap = a.publishedAt ?? "";
       final bp = b.publishedAt ?? "";
@@ -63,7 +65,7 @@ List<HomeDiscoverRow> buildHomeDiscoverRows({
   add(
     "free",
     "كورسات مجانية",
-    courses.where((c) => c.isFree).take(10).toList(growable: false),
+    visibleCourses.where((c) => c.isFree).take(10).toList(growable: false),
   );
 
   return rows;

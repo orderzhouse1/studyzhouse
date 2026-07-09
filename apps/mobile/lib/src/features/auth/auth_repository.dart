@@ -36,7 +36,7 @@ class AuthRepository {
       final login = LoginResponse.fromEnvelope(body);
 
       if (!login.user.isStudent) {
-        await _storage.clearAccessToken();
+        await _storage.clearSession();
         throw ApiException(
           message: AuthMessages.studentOnly,
           code: "STUDENT_ONLY",
@@ -44,14 +44,17 @@ class AuthRepository {
       }
 
       if (login.user.status != "ACTIVE") {
-        await _storage.clearAccessToken();
+        await _storage.clearSession();
         throw ApiException(
           message: codeToArabic("ACCOUNT_NOT_ACTIVE"),
           code: "ACCOUNT_NOT_ACTIVE",
         );
       }
 
-      await _storage.saveAccessToken(login.accessToken);
+      await _storage.saveSession(
+        accessToken: login.accessToken,
+        user: login.user,
+      );
       _ref.read(currentUserProvider.notifier).state = login.user;
       return login;
     } on DioException catch (e) {
@@ -174,7 +177,7 @@ class AuthRepository {
   }
 
   Future<void> logout() async {
-    await _storage.clearAccessToken();
+    await _storage.clearSession();
     _ref.read(currentUserProvider.notifier).state = null;
   }
 

@@ -9,6 +9,7 @@ import {
 } from "@prisma/client";
 
 import { AppError } from "../lib/AppError.js";
+import { isIosAppClient } from "../lib/clientPlatform.js";
 import { mapCoursePublic } from "../lib/courseMapper.js";
 import { prisma } from "../lib/prisma.js";
 import {
@@ -22,6 +23,22 @@ import {
 } from "@studyhouse/shared";
 
 const DESCRIPTION_MAX = 8000;
+
+function publishedCourseScopeForClient(req: Request) {
+  return {
+    status: CourseStatus.PUBLISHED,
+    ...(isIosAppClient(req) ? { pricingType: PricingType.FREE } : {}),
+  };
+}
+
+function assertCourseAvailableOnIosClient(
+  req: Request,
+  pricingType: PricingType,
+): void {
+  if (isIosAppClient(req) && pricingType === PricingType.PAID) {
+    throw new AppError("NOT_FOUND", "الكورس غير موجود أو غير منشور.", 404);
+  }
+}
 
 function trimDescription(s: string | null): string | null {
   if (!s) return null;
@@ -59,7 +76,7 @@ export async function getStudentDashboard(
     where: {
       studentId,
       status: EnrollmentStatus.ACTIVE,
-      course: { status: CourseStatus.PUBLISHED },
+      course: publishedCourseScopeForClient(req),
     },
     include: {
       course: {
@@ -171,24 +188,26 @@ export async function getStudentMyCourses(
       where: {
         studentId,
         status: EnrollmentStatus.ACTIVE,
-        course: { status: CourseStatus.PUBLISHED },
+        course: publishedCourseScopeForClient(req),
       },
       include: {
         course: { include: { category: true } },
       },
       orderBy: { updatedAt: "desc" },
     }),
-    prisma.paymentRequest.findMany({
-      where: {
-        studentId,
-        status: PaymentRequestStatus.PENDING,
-        course: { status: CourseStatus.PUBLISHED },
-      },
-      include: {
-        course: { include: { category: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    }),
+    isIosAppClient(req)
+      ? Promise.resolve([])
+      : prisma.paymentRequest.findMany({
+          where: {
+            studentId,
+            status: PaymentRequestStatus.PENDING,
+            course: { status: CourseStatus.PUBLISHED },
+          },
+          include: {
+            course: { include: { category: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        }),
   ]);
 
   const enrolledCourseIds = new Set(enrollments.map((e) => e.courseId));
@@ -326,6 +345,10 @@ export async function getStudentCourseLearn(
   });
 
   if (!course) {
+    throw new AppError("NOT_FOUND", "الكورس غير موجود أو غير منشور.", 404);
+  }
+
+  if (isIosAppClient(req) && course.pricingType === PricingType.PAID) {
     throw new AppError("NOT_FOUND", "الكورس غير موجود أو غير منشور.", 404);
   }
 
@@ -531,6 +554,8 @@ export async function postStudentLessonProgress(
     throw new AppError("NOT_FOUND", "الدرس غير متاح.", 404);
   }
 
+  assertCourseAvailableOnIosClient(req, lesson.course.pricingType);
+
   const { enrollment } = await assertStudentEnrollmentForPublishedCourse(
     studentId,
     lesson.courseId,
@@ -622,6 +647,8 @@ export async function postStudentLessonComplete(
     throw new AppError("NOT_FOUND", "الدرس غير متاح.", 404);
   }
 
+  assertCourseAvailableOnIosClient(req, lesson.course.pricingType);
+
   const { enrollment } = await assertStudentEnrollmentForPublishedCourse(
     studentId,
     lesson.courseId,
@@ -705,6 +732,10 @@ export async function getStudentCourseAccess(
   });
 
   if (!course) {
+    throw new AppError("COURSE_NOT_FOUND", "الكورس غير متاح أو غير منشور.", 404);
+  }
+
+  if (isIosAppClient(req) && course.pricingType === PricingType.PAID) {
     throw new AppError("COURSE_NOT_FOUND", "الكورس غير متاح أو غير منشور.", 404);
   }
 

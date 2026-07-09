@@ -16,6 +16,11 @@ bool isPublicAuthPath(String path) {
 }
 
 bool shouldHandleUnauthorized401(String path, int? statusCode) {
-  if (statusCode != 401) return false;
+  return shouldClearSessionOnAuthError(path, statusCode);
+}
+
+/// Clears local session when a protected route returns 401/403.
+bool shouldClearSessionOnAuthError(String path, int? statusCode) {
+  if (statusCode != 401 && statusCode != 403) return false;
   return !isPublicAuthPath(path);
 }

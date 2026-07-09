@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 
+import { isIosAppClient } from "../lib/clientPlatform.js";
 import {
   listSavedCourseIdsForStudent,
   listSavedCoursesForStudent,
@@ -12,7 +13,10 @@ export async function listStudentSavedCourses(
   res: Response,
 ): Promise<void> {
   const studentId = req.auth!.userId;
-  const items = await listSavedCoursesForStudent(studentId);
+  let items = await listSavedCoursesForStudent(studentId);
+  if (isIosAppClient(req)) {
+    items = items.filter((item) => item.course.pricingType === "FREE");
+  }
   res.status(200).json({ success: true, data: { items } });
 }
 
@@ -21,7 +25,16 @@ export async function listStudentSavedCourseIds(
   res: Response,
 ): Promise<void> {
   const studentId = req.auth!.userId;
-  const courseIds = await listSavedCourseIdsForStudent(studentId);
+  let courseIds = await listSavedCourseIdsForStudent(studentId);
+  if (isIosAppClient(req)) {
+    const items = await listSavedCoursesForStudent(studentId);
+    const freeIds = new Set(
+      items
+        .filter((item) => item.course.pricingType === "FREE")
+        .map((item) => item.courseId),
+    );
+    courseIds = courseIds.filter((id) => freeIds.has(id));
+  }
   res.status(200).json({ success: true, data: { courseIds } });
 }
 

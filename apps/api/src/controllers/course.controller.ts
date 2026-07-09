@@ -9,6 +9,7 @@ import {
 } from "@prisma/client";
 
 import { AppError } from "../lib/AppError.js";
+import { isIosAppClient } from "../lib/clientPlatform.js";
 import { assertCanManageCourse } from "../lib/courseAccess.js";
 import {
   mapCourseAdmin,
@@ -146,6 +147,10 @@ export async function listCoursesPublic(
     where.pricingType = query.pricingType;
   }
 
+  if (isIosAppClient(req)) {
+    where.pricingType = PricingType.FREE;
+  }
+
   const orderBy: Prisma.CourseOrderByWithRelationInput[] = (() => {
     switch (query.sort) {
       case "price_asc":
@@ -223,6 +228,10 @@ export async function getCourseBySlugPublic(
   });
 
   if (!course) {
+    throw new AppError("NOT_FOUND", "الكورس غير موجود.", 404);
+  }
+
+  if (isIosAppClient(req) && course.pricingType === PricingType.PAID) {
     throw new AppError("NOT_FOUND", "الكورس غير موجود.", 404);
   }
 

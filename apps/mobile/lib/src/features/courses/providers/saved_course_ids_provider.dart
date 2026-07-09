@@ -1,5 +1,6 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../core/platform/ios_course_policy.dart";
 import "../repositories/student_courses_repository.dart";
 
 final savedCourseIdsProvider =
@@ -10,7 +11,12 @@ final savedCourseIdsProvider =
 class SavedCourseIdsNotifier extends AsyncNotifier<Set<String>> {
   @override
   Future<Set<String>> build() async {
-    return ref.read(studentCoursesRepositoryProvider).getSavedCourseIds();
+    final repo = ref.read(studentCoursesRepositoryProvider);
+    if (IosCoursePolicy.isIOSPlatform) {
+      final saved = await repo.getSavedCourses();
+      return saved.items.map((item) => item.courseId).toSet();
+    }
+    return repo.getSavedCourseIds();
   }
 
   Future<void> refresh() async {

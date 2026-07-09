@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../core/network/api_exception.dart";
 import "../../core/network/pagination_meta.dart";
+import "../../core/platform/ios_course_policy.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/widgets/app_filter_chip.dart";
 import "../../core/widgets/error_state.dart";
@@ -91,7 +92,7 @@ class _ExploreCoursesScreenState extends ConsumerState<ExploreCoursesScreen> {
       setState(() {
         _categories = results[0] as List<Category>;
         final page = results[1] as PaginatedResult<Course>;
-        _courses = page.items;
+        _courses = IosCoursePolicy.filterCoursesForPlatform(page.items);
         _hasMore = page.meta.hasMore;
         _loading = false;
       });
@@ -127,7 +128,10 @@ class _ExploreCoursesScreenState extends ConsumerState<ExploreCoursesScreen> {
       if (!mounted) return;
       setState(() {
         _page = nextPage;
-        _courses = [..._courses, ...page.items];
+        _courses = [
+          ..._courses,
+          ...IosCoursePolicy.filterCoursesForPlatform(page.items),
+        ];
         _hasMore = page.meta.hasMore;
         _loadingMore = false;
       });
@@ -237,32 +241,39 @@ class _ExploreCoursesScreenState extends ConsumerState<ExploreCoursesScreen> {
                             scrollDirection: Axis.horizontal,
                             child: Row(
                               children: [
-                                AppFilterChip(
-                                  label: "الكل",
-                                  selected: _pricingType == null,
-                                  onTap: () {
-                                    setState(() => _pricingType = null);
-                                    _loadInitial();
-                                  },
-                                ),
-                                const SizedBox(width: 8),
-                                AppFilterChip(
-                                  label: "مجاني",
-                                  selected: _pricingType == "FREE",
-                                  onTap: () {
-                                    setState(() => _pricingType = "FREE");
-                                    _loadInitial();
-                                  },
-                                ),
-                                const SizedBox(width: 8),
-                                AppFilterChip(
-                                  label: "مدفوع",
-                                  selected: _pricingType == "PAID",
-                                  onTap: () {
-                                    setState(() => _pricingType = "PAID");
-                                    _loadInitial();
-                                  },
-                                ),
+                                if (!IosCoursePolicy.isIOSPlatform) ...[
+                                  AppFilterChip(
+                                    label: "الكل",
+                                    selected: _pricingType == null,
+                                    onTap: () {
+                                      setState(() => _pricingType = null);
+                                      _loadInitial();
+                                    },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  AppFilterChip(
+                                    label: "مجاني",
+                                    selected: _pricingType == "FREE",
+                                    onTap: () {
+                                      setState(() => _pricingType = "FREE");
+                                      _loadInitial();
+                                    },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  AppFilterChip(
+                                    label: "مدفوع",
+                                    selected: _pricingType == "PAID",
+                                    onTap: () {
+                                      setState(() => _pricingType = "PAID");
+                                      _loadInitial();
+                                    },
+                                  ),
+                                ] else
+                                  AppFilterChip(
+                                    label: "مجاني",
+                                    selected: true,
+                                    onTap: () {},
+                                  ),
                               ],
                             ),
                           ),
