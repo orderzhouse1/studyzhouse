@@ -5,6 +5,7 @@ import "package:go_router/go_router.dart";
 import "../../core/auth/current_user_provider.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/widgets/brand_loading_indicator.dart";
+import "../../core/widgets/error_state.dart";
 import "../auth/auth_session_repository.dart";
 import "../auth/models/session_validation_result.dart";
 
@@ -16,6 +17,8 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
+  String? _restoreError;
+
   @override
   void initState() {
     super.initState();
@@ -23,6 +26,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _bootstrap() async {
+    setState(() => _restoreError = null);
+
     await Future<void>.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
 
@@ -44,6 +49,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             ? "?message=${Uri.encodeComponent(message)}"
             : "";
         context.go("/login$query");
+      case SessionRestoreFailed(:final message):
+        setState(
+          () => _restoreError = message ?? "تعذّر التحقق من الجلسة. حاول مرة أخرى.",
+        );
     }
   }
 
@@ -55,11 +64,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         child: Column(
           children: [
             const Spacer(),
-            const BrandLoadingIndicator(
-              logoSize: 96,
-              minHeight: 200,
-              message: "جاري التحقق من الجلسة…",
-            ),
+            if (_restoreError != null)
+              ErrorState(
+                message: _restoreError!,
+                onDark: true,
+                onRetry: _bootstrap,
+              )
+            else
+              const BrandLoadingIndicator(
+                logoSize: 96,
+                minHeight: 200,
+                message: "جاري التحقق من الجلسة…",
+              ),
             const Spacer(),
             Text(
               "STUDYZHOUSE",

@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../core/auth/current_user_provider.dart";
+import "../../core/platform/ios_course_policy.dart";
 import "../../core/platform/platform_purchase_policy.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/utils/friendly_error_message.dart";
@@ -23,10 +24,15 @@ final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
   final studentRepo = ref.read(studentCoursesRepositoryProvider);
   final dashboard = await studentRepo.getDashboard();
   final myCourses = await studentRepo.getMyCourses();
+  final filteredItems = IosCoursePolicy.filterMyCourseItemsForPlatform(
+    myCourses.items,
+  );
   return HomeData(
-    dashboard: dashboard,
-    myCoursesPreview: myCourses.items.take(3).toList(),
-    pendingPayments: myCourses.pendingPaymentsCount,
+    dashboard: IosCoursePolicy.filterDashboardForPlatform(dashboard),
+    myCoursesPreview: filteredItems.take(3).toList(),
+    pendingPayments: PlatformPurchasePolicy.showExternalPaymentFlows
+        ? myCourses.pendingPaymentsCount
+        : 0,
   );
 });
 

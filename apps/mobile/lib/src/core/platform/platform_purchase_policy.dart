@@ -21,7 +21,7 @@ abstract final class PlatformPurchasePolicy {
   static const String iosBlockedFeatureTitle = "غير متاح حاليًا";
 
   static const String iosBlockedFeatureDescription =
-      "يمكنك التسجيل في الكورسات المجانية ومتابعة الكورسات المسجّلة مسبقًا في حسابك.";
+      "تطبيق iOS يعرض الكورسات المجانية فقط. استكشف الدورات المجانية من قائمة الدورات.";
 
   /// Pending enrollment badge/filter — avoids «دفع» on iOS.
   static String get pendingEnrollmentStatusLabel =>

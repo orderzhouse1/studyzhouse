@@ -4,6 +4,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../../../core/network/api_client.dart";
 import "../../../core/network/api_envelope.dart";
 import "../../../core/network/pagination_meta.dart";
+import "../../../core/platform/ios_course_policy.dart";
 import "../../../core/utils/api_error_message.dart";
 import "../models/category.dart";
 import "../models/course.dart";
@@ -22,6 +23,9 @@ class CourseRepository {
     String? sort,
   }) async {
     try {
+      final effectivePricingType = IosCoursePolicy.isIOSPlatform
+          ? "FREE"
+          : pricingType;
       final response = await _client.get<Map<String, dynamic>>(
         "/courses",
         queryParameters: {
@@ -31,7 +35,7 @@ class CourseRepository {
             "categorySlug": categorySlug,
           if (search != null && search.trim().isNotEmpty)
             "search": search.trim(),
-          "pricingType": ?pricingType,
+          "pricingType": ?effectivePricingType,
           "sort": ?sort,
         },
       );
@@ -42,7 +46,7 @@ class CourseRepository {
           .map(Course.fromJson)
           .toList();
       return PaginatedResult(
-        items: items,
+        items: IosCoursePolicy.filterCoursesForPlatform(items),
         meta: PaginationMeta.fromJson(body["meta"] as Map<String, dynamic>?),
       );
     } on DioException catch (e) {

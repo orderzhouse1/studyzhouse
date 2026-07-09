@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../core/network/api_exception.dart";
+import "../../core/platform/ios_course_policy.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/widgets/app_button.dart";
 import "../../core/widgets/app_card.dart";
@@ -10,6 +11,7 @@ import "../../core/widgets/brand_loading_indicator.dart";
 import "../../core/widgets/error_state.dart";
 import "models/learn_course.dart";
 import "repositories/learning_repository.dart";
+import "../courses/widgets/ios_paid_course_blocked_view.dart";
 import "widgets/learn_page_header.dart";
 import "widgets/lesson_navigation_bar.dart";
 import "widgets/lesson_section_card.dart";
@@ -33,6 +35,7 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
   LearnCourseResponse? _payload;
   bool _loading = true;
   bool _completing = false;
+  bool _blockedOnIos = false;
   String? _errorMessage;
   String? _errorCode;
   String? _selectedLessonId;
@@ -49,6 +52,7 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
       _loading = true;
       _errorMessage = null;
       _errorCode = null;
+      _blockedOnIos = false;
     });
     try {
       final data = await ref
@@ -58,6 +62,16 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
             lessonId: lessonId ?? _selectedLessonId,
           );
       if (!mounted) return;
+      if (!IosCoursePolicy.isCourseAllowedOnIOS(
+        pricingType: data.course.pricingType,
+      )) {
+        setState(() {
+          _blockedOnIos = true;
+          _payload = null;
+          _loading = false;
+        });
+        return;
+      }
       setState(() {
         _payload = data;
         _selectedLessonId = data.currentLesson.id;
@@ -65,6 +79,17 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
       });
     } on ApiException catch (e) {
       if (!mounted) return;
+      if (IosCoursePolicy.isIOSPlatform &&
+          (e.statusCode == 404 ||
+              e.code == "NOT_FOUND" ||
+              e.code == "COURSE_NOT_FOUND")) {
+        setState(() {
+          _blockedOnIos = true;
+          _payload = null;
+          _loading = false;
+        });
+        return;
+      }
       setState(() {
         _errorMessage = _mapLearnError(e);
         _errorCode = e.code;
@@ -155,6 +180,21 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
   Widget _buildBody(BuildContext context) {
     if (_loading) {
       return const AppPageLoading(message: "جاري تحميل الدروس…");
+    }
+
+    if (_blockedOnIos) {
+      return Column(
+        children: [
+          LearnPageHeader(
+            courseTitle: IosCoursePolicy.paidCourseBlockedTitle,
+            progressPercent: 0,
+            completedLessons: 0,
+            totalLessons: 0,
+            onBack: () => context.pop(),
+          ),
+          const Expanded(child: IosPaidCourseBlockedView()),
+        ],
+      );
     }
 
     if (_errorMessage != null) {
