@@ -22,6 +22,8 @@ export type PublicCourseDto = {
   lessonCount: number;
   averageRating: number | null;
   reviewCount: number;
+  appleProductId: string | null;
+  iosPurchasable: boolean;
 };
 
 export type AdminCourseDto = PublicCourseDto & {
@@ -63,6 +65,8 @@ export function mapCoursePublic(
     lessonCount: course.lessonCount ?? 0,
     averageRating: rating?.averageRating ?? null,
     reviewCount: rating?.reviewCount ?? 0,
+    appleProductId: course.appleProductId ?? null,
+    iosPurchasable: course.iosPurchasable,
   };
 }
 

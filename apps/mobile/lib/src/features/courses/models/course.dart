@@ -16,6 +16,9 @@ class Course {
     this.publishedAt,
     this.category,
     this.lessonCount = 0,
+    this.appleProductId,
+    this.iosPurchasable = false,
+    this.apiIncludesIapFields = false,
   });
 
   final String id;
@@ -32,8 +35,16 @@ class Course {
   final String? publishedAt;
   final Category? category;
   final int lessonCount;
+  final String? appleProductId;
+  final bool iosPurchasable;
+  final bool apiIncludesIapFields;
 
   bool get isFree => pricingType == "FREE";
+
+  bool get isIosIapPurchasable =>
+      !isFree &&
+      iosPurchasable &&
+      (appleProductId?.trim().isNotEmpty ?? false);
 
   String get priceLabel => isFree ? "مجاني" : "${priceAmount ?? "—"} $currency";
 
@@ -62,6 +73,11 @@ class Course {
       publishedAt: json["publishedAt"] as String?,
       category: cat is Map<String, dynamic> ? Category.fromJson(cat) : null,
       lessonCount: (json["lessonCount"] as num?)?.toInt() ?? 0,
+      appleProductId: json["appleProductId"] as String?,
+      iosPurchasable: json["iosPurchasable"] as bool? ?? false,
+      apiIncludesIapFields:
+          json.containsKey("iosPurchasable") ||
+          json.containsKey("appleProductId"),
     );
   }
 }

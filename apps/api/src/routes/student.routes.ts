@@ -11,6 +11,7 @@ import * as studentSavedCoursesController from "../controllers/studentSavedCours
 import * as lessonNoteController from "../controllers/lessonNote.controller.js";
 import * as courseReviewController from "../controllers/courseReview.controller.js";
 import * as studentRecommendationsController from "../controllers/studentRecommendations.controller.js";
+import * as studentAppleIapController from "../controllers/studentAppleIap.controller.js";
 import * as studentWebPushController from "../controllers/studentWebPush.controller.js";
 import { activationRedeemRateLimiter } from "../middlewares/activationRedeemRateLimiter.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
@@ -20,6 +21,8 @@ import {
   validateQuery,
 } from "../validators/validate.js";
 import {
+  appleIapVerifyBodySchema,
+  appleIapRestoreBodySchema,
   emptyBodySchema,
   lessonIdParamsSchema,
   lessonNoteCreateBodySchema,
@@ -257,6 +260,18 @@ studentRouter.post(
   validateParams(studentRecommendationDismissParamsSchema),
   validateBody(emptyBodySchema),
   asyncHandler(studentRecommendationsController.dismissStudentRecommendation),
+);
+
+studentRouter.post(
+  "/iap/verify",
+  validateBody(appleIapVerifyBodySchema),
+  asyncHandler(studentAppleIapController.verifyAppleIapPurchase),
+);
+
+studentRouter.post(
+  "/iap/restore",
+  validateBody(appleIapRestoreBodySchema),
+  asyncHandler(studentAppleIapController.restoreAppleIapPurchases),
 );
 
 studentRouter.get(

@@ -1,4 +1,5 @@
 import "package:dio/dio.dart";
+import "package:flutter/foundation.dart" show debugPrint, kDebugMode;
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../core/network/api_client.dart";
@@ -23,21 +24,29 @@ class CourseRepository {
     String? sort,
   }) async {
     try {
-      final effectivePricingType = IosCoursePolicy.isIOSPlatform
-          ? "FREE"
-          : pricingType;
+      final effectivePricingType = IosCoursePolicy.effectiveListPricingType(
+        pricingType,
+      );
+      final queryParameters = _buildCourseListQuery(
+        page: page,
+        pageSize: pageSize,
+        categorySlug: categorySlug,
+        search: search,
+        pricingType: effectivePricingType,
+        sort: sort,
+      );
+
+      if (kDebugMode) {
+        debugPrint(
+          "[CourseCatalog] GET /courses "
+          "ios=${IosCoursePolicy.isIOSPlatform} "
+          "params=$queryParameters",
+        );
+      }
+
       final response = await _client.get<Map<String, dynamic>>(
         "/courses",
-        queryParameters: {
-          "page": page,
-          "pageSize": pageSize,
-          if (categorySlug != null && categorySlug.isNotEmpty)
-            "categorySlug": categorySlug,
-          if (search != null && search.trim().isNotEmpty)
-            "search": search.trim(),
-          "pricingType": ?effectivePricingType,
-          "sort": ?sort,
-        },
+        queryParameters: queryParameters,
       );
       final body = response.data ?? {};
       final data = requireSuccessData(body);
@@ -45,8 +54,19 @@ class CourseRepository {
           .whereType<Map<String, dynamic>>()
           .map(Course.fromJson)
           .toList();
+      final filtered = IosCoursePolicy.filterCoursesForCatalog(
+        items,
+        pricingType: effectivePricingType,
+      );
+
+      if (kDebugMode) {
+        debugPrint(
+          "[CourseCatalog] api=${items.length} filtered=${filtered.length}",
+        );
+      }
+
       return PaginatedResult(
-        items: IosCoursePolicy.filterCoursesForPlatform(items),
+        items: filtered,
         meta: PaginationMeta.fromJson(body["meta"] as Map<String, dynamic>?),
       );
     } on DioException catch (e) {
@@ -86,6 +106,31 @@ class CourseRepository {
       throw apiExceptionFromDio(e);
     }
   }
+}
+
+Map<String, dynamic> _buildCourseListQuery({
+  required int page,
+  required int pageSize,
+  String? categorySlug,
+  String? search,
+  String? pricingType,
+  String? sort,
+}) {
+  final params = <String, dynamic>{"page": page, "pageSize": pageSize};
+  if (categorySlug != null && categorySlug.isNotEmpty) {
+    params["categorySlug"] = categorySlug;
+  }
+  final trimmedSearch = search?.trim();
+  if (trimmedSearch != null && trimmedSearch.isNotEmpty) {
+    params["search"] = trimmedSearch;
+  }
+  if (pricingType != null) {
+    params["pricingType"] = pricingType;
+  }
+  if (sort != null) {
+    params["sort"] = sort;
+  }
+  return params;
 }
 
 final courseRepositoryProvider = Provider<CourseRepository>((ref) {

@@ -1,6 +1,5 @@
 import "../../courses/models/course.dart";
 import "course_interest_match.dart";
-import "../../../core/platform/ios_course_policy.dart";
 
 class HomeDiscoverRow {
   const HomeDiscoverRow({
@@ -20,7 +19,7 @@ List<HomeDiscoverRow> buildHomeDiscoverRows({
   required List<Course> courses,
   required List<String> interests,
 }) {
-  final visibleCourses = IosCoursePolicy.filterCoursesForPlatform(courses);
+  final visibleCourses = courses;
   final rows = <HomeDiscoverRow>[];
 
   void add(String id, String title, List<Course> picked) {

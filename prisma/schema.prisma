@@ -53,6 +53,7 @@ enum EnrollmentSource {
   PAYMENT
   CLIQ_PAYMENT
   FREE
+  APPLE_IAP
 }
 
 enum EnrollmentStatus {
@@ -204,6 +205,7 @@ model User {
   courseReviews                CourseReview[]
   recommendationDismissals     CourseRecommendationDismissal[]
   webPushSubscriptions         WebPushSubscription[]
+  appleIapPurchases            AppleIapPurchase[]
 }
 
 model StudentProfile {
@@ -281,6 +283,8 @@ model Course {
   pricingType      PricingType
   price            Decimal?      @db.Decimal(12, 2)
   currency         String        @default("JOD")
+  appleProductId   String?       @unique
+  iosPurchasable   Boolean       @default(false)
   level            CourseLevel   @default(ALL_LEVELS)
   categoryId       String?
   createdById      String
@@ -299,8 +303,10 @@ model Course {
   lessonNotes     LessonNote[]
   reviews         CourseReview[]
   recommendationDismissals CourseRecommendationDismissal[]
+  appleIapPurchases        AppleIapPurchase[]
 
   @@index([status])
+  @@index([iosPurchasable, appleProductId])
   @@index([createdById])
 }
 
@@ -570,6 +576,26 @@ model CourseRecommendationDismissal {
 
   @@unique([studentId, courseId])
   @@index([studentId, createdAt])
+}
+
+model AppleIapPurchase {
+  id                    String   @id @default(cuid())
+  studentId             String
+  courseId              String
+  appleProductId        String
+  transactionId         String   @unique
+  originalTransactionId String?
+  purchaseDate          DateTime
+  environment           String
+  verificationPayload   String?  @db.Text
+  createdAt             DateTime @default(now())
+
+  student User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([courseId])
+  @@index([appleProductId])
 }
 
 model WebPushSubscription {

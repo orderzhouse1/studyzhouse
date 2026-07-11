@@ -8,14 +8,14 @@ Primary category: **Education**
 
 ## Pre-submission code gates (done in app)
 
-- [x] iOS is **free-courses-only** (paid courses hidden/blocked everywhere)
-- [x] iOS hides external payment flows (CliQ, proof upload, activation-code redeem UI)
-- [x] iOS hides purchases/redeem navigation entry points
-- [x] Paid enrollments from web/Android are **not visible or accessible** on iOS
+- [x] iOS is a **learning companion**: free catalog only; no paid marketplace
+- [x] Enrolled paid courses accessible in My Courses / learn (web/Android entitlements)
+- [x] iOS hides prices and all purchase / redeem / CliQ / proof flows
+- [x] Non-enrolled paid deep links show neutral unavailable state
 - [x] Free enrollment + free course learning work on iOS
 - [x] In-app account deletion in Settings (two-step, type «حذف»)
 - [x] Production API: `https://studyzhouse.com/api/v1` (HTTPS)
-- [ ] Apple In-App Purchase — **not implemented** (future phase; not required for first submission if paid courses show unavailable state only)
+- [x] Apple In-App Purchase — **disabled / not offered** in this build
 
 ---
 
@@ -33,7 +33,7 @@ Primary category: **Education**
 
 ### Paid courses (reviewer note)
 
-> On iOS, the app is **free-courses-only**. Paid courses are not listed, not enrolled, and not learnable on iOS — including entitlements from web/Android. No external payments. Apple IAP is planned for a future phase.
+> On iOS, the app is a learning companion for existing students. There is no purchase flow. Catalog shows free courses only. Students can access courses they already enrolled in (including entitlements from web/Android) via My Courses. Payments are not offered inside the iOS app.
 
 ---
 
@@ -72,9 +72,9 @@ Capture on iPhone 6.7" and 6.5" (required sizes per App Store Connect):
 2. **Course catalog** — browse courses
 3. **Course detail — free** — «التسجيل مجانًا»
 4. **Course detail — free** — enroll and learn
-5. **My Courses** — only free enrollments (paid hidden even if owned elsewhere)
-6. **Lesson player** — free course only
-7. **Direct paid slug / notification link** — neutral block, no lesson content
+5. **My Courses** — enrolled courses for learning (incl. enrolled paid entitlements)
+6. **Lesson player** — enrolled free or paid course
+7. **Direct paid slug (not enrolled)** — neutral block, no lesson content
 8. **Settings** — account deletion section
 
 ---
@@ -88,14 +88,14 @@ Create a dedicated reviewer account on production (or staging if review build po
 | Email | `appstore.review@studyhouse.app` |
 | Password | `[SET_SECURE_PASSWORD_BEFORE_SUBMISSION]` |
 
-Account should have at least one **free** course available for enrollment. Do not use paid-course access for iOS review.
+Account should have at least one **free** course available for enrollment. Optionally enroll the account in one paid course via admin/web so My Courses learning access can be demonstrated.
 
 ---
 
 ## App Review notes (paste into App Store Connect)
 
 ```
-STUDYZHOUSE — Student learning app (Arabic, RTL).
+STUDYZHOUSE — Student learning companion (Arabic, RTL).
 
 TEST ACCOUNT
 Email: appstore.review@studyhouse.app
@@ -103,17 +103,18 @@ Password: [SET_SECURE_PASSWORD_BEFORE_SUBMISSION]
 
 HOW TO TEST
 1. Log in with the test account.
-2. Browse courses from the Courses tab.
+2. Browse courses from the Courses tab — free courses only; no prices or buy buttons.
 3. Open a FREE course → tap «التسجيل مجانًا» → confirm enrollment.
 4. Open My Courses → open an enrolled course → tap «متابعة التعلّم» → start a lesson and mark progress.
-5. Open **My Courses** — paid courses from web/Android must not appear.
-6. Attempt a direct `/learn/{paid-slug}` link — blocked with neutral message, no video/content.
+5. If the test account has an enrolled paid course, open it from My Courses (learning only — not sold in-app).
+6. Attempt a `/learn/{paid-slug}` for a course the account does not own — blocked with neutral message, no video/content.
 7. Account deletion: Settings → «حذف الحساب والبيانات» → type «حذف».
 
 PAYMENTS (iOS)
-- iOS is free-courses-only. No paid catalog, no paid learning, no external payment, no activation codes.
+- iOS has no purchase flow: no Apple IAP, no CliQ, no activation codes, no payment proof.
+- iOS is for existing students to access enrolled learning/video content.
+- Catalog shows free courses only; enrolled paid courses appear in My Courses only.
 - Android/web retain CliQ and activation-code flows.
-- Paid in-app purchase via Apple IAP is planned for a future release; not included in this build.
 
 TECHNICAL
 - No special hardware required.

@@ -53,7 +53,8 @@ Priority:
 - No Google Sign-In on mobile  
 - No push notifications (in-app notifications only)  
 - No offline video downloads  
-- CliQ payments are **manual review** only (no in-app payment gateway)  
+- CliQ payments are **manual review** only (no in-app payment gateway) — **Android/web only**; iOS has no purchase flow  
+- iOS is a **learning companion**: free catalog + enrolled course viewing; no IAP/prices/buy UI  
 - No watch-time sync beyond mark-lesson-complete  
 - No admin / super-admin in mobile app  
 - Play upload requires local **`upload-keystore.jks`** + **`key.properties`** (see signing doc); without them, release builds use debug signing only  

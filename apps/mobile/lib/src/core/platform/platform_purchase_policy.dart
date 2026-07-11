@@ -8,7 +8,7 @@ abstract final class PlatformPurchasePolicy {
   /// When true, iOS must not surface CliQ, proof upload, or activation-code unlock.
   static const bool iosExternalPaymentsDisabled = true;
 
-  /// Flip to true once StoreKit / in_app_purchase is wired end-to-end.
+  /// Apple IAP / StoreKit is disabled — iOS is a learning companion only.
   static const bool iapEnabled = false;
 
   static bool get showExternalPaymentFlows =>
@@ -21,7 +21,7 @@ abstract final class PlatformPurchasePolicy {
   static const String iosBlockedFeatureTitle = "غير متاح حاليًا";
 
   static const String iosBlockedFeatureDescription =
-      "تطبيق iOS يعرض الكورسات المجانية فقط. استكشف الدورات المجانية من قائمة الدورات.";
+      "تطبيق iOS مخصّص للطلاب المسجّلين لمشاهدة محتوى التعلّم. لا يتوفّر شراء أو تفعيل كورسات داخل التطبيق.";
 
   /// Pending enrollment badge/filter — avoids «دفع» on iOS.
   static String get pendingEnrollmentStatusLabel =>

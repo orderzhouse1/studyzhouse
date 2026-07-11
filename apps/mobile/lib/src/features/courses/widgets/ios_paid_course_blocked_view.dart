@@ -19,7 +19,7 @@ class IosPaidCourseBlockedView extends StatelessWidget {
           const AccountPageHeader(
             title: IosCoursePolicy.paidCourseBlockedTitle,
             description:
-                "تطبيق iOS يعرض الكورسات المجانية فقط. يمكنك استكشاف الكورسات المجانية من قائمة الدورات.",
+                "تطبيق iOS مخصّص للطلاب المسجّلين لمشاهدة محتوى التعلّم. لا يتوفّر شراء أو تفعيل كورسات داخل التطبيق.",
           ),
           const SizedBox(height: 20),
           AppCard(

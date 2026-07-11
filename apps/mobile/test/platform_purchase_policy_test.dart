@@ -1,22 +1,26 @@
 import "package:flutter_test/flutter_test.dart";
 import "package:studyzhouse_mobile/src/core/platform/platform_purchase_policy.dart";
+import "package:studyzhouse_mobile/src/features/courses/models/course.dart";
 import "package:studyzhouse_mobile/src/features/purchases/purchase_course_service.dart";
+
+const _paidCourse = Course(
+  id: "c-paid",
+  title: "مدفوع",
+  slug: "paid-course",
+  pricingType: "PAID",
+  priceAmount: "10",
+  currency: "JOD",
+  level: "BEGINNER",
+);
 
 void main() {
   group("PlatformPurchasePolicy", () {
-    test("iapEnabled is false until StoreKit ships", () {
+    test("iapEnabled is false", () {
       expect(PlatformPurchasePolicy.iapEnabled, isFalse);
-    });
-
-    test("paid course ios label is purchase-neutral", () {
-      expect(
-        PlatformPurchasePolicy.paidCourseIosUnavailableLabel,
-        "هذا الكورس غير متاح داخل iOS حاليًا",
-      );
     });
   });
 
-  group("PurchaseCourseService on non-iOS test host", () {
+  group("PurchaseCourseService", () {
     const service = PurchaseCourseService();
 
     test("external payment available when not on gated iOS", () {
@@ -29,24 +33,23 @@ void main() {
 
     test("paid course label on Android-style host", () {
       if (!PlatformPurchasePolicy.isIOS) {
-        expect(service.paidCourseActionLabel(), "طلب تفعيل عبر CliQ");
-        expect(service.isPaidCourseActionEnabled, isTrue);
+        expect(
+          service.paidCourseActionLabel(course: _paidCourse),
+          "طلب تفعيل عبر CliQ",
+        );
+        expect(service.isPaidCourseActionEnabled(_paidCourse), isTrue);
       }
     });
 
-    test("paid course label on iOS host", () {
+    test("paid course unavailable on iOS host", () {
       if (PlatformPurchasePolicy.isIOS) {
         expect(
-          service.paidCourseActionLabel(),
+          service.paidCourseActionLabel(course: _paidCourse),
           PlatformPurchasePolicy.paidCourseIosUnavailableLabel,
         );
-        expect(service.isPaidCourseActionEnabled, isFalse);
-        expect(service.showPaidCoursePurchaseUnavailable, isTrue);
+        expect(service.isPaidCourseActionEnabled(_paidCourse), isFalse);
+        expect(service.canPurchaseInApp, isFalse);
       }
-    });
-
-    test("store product id not mapped yet", () {
-      expect(service.storeProductIdForCourse("course-1"), isNull);
     });
   });
 }

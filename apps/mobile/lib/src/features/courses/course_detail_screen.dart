@@ -64,10 +64,23 @@ class CourseDetailScreen extends ConsumerWidget {
             );
           },
           data: (course) {
-            if (!IosCoursePolicy.isCourseAllowedOnIOS(course: course)) {
-              return const IosPaidCourseBlockedView();
+            if (!IosCoursePolicy.isIOSPlatform) {
+              return _CourseDetailBody(course: course, slug: slug);
             }
-            return _CourseDetailBody(course: course, slug: slug);
+            if (course.isFree) {
+              return _CourseDetailBody(course: course, slug: slug);
+            }
+            final accessAsync = ref.watch(courseAccessProvider(slug));
+            return accessAsync.when(
+              loading: () => const LoadingView(message: "جاري التحميل…"),
+              error: (_, _) => const IosPaidCourseBlockedView(),
+              data: (access) {
+                if (access?.isEnrolled == true) {
+                  return _CourseDetailBody(course: course, slug: slug);
+                }
+                return const IosPaidCourseBlockedView();
+              },
+            );
           },
         ),
       ),
@@ -132,27 +145,6 @@ class _CourseDetailBodyState extends ConsumerState<_CourseDetailBody> {
     context.push("/redeem");
   }
 
-  Future<void> _purchaseWithIap() async {
-    try {
-      await _purchaseService.purchaseCourse(
-        courseId: course.id,
-        storeProductId: _purchaseService.storeProductIdForCourse(course.id),
-      );
-    } on UnimplementedError {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(PlatformPurchasePolicy.paidCourseIosUnavailableLabel),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final accessAsync = ref.watch(courseAccessProvider(slug));
@@ -178,7 +170,8 @@ class _CourseDetailBodyState extends ConsumerState<_CourseDetailBody> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            _Chip(label: course.priceLabel),
+            if (IosCoursePolicy.showPricesOnPlatform)
+              _Chip(label: course.priceLabel),
             _Chip(label: course.levelLabel),
             _Chip(label: "${course.lessonCount} درس"),
           ],
@@ -212,11 +205,9 @@ class _CourseDetailBodyState extends ConsumerState<_CourseDetailBody> {
           )
         else
           AppButton(
-            label: _purchaseService.paidCourseActionLabel(),
-            onPressed: _purchaseService.isPaidCourseActionEnabled
-                ? (_purchaseService.canPurchaseInApp
-                      ? () => _purchaseWithIap()
-                      : _openPurchases)
+            label: _purchaseService.paidCourseActionLabel(course: course),
+            onPressed: _purchaseService.isPaidCourseActionEnabled(course)
+                ? _openPurchases
                 : null,
           ),
         if (!course.isFree &&
@@ -332,6 +323,7 @@ class _CourseSaveIconButton extends ConsumerWidget {
     }
   }
 }
+
 class _Chip extends StatelessWidget {
   const _Chip({required this.label});
 
@@ -350,4 +342,3 @@ class _Chip extends StatelessWidget {
     );
   }
 }
-

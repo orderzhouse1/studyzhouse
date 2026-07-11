@@ -10,6 +10,9 @@ import {
 
 import { AppError } from "../lib/AppError.js";
 import { isIosAppClient } from "../lib/clientPlatform.js";
+import {
+  assertIosCourseDetailVisible,
+} from "../lib/iosCourseAccess.js";
 import { mapCoursePublic } from "../lib/courseMapper.js";
 import { prisma } from "../lib/prisma.js";
 import {
@@ -24,20 +27,10 @@ import {
 
 const DESCRIPTION_MAX = 8000;
 
-function publishedCourseScopeForClient(req: Request) {
+function publishedEnrollmentCourseScopeForClient(_req: Request) {
   return {
     status: CourseStatus.PUBLISHED,
-    ...(isIosAppClient(req) ? { pricingType: PricingType.FREE } : {}),
   };
-}
-
-function assertCourseAvailableOnIosClient(
-  req: Request,
-  pricingType: PricingType,
-): void {
-  if (isIosAppClient(req) && pricingType === PricingType.PAID) {
-    throw new AppError("NOT_FOUND", "الكورس غير موجود أو غير منشور.", 404);
-  }
 }
 
 function trimDescription(s: string | null): string | null {
@@ -76,7 +69,7 @@ export async function getStudentDashboard(
     where: {
       studentId,
       status: EnrollmentStatus.ACTIVE,
-      course: publishedCourseScopeForClient(req),
+      course: publishedEnrollmentCourseScopeForClient(req),
     },
     include: {
       course: {
@@ -188,7 +181,7 @@ export async function getStudentMyCourses(
       where: {
         studentId,
         status: EnrollmentStatus.ACTIVE,
-        course: publishedCourseScopeForClient(req),
+        course: publishedEnrollmentCourseScopeForClient(req),
       },
       include: {
         course: { include: { category: true } },
@@ -345,10 +338,6 @@ export async function getStudentCourseLearn(
   });
 
   if (!course) {
-    throw new AppError("NOT_FOUND", "الكورس غير موجود أو غير منشور.", 404);
-  }
-
-  if (isIosAppClient(req) && course.pricingType === PricingType.PAID) {
     throw new AppError("NOT_FOUND", "الكورس غير موجود أو غير منشور.", 404);
   }
 
@@ -554,8 +543,6 @@ export async function postStudentLessonProgress(
     throw new AppError("NOT_FOUND", "الدرس غير متاح.", 404);
   }
 
-  assertCourseAvailableOnIosClient(req, lesson.course.pricingType);
-
   const { enrollment } = await assertStudentEnrollmentForPublishedCourse(
     studentId,
     lesson.courseId,
@@ -647,8 +634,6 @@ export async function postStudentLessonComplete(
     throw new AppError("NOT_FOUND", "الدرس غير متاح.", 404);
   }
 
-  assertCourseAvailableOnIosClient(req, lesson.course.pricingType);
-
   const { enrollment } = await assertStudentEnrollmentForPublishedCourse(
     studentId,
     lesson.courseId,
@@ -728,14 +713,16 @@ export async function getStudentCourseAccess(
 
   const course = await prisma.course.findFirst({
     where: { slug: courseSlug, status: CourseStatus.PUBLISHED },
-    select: { id: true, slug: true, pricingType: true },
+    select: {
+      id: true,
+      slug: true,
+      pricingType: true,
+      iosPurchasable: true,
+      appleProductId: true,
+    },
   });
 
   if (!course) {
-    throw new AppError("COURSE_NOT_FOUND", "الكورس غير متاح أو غير منشور.", 404);
-  }
-
-  if (isIosAppClient(req) && course.pricingType === PricingType.PAID) {
     throw new AppError("COURSE_NOT_FOUND", "الكورس غير متاح أو غير منشور.", 404);
   }
 
@@ -746,17 +733,20 @@ export async function getStudentCourseAccess(
     select: { id: true, status: true, progressPercent: true },
   });
 
-  const pendingPaymentRequest = await prisma.paymentRequest.findFirst({
-    where: {
-      studentId,
-      courseId: course.id,
-      status: PaymentRequestStatus.PENDING,
-    },
-    select: { id: true, status: true },
-    orderBy: { createdAt: "desc" },
-  });
-
   const isEnrolled = enrollment?.status === EnrollmentStatus.ACTIVE;
+  assertIosCourseDetailVisible(req, course, isEnrolled);
+
+  const pendingPaymentRequest = isIosAppClient(req)
+    ? null
+    : await prisma.paymentRequest.findFirst({
+        where: {
+          studentId,
+          courseId: course.id,
+          status: PaymentRequestStatus.PENDING,
+        },
+        select: { id: true, status: true },
+        orderBy: { createdAt: "desc" },
+      });
 
   res.status(200).json({
     success: true,
@@ -768,6 +758,8 @@ export async function getStudentCourseAccess(
       pendingPaymentRequest,
       canEnrollFree:
         course.pricingType === PricingType.FREE && !isEnrolled,
+      appleProductId: course.appleProductId,
+      iosPurchasable: course.iosPurchasable,
     },
   });
 }

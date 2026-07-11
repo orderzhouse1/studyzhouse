@@ -67,6 +67,8 @@ export const courseCreateBodySchema = z
     level: courseLevelSchema.default("ALL_LEVELS"),
     estimatedDurationMinutes: z.coerce.number().int().min(0).max(100000).optional(),
     status: courseStatusSchema.default("DRAFT"),
+    appleProductId: z.string().trim().min(1).nullable().optional(),
+    iosPurchasable: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.pricingType === "PAID") {
@@ -108,6 +110,8 @@ export const courseUpdateBodySchema = z.object({
     .nullable()
     .optional(),
   status: courseStatusSchema.optional(),
+  appleProductId: z.string().trim().min(1).nullable().optional(),
+  iosPurchasable: z.boolean().optional(),
 });
 
 export type CourseUpdateBody = z.infer<typeof courseUpdateBodySchema>;

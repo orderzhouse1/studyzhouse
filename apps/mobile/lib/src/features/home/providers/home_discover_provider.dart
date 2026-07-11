@@ -1,7 +1,6 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../core/network/pagination_meta.dart";
-import "../../../core/platform/ios_course_policy.dart";
 import "../../courses/models/category.dart";
 import "../../courses/models/course.dart";
 import "../../courses/repositories/course_repository.dart";
@@ -38,9 +37,7 @@ final homeDiscoverProvider = FutureProvider.autoDispose<HomeDiscoverCatalog>((
 
   return HomeDiscoverCatalog(
     categories: results[0] as List<Category>,
-    courses: IosCoursePolicy.filterCoursesForPlatform(
-      (results[1] as PaginatedResult<Course>).items,
-    ),
+    courses: (results[1] as PaginatedResult<Course>).items,
     interests: interests,
   );
 });
