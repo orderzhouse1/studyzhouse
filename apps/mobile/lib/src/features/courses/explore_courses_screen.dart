@@ -92,7 +92,7 @@ class _ExploreCoursesScreenState extends ConsumerState<ExploreCoursesScreen> {
       setState(() {
         _categories = results[0] as List<Category>;
         final page = results[1] as PaginatedResult<Course>;
-        _courses = IosCoursePolicy.filterCoursesForPlatform(page.items);
+        _courses = page.items;
         _hasMore = page.meta.hasMore;
         _loading = false;
       });
@@ -128,10 +128,7 @@ class _ExploreCoursesScreenState extends ConsumerState<ExploreCoursesScreen> {
       if (!mounted) return;
       setState(() {
         _page = nextPage;
-        _courses = [
-          ..._courses,
-          ...IosCoursePolicy.filterCoursesForPlatform(page.items),
-        ];
+        _courses = [..._courses, ...page.items];
         _hasMore = page.meta.hasMore;
         _loadingMore = false;
       });

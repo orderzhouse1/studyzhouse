@@ -62,16 +62,6 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
             lessonId: lessonId ?? _selectedLessonId,
           );
       if (!mounted) return;
-      if (!IosCoursePolicy.isCourseAllowedOnIOS(
-        pricingType: data.course.pricingType,
-      )) {
-        setState(() {
-          _blockedOnIos = true;
-          _payload = null;
-          _loading = false;
-        });
-        return;
-      }
       setState(() {
         _payload = data;
         _selectedLessonId = data.currentLesson.id;

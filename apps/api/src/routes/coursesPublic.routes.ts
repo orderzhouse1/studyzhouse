@@ -3,6 +3,7 @@ import { Router } from "express";
 import * as courseController from "../controllers/course.controller.js";
 import * as courseReviewController from "../controllers/courseReview.controller.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
+import { optionalAuth } from "../middlewares/optionalAuth.js";
 import { validateParams, validateQuery } from "../validators/validate.js";
 import {
   courseSlugParamsSchema,
@@ -27,6 +28,7 @@ coursesPublicRouter.get(
 
 coursesPublicRouter.get(
   "/:slug",
+  optionalAuth,
   validateParams(courseSlugParamsSchema),
   asyncHandler(courseController.getCourseBySlugPublic),
 );

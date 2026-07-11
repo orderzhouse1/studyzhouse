@@ -38,7 +38,7 @@ void main() {
     }
   });
 
-  test("filterMyCourseItemsForPlatform excludes paid enrollments on iOS host", () {
+  test("filterMyCourseItemsForPlatform keeps enrolled paid on iOS host", () {
     final items = [
       MyCourseItem(
         kind: "enrolled",
@@ -56,11 +56,6 @@ void main() {
       ),
     ];
     final filtered = IosCoursePolicy.filterMyCourseItemsForPlatform(items);
-    if (IosCoursePolicy.isIOSPlatform) {
-      expect(filtered.length, 1);
-      expect(filtered.first.course.isFree, isTrue);
-    } else {
-      expect(filtered.length, 2);
-    }
+    expect(filtered.length, 2);
   });
 }

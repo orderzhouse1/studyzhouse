@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../../core/network/api_exception.dart";
+import "../../../core/platform/ios_course_policy.dart";
 import "../../../core/theme/app_colors.dart";
 import "../../../core/widgets/app_card.dart";
 import "../../../core/widgets/course_thumbnail.dart";
@@ -36,11 +37,12 @@ class CourseListCard extends ConsumerWidget {
           Stack(
             children: [
               CourseThumbnail(thumbnailUrl: course.thumbnailUrl),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: _PricingChip(label: course.priceLabel),
-              ),
+              if (IosCoursePolicy.showPricesOnPlatform)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: _PricingChip(label: course.priceLabel),
+                ),
               if (showSaveButton)
                 Positioned(
                   top: 4,

@@ -1,53 +1,38 @@
 import "../../core/platform/platform_purchase_policy.dart";
+import "../courses/models/course.dart";
 
 /// Abstraction for unlocking paid courses per platform.
 ///
 /// Android/web: external CliQ payment requests and activation codes.
-/// iOS (future): Apple In-App Purchase via StoreKit product IDs.
+/// iOS: no purchase — learning companion for enrolled / free courses only.
 class PurchaseCourseService {
   const PurchaseCourseService();
 
   bool get canUseExternalPayment => PlatformPurchasePolicy.showExternalPaymentFlows;
 
-  bool get canPurchaseInApp =>
-      PlatformPurchasePolicy.isIOS && PlatformPurchasePolicy.iapEnabled;
+  bool get canPurchaseInApp => false;
 
   bool get showPaidCoursePurchaseUnavailable =>
       PlatformPurchasePolicy.isIOS &&
-      PlatformPurchasePolicy.iosExternalPaymentsDisabled &&
-      !PlatformPurchasePolicy.iapEnabled;
+      PlatformPurchasePolicy.iosExternalPaymentsDisabled;
 
-  /// Primary CTA label on course detail when the course is paid and not enrolled.
-  String paidCourseActionLabel() {
-    if (canPurchaseInApp) {
-      return "شراء الكورس";
-    }
+  String paidCourseActionLabel({Course? course}) {
     if (showPaidCoursePurchaseUnavailable) {
       return PlatformPurchasePolicy.paidCourseIosUnavailableLabel;
     }
     return "طلب تفعيل عبر CliQ";
   }
 
-  bool get isPaidCourseActionEnabled => canUseExternalPayment || canPurchaseInApp;
-
-  /// StoreKit product identifier for [courseId], once configured server-side.
-  String? storeProductIdForCourse(String courseId) {
-    // TODO(iap): Map course IDs to App Store product IDs from API or local config.
-    return null;
+  bool isPaidCourseActionEnabled(Course course) {
+    if (canUseExternalPayment) return true;
+    return false;
   }
 
-  /// Initiates purchase for a paid course.
+  String? storeProductIdForCourse(Course course) => null;
+
   Future<void> purchaseCourse({
-    required String courseId,
-    String? storeProductId,
+    required Course course,
   }) async {
-    if (canPurchaseInApp) {
-      // TODO(iap): Integrate in_app_purchase / StoreKit:
-      // 1. Load products via storeProductIdForCourse(courseId)
-      // 2. Present payment sheet
-      // 3. Verify receipt server-side and refresh enrollment
-      throw UnimplementedError("Apple In-App Purchase is not implemented yet.");
-    }
     if (canUseExternalPayment) {
       // Navigation to /purchases is handled by the UI layer on Android.
       return;

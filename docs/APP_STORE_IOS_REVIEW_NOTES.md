@@ -2,34 +2,38 @@
 
 Use this text in **App Review Information → Notes**.
 
-## iOS is a free-courses-only app
+## iOS is a learning companion (no in-app purchases)
 
-The iOS app is **limited to free digital courses only** to comply with App Store Guideline 3.1.1.
+The iOS app is a **reader / course viewer for existing students**, similar to apps that let users access content they already own.
 
-- **No paid courses** appear in catalog, search, home, My Courses, saved courses, or course detail.
-- **No access to paid lesson content** on iOS — even if the student enrolled on web or Android.
-- **No external payment** flows: no CliQ, payment proof upload, activation-code unlock, or purchase CTAs.
-- **No Apple In-App Purchase** in this build (planned for a future phase).
+- **No purchase flow** inside the iOS app (no Apple IAP, no Stripe, no CliQ, no payment proof, no activation/redeem codes, no “buy on website” CTAs).
+- **No prices** are shown on iOS.
+- **Catalog / Explore / Home discover** list **free courses only**.
+- **Enrolled paid courses** (purchased or activated on web/Android) appear in **My Courses** and **Continue Learning** so students can watch lessons — they are **not** offered as purchasable marketplace items.
+- Direct links to paid courses the user is **not** enrolled in show a neutral “غير متاح” message with no lesson content.
 
 ## What reviewers can test
 
 1. Log in with the test account.
-2. Browse **Courses** — only free courses are listed.
+2. Browse **Courses** — only free courses are listed; no prices or buy buttons.
 3. Enroll in a **free** course and open lessons.
-4. Open **My Courses** — only free enrollments appear.
-5. Attempt a direct link to a paid course slug (if provided) — neutral “غير متاح” message, no lesson content.
+4. Open **My Courses** — enrolled courses (including any enrolled paid entitlements on the test account) open for learning.
+5. Attempt a direct link to a paid course the account does **not** own — neutral unavailable message.
 6. **Settings → حذف الحساب والبيانات** — account deactivation with confirmation.
 
 ## Test account
 
-Provide a reviewer account with at least one **free** course available for enrollment.
+Provide a reviewer account with:
 
-Do **not** rely on paid-course entitlements for iOS review — they are intentionally hidden and blocked.
+- At least one **free** course available for enrollment.
+- Optionally one **already enrolled** paid course (entitlement created on web/admin) to demonstrate My Courses learning access.
+
+Payments and new paid enrollments are **not** offered inside the iOS app.
 
 ## Technical
 
 - Client sends `X-Client-Platform: ios` on API requests.
-- API filters paid courses and denies paid learn/access endpoints for iOS clients.
+- API returns free courses only in public catalog for iOS; enrolled paid courses remain available via My Courses / learn / access.
 - Backend: `https://studyzhouse.com/api/v1`
 - Account deletion: `https://studyzhouse.com/account-deletion`
 

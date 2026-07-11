@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../../core/network/api_exception.dart";
+import "../../../core/platform/ios_course_policy.dart";
 import "../../../core/theme/app_colors.dart";
 import "../../../core/widgets/app_card.dart";
 import "../../../core/widgets/course_thumbnail.dart";
@@ -154,15 +155,17 @@ class CourseCatalogCard extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    const Spacer(),
-                    Text(
-                      course.priceLabel,
-                      style: const TextStyle(
-                        color: AppColors.navy,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                    if (IosCoursePolicy.showPricesOnPlatform) ...[
+                      const Spacer(),
+                      Text(
+                        course.priceLabel,
+                        style: const TextStyle(
+                          color: AppColors.navy,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ],

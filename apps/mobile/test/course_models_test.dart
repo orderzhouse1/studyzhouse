@@ -5,7 +5,22 @@ import "package:studyzhouse_mobile/src/features/courses/models/saved_course.dart
 import "package:studyzhouse_mobile/src/features/courses/models/student_dashboard.dart";
 
 void main() {
-  test("Course.fromJson parses list item", () {
+    test("Course.fromJson parses IAP fields", () {
+      final c = Course.fromJson({
+        "id": "c1",
+        "title": "IAP",
+        "slug": "iap",
+        "pricingType": "PAID",
+        "currency": "JOD",
+        "level": "BEGINNER",
+        "appleProductId": "com.studyzhouse.app.course.test1",
+        "iosPurchasable": true,
+      });
+      expect(c.isIosIapPurchasable, isTrue);
+      expect(c.appleProductId, "com.studyzhouse.app.course.test1");
+    });
+
+    test("Course.fromJson parses list item", () {
     final c = Course.fromJson({
       "id": "c1",
       "title": "كورس",

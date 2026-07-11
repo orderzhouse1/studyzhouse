@@ -6,6 +6,7 @@ export const studentPurchaseSourceSchema = z.enum([
   "MANUAL_ADMIN",
   "FREE",
   "MANUAL",
+  "APPLE_IAP",
   "UNKNOWN",
 ]);
 

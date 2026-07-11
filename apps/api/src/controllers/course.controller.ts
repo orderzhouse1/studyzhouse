@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import type { Course } from "@prisma/client";
 import {
   CourseStatus,
+  EnrollmentStatus,
   LessonStatus,
   Prisma,
   PricingType,
@@ -9,6 +10,11 @@ import {
 } from "@prisma/client";
 
 import { AppError } from "../lib/AppError.js";
+import {
+  assertIosCourseCatalogVisible,
+  assertIosCourseDetailVisible,
+  iosPublishedCourseListWhere,
+} from "../lib/iosCourseAccess.js";
 import { isIosAppClient } from "../lib/clientPlatform.js";
 import { assertCanManageCourse } from "../lib/courseAccess.js";
 import {
@@ -148,6 +154,11 @@ export async function listCoursesPublic(
   }
 
   if (isIosAppClient(req)) {
+    where.AND = [
+      ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+      iosPublishedCourseListWhere(),
+    ];
+    // Marketplace catalog on iOS is free-only (learning companion).
     where.pricingType = PricingType.FREE;
   }
 
@@ -232,7 +243,20 @@ export async function getCourseBySlugPublic(
   }
 
   if (isIosAppClient(req) && course.pricingType === PricingType.PAID) {
-    throw new AppError("NOT_FOUND", "الكورس غير موجود.", 404);
+    let isEnrolled = false;
+    const userId = req.auth?.userId;
+    if (userId) {
+      const enrollment = await prisma.enrollment.findUnique({
+        where: {
+          studentId_courseId: { studentId: userId, courseId: course.id },
+        },
+        select: { status: true },
+      });
+      isEnrolled = enrollment?.status === EnrollmentStatus.ACTIVE;
+    }
+    assertIosCourseDetailVisible(req, course, isEnrolled);
+  } else {
+    assertIosCourseCatalogVisible(req, course);
   }
 
   const { _count, ...rest } = course;
@@ -342,6 +366,8 @@ export async function createCourseAdmin(req: Request, res: Response): Promise<vo
       status: body.status,
       categoryId: body.categoryId ?? null,
       createdById: auth.userId,
+      appleProductId: body.appleProductId ?? null,
+      iosPurchasable: body.iosPurchasable ?? false,
       publishedAt:
         body.status === CourseStatus.PUBLISHED ? new Date() : null,
     },
@@ -492,6 +518,10 @@ export async function updateCourseAdmin(req: Request, res: Response): Promise<vo
       status: body.status ?? undefined,
       categoryId:
         body.categoryId === undefined ? undefined : body.categoryId,
+      appleProductId:
+        body.appleProductId === undefined ? undefined : body.appleProductId,
+      iosPurchasable:
+        body.iosPurchasable === undefined ? undefined : body.iosPurchasable,
       publishedAt,
     },
     include: { category: true },
