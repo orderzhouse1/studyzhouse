@@ -2,41 +2,45 @@
 
 Use this text in **App Review Information → Notes**.
 
-## iOS is a learning companion (no in-app purchases)
+## iOS is a learning companion / reader-style app
 
-The iOS app is a **reader / course viewer for existing students**, similar to apps that let users access content they already own.
+The iOS app is a **learning companion for existing students**. It lets signed-in students continue learning from courses **already available in their account**.
 
-- **No purchase flow** inside the iOS app (no Apple IAP, no Stripe, no CliQ, no payment proof, no activation/redeem codes, no “buy on website” CTAs).
+- **Not a course marketplace** — there is no Explore / Courses catalog on iOS.
+- **No purchase flow** inside the iOS app (no Apple IAP, no Stripe, no CliQ, no payment proof, no activation/redeem codes, no “buy on website” CTAs or external purchase links).
 - **No prices** are shown on iOS.
-- **Catalog / Explore / Home discover** list **free courses only**.
-- **Enrolled paid courses** (purchased or activated on web/Android) appear in **My Courses** and **Continue Learning** so students can watch lessons — they are **not** offered as purchasable marketplace items.
-- Direct links to paid courses the user is **not** enrolled in show a neutral “غير متاح” message with no lesson content.
+- After login, students land on **My Courses / Continue Learning**.
+- **Only enrolled courses** appear (including paid courses purchased on web/Android, and free courses already in the account).
+- Direct links to courses the user is **not** enrolled in show a neutral “غير متاح” message with no lesson content and no purchase options.
 
 ## What reviewers can test
 
 1. Log in with the test account.
-2. Browse **Courses** — only free courses are listed; no prices or buy buttons.
-3. Enroll in a **free** course and open lessons.
-4. Open **My Courses** — enrolled courses (including any enrolled paid entitlements on the test account) open for learning.
-5. Attempt a direct link to a paid course the account does **not** own — neutral unavailable message.
-6. **Settings → حذف الحساب والبيانات** — account deactivation with confirmation.
+2. Confirm bottom navigation has **Home / My Courses / Profile** only — no Explore / Courses catalog tab.
+3. Open **My Courses** — enrolled courses open for learning; lessons track progress.
+4. Confirm Home is learning-focused (Continue Learning, My Courses, progress) with no marketplace sections or prices.
+5. Attempt a direct link to a paid course the account does **not** own — neutral unavailable message, no buy/pay CTAs.
+6. Confirm empty My Courses (if applicable) shows only: «لا توجد كورسات في حسابك حاليًا.» with no purchase link.
+7. **Settings → حذف الحساب والبيانات** — account deactivation with confirmation.
 
 ## Test account
 
 Provide a reviewer account with:
 
-- At least one **free** course available for enrollment.
-- Optionally one **already enrolled** paid course (entitlement created on web/admin) to demonstrate My Courses learning access.
+- At least one **already enrolled** course (free and/or paid entitlement created on web/admin) so lessons can be opened and progress tracked.
 
-Payments and new paid enrollments are **not** offered inside the iOS app.
+New paid enrollments and marketplace browsing are **not** offered inside the iOS app.
 
 ## Technical
 
 - Client sends `X-Client-Platform: ios` on API requests.
-- API returns free courses only in public catalog for iOS; enrolled paid courses remain available via My Courses / learn / access.
+- Public `/courses` catalog for iOS does not return paid marketplace items (free-only or empty).
+- `/student/my-courses` returns enrolled courses, including paid entitlements from web/Android.
+- `/student/courses/:slug/learn` requires enrollment.
+- Non-enrolled course detail/access is blocked for iOS clients.
 - Backend: `https://studyzhouse.com/api/v1`
 - Account deletion: `https://studyzhouse.com/account-deletion`
 
 ## Android / web
 
-Paid course purchase (CliQ, activation codes) remains on **Android** and **web** only.
+Paid course purchase (CliQ, activation codes, payment proof, catalog with prices) remains on **Android** and **web** only.

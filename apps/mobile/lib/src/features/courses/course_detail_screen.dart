@@ -67,9 +67,7 @@ class CourseDetailScreen extends ConsumerWidget {
             if (!IosCoursePolicy.isIOSPlatform) {
               return _CourseDetailBody(course: course, slug: slug);
             }
-            if (course.isFree) {
-              return _CourseDetailBody(course: course, slug: slug);
-            }
+            // iOS reader: enrolled courses only (free or paid).
             final accessAsync = ref.watch(courseAccessProvider(slug));
             return accessAsync.when(
               loading: () => const LoadingView(message: "جاري التحميل…"),
@@ -197,13 +195,14 @@ class _CourseDetailBodyState extends ConsumerState<_CourseDetailBody> {
             label: "متابعة التعلّم",
             onPressed: () => context.push("/learn/$slug"),
           )
-        else if (course.isFree)
+        else if (course.isFree && IosCoursePolicy.showExploreCatalog)
           AppButton(
             label: "التسجيل مجانًا",
             isLoading: _enrolling,
             onPressed: _enrolling ? null : _enrollFree,
           )
-        else
+        else if (!course.isFree &&
+            PlatformPurchasePolicy.showExternalPaymentFlows)
           AppButton(
             label: _purchaseService.paidCourseActionLabel(course: course),
             onPressed: _purchaseService.isPaidCourseActionEnabled(course)

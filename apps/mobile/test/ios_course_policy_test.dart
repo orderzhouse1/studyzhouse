@@ -28,13 +28,17 @@ void main() {
     expect(IosCoursePolicy.isPaidCourse(_freeCourse), isFalse);
   });
 
-  test("filterCoursesForPlatform keeps only free on iOS host", () {
+  test("catalog is empty on iOS host (no marketplace)", () {
     final input = [_freeCourse, _paidCourse];
-    final filtered = IosCoursePolicy.filterCoursesForPlatform(input);
+    final filtered = IosCoursePolicy.filterCoursesForCatalog(input);
     if (IosCoursePolicy.isIOSPlatform) {
-      expect(filtered, [_freeCourse]);
+      expect(filtered, isEmpty);
+      expect(IosCoursePolicy.showExploreCatalog, isFalse);
+      expect(IosCoursePolicy.postLoginLocation, "/my-courses");
     } else {
       expect(filtered, input);
+      expect(IosCoursePolicy.showExploreCatalog, isTrue);
+      expect(IosCoursePolicy.postLoginLocation, "/home");
     }
   });
 
@@ -54,8 +58,73 @@ void main() {
         totalLessons: 1,
         course: _freeCourse,
       ),
+      MyCourseItem(
+        kind: "pending_payment",
+        paymentRequestId: "pr-1",
+        progressPercent: 0,
+        completedLessons: 0,
+        totalLessons: 1,
+        course: _paidCourse,
+      ),
     ];
     final filtered = IosCoursePolicy.filterMyCourseItemsForPlatform(items);
-    expect(filtered.length, 2);
+    if (IosCoursePolicy.isIOSPlatform) {
+      expect(filtered.length, 2);
+      expect(filtered.every((i) => i.isEnrolled), isTrue);
+    } else {
+      expect(filtered.length, 3);
+    }
+  });
+
+  test("non-enrolled paid course detail is blocked on iOS host", () {
+    expect(
+      IosCoursePolicy.isCourseDetailAllowedOnIOS(
+        course: _paidCourse,
+        isEnrolled: true,
+      ),
+      isTrue,
+    );
+    if (IosCoursePolicy.isIOSPlatform) {
+      expect(
+        IosCoursePolicy.isCourseDetailAllowedOnIOS(
+          course: _paidCourse,
+          isEnrolled: false,
+        ),
+        isFalse,
+      );
+      expect(
+        IosCoursePolicy.isCourseDetailAllowedOnIOS(
+          course: _freeCourse,
+          isEnrolled: false,
+        ),
+        isFalse,
+      );
+    }
+  });
+
+  test("prices and purchase UI hidden on iOS host", () {
+    if (IosCoursePolicy.isIOSPlatform) {
+      expect(IosCoursePolicy.showPricesOnPlatform, isFalse);
+      expect(IosCoursePolicy.showPurchaseOrPaymentUi, isFalse);
+    } else {
+      expect(IosCoursePolicy.showPricesOnPlatform, isTrue);
+      expect(IosCoursePolicy.showPurchaseOrPaymentUi, isTrue);
+    }
+  });
+
+  test("empty My Courses copy has no purchase CTA", () {
+    expect(IosCoursePolicy.emptyMyCoursesTitle, "لا توجد كورسات في حسابك حاليًا.");
+    expect(IosCoursePolicy.emptyMyCoursesTitle.contains("شراء"), isFalse);
+    expect(IosCoursePolicy.emptyMyCoursesDescription.contains("شراء"), isFalse);
+    expect(IosCoursePolicy.emptyMyCoursesDescription.contains("اشتر"), isFalse);
+  });
+
+  test("iOS nav index skips Explore/Courses branch", () {
+    if (!IosCoursePolicy.isIOSPlatform) return;
+    expect(IosCoursePolicy.shellBranchForNavIndex(0), 0);
+    expect(IosCoursePolicy.shellBranchForNavIndex(1), 1);
+    expect(IosCoursePolicy.shellBranchForNavIndex(2), 3);
+    expect(IosCoursePolicy.navIndexForShellBranch(3), 2);
+    expect(IosCoursePolicy.navIndexForShellBranch(2), 1);
   });
 }

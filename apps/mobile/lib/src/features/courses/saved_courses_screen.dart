@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../core/network/api_exception.dart";
+import "../../core/platform/ios_course_policy.dart";
 import "../../core/utils/friendly_error_message.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/widgets/app_button.dart";
@@ -47,22 +48,28 @@ class SavedCoursesScreen extends ConsumerWidget {
           ),
           data: (data) {
             if (data.items.isEmpty) {
+              final isIos = IosCoursePolicy.isIOSPlatform;
               return Column(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: EmptyState(
-                      title: "لا توجد كورسات محفوظة",
-                      subtitle: "احفظ الكورسات من صفحة الاستكشاف.",
+                      title: isIos
+                          ? IosCoursePolicy.emptyMyCoursesTitle
+                          : "لا توجد كورسات محفوظة",
+                      subtitle: isIos
+                          ? IosCoursePolicy.emptyMyCoursesDescription
+                          : "احفظ الكورسات من صفحة الاستكشاف.",
                       icon: Icons.bookmark_border_rounded,
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: AppButton(
-                      label: "استكشف الكورسات",
-                      onPressed: () => context.go("/courses"),
+                  if (!isIos)
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: AppButton(
+                        label: "استكشف الكورسات",
+                        onPressed: () => context.go("/courses"),
+                      ),
                     ),
-                  ),
                 ],
               );
             }

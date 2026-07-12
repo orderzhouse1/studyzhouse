@@ -308,6 +308,9 @@ class _ContinueSection extends StatelessWidget {
         continueLearning: dashboard.continueLearning!,
       );
     }
+    if (!PlatformPurchasePolicy.showExternalPaymentFlows) {
+      return _ContinueEmptyCard(onExplore: () => context.go("/my-courses"));
+    }
     return _ContinueEmptyCard(onExplore: () => context.go("/courses"));
   }
 }
@@ -403,6 +406,7 @@ class _ContinueEmptyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isIos = !PlatformPurchasePolicy.showExternalPaymentFlows;
     return Material(
       color: AppColors.glassFill,
       borderRadius: BorderRadius.circular(14),
@@ -415,25 +419,31 @@ class _ContinueEmptyCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: AppColors.glassBorder),
           ),
-          child: const Row(
+          child: Row(
             children: [
-              Icon(Icons.explore_outlined, color: AppColors.orange, size: 28),
-              SizedBox(width: 10),
+              Icon(
+                isIos ? Icons.school_outlined : Icons.explore_outlined,
+                color: AppColors.orange,
+                size: 28,
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "ابدأ أول كورس",
-                      style: TextStyle(
+                      isIos ? "كورساتك" : "ابدأ أول كورس",
+                      style: const TextStyle(
                         color: AppColors.textOnDark,
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
-                      "استكشف الكورسات وابدأ التعلّم",
-                      style: TextStyle(
+                      isIos
+                          ? "افتح دوراتي لمتابعة المحتوى المتاح في حسابك"
+                          : "استكشف الكورسات وابدأ التعلّم",
+                      style: const TextStyle(
                         color: AppColors.textOnDarkMuted,
                         fontSize: 11,
                       ),
@@ -441,7 +451,7 @@ class _ContinueEmptyCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_left, color: AppColors.textOnDarkMuted),
+              const Icon(Icons.chevron_left, color: AppColors.textOnDarkMuted),
             ],
           ),
         ),

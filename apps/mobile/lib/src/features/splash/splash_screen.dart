@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../core/auth/current_user_provider.dart";
+import "../../core/platform/ios_course_policy.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/widgets/brand_loading_indicator.dart";
 import "../../core/widgets/error_state.dart";
@@ -38,7 +39,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     switch (result) {
       case SessionValid(:final user):
         ref.read(currentUserProvider.notifier).state = user;
-        context.go("/home");
+        context.go(IosCoursePolicy.postLoginLocation);
       case SessionNoToken():
         context.go("/login");
       case SessionNotStudent():

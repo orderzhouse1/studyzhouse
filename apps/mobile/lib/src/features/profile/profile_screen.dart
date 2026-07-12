@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../core/auth/current_user_provider.dart";
+import "../../core/platform/ios_course_policy.dart";
 import "../../core/platform/platform_purchase_policy.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/widgets/app_button.dart";
@@ -37,11 +38,12 @@ class ProfileScreen extends ConsumerWidget {
             label: "دوراتي",
             onTap: () => context.go("/my-courses"),
           ),
-          _ProfileMenuTile(
-            icon: Icons.menu_book_outlined,
-            label: "استكشف الدورات",
-            onTap: () => context.go("/courses"),
-          ),
+          if (IosCoursePolicy.showExploreCatalog)
+            _ProfileMenuTile(
+              icon: Icons.menu_book_outlined,
+              label: "استكشف الدورات",
+              onTap: () => context.go("/courses"),
+            ),
           _ProfileMenuTile(
             icon: Icons.bookmark_outline,
             label: "المحفوظات",

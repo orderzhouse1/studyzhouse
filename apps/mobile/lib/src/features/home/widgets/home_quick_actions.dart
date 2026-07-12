@@ -57,8 +57,24 @@ class HomeQuickActionsGrid extends StatelessWidget {
     if (PlatformPurchasePolicy.showExternalPaymentFlows) {
       return _allActions;
     }
-    const hidden = {"/redeem", "/purchases"};
-    return _allActions.where((a) => !hidden.contains(a.route)).toList();
+    // iOS reader: Continue Learning / My Courses / Settings / Help only.
+    return const [
+      HomeQuickAction(
+        icon: Icons.school_outlined,
+        label: "كورساتي",
+        route: "/my-courses",
+      ),
+      HomeQuickAction(
+        icon: Icons.settings_outlined,
+        label: "الإعدادات",
+        route: "/settings",
+      ),
+      HomeQuickAction(
+        icon: Icons.help_outline,
+        label: "مساعدة",
+        route: "/help",
+      ),
+    ];
   }
 
   @override
