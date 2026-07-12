@@ -24,10 +24,13 @@ final myCoursesTabDataProvider = FutureProvider.autoDispose<MyCoursesTabData>((
   final studentRepo = ref.read(studentCoursesRepositoryProvider);
   final dashboard = await studentRepo.getDashboard();
   final myCourses = await studentRepo.getMyCourses();
+  final items = IosCoursePolicy.filterMyCourseItemsForPlatform(myCourses.items);
   return MyCoursesTabData(
     dashboard: dashboard,
-    myCourses: myCourses.items,
-    pendingPayments: myCourses.pendingPaymentsCount,
+    myCourses: items,
+    pendingPayments: IosCoursePolicy.isIOSPlatform
+        ? 0
+        : myCourses.pendingPaymentsCount,
   );
 });
 
@@ -131,22 +134,25 @@ class _MyCoursesTabScreenState extends ConsumerState<MyCoursesTabScreen> {
                       child: MyCourseCard(item: item),
                     ),
                   ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.go("/courses"),
-                    icon: const Icon(Icons.explore_outlined),
-                    label: const Text("استكشف دورات جديدة"),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.navy,
-                      minimumSize: const Size.fromHeight(48),
-                      side: const BorderSide(color: AppColors.border),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                if (IosCoursePolicy.showExploreCatalog)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                    child: OutlinedButton.icon(
+                      onPressed: () => context.go("/courses"),
+                      icon: const Icon(Icons.explore_outlined),
+                      label: const Text("استكشف دورات جديدة"),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.navy,
+                        minimumSize: const Size.fromHeight(48),
+                        side: const BorderSide(color: AppColors.border),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                  )
+                else
+                  const SizedBox(height: 28),
               ],
             ),
           );
@@ -206,6 +212,7 @@ class _MyCoursesEmptyBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isIos = IosCoursePolicy.isIOSPlatform;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
       child: Column(
@@ -216,25 +223,32 @@ class _MyCoursesEmptyBlock extends StatelessWidget {
             color: AppColors.navy.withValues(alpha: 0.35),
           ),
           const SizedBox(height: 12),
-          const Text(
-            "لا توجد دورات مسجّلة",
-            style: TextStyle(
+          Text(
+            isIos
+                ? IosCoursePolicy.emptyMyCoursesTitle
+                : "لا توجد دورات مسجّلة",
+            textAlign: TextAlign.center,
+            style: const TextStyle(
               color: AppColors.navy,
               fontSize: 17,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            "عند التسجيل في دورة ستظهر هنا لمتابعة التقدّم ومشاهدة الدروس.",
+          Text(
+            isIos
+                ? IosCoursePolicy.emptyMyCoursesDescription
+                : "عند التسجيل في دورة ستظهر هنا لمتابعة التقدّم ومشاهدة الدروس.",
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.textSecondary, height: 1.4),
+            style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
           ),
-          const SizedBox(height: 20),
-          AppButton(
-            label: "استكشف الدورات",
-            onPressed: () => context.go("/courses"),
-          ),
+          if (!isIos) ...[
+            const SizedBox(height: 20),
+            AppButton(
+              label: "استكشف الدورات",
+              onPressed: () => context.go("/courses"),
+            ),
+          ],
         ],
       ),
     );

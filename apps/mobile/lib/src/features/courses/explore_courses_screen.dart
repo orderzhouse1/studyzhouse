@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 
 import "../../core/network/api_exception.dart";
 import "../../core/network/pagination_meta.dart";
@@ -43,6 +44,13 @@ class _ExploreCoursesScreenState extends ConsumerState<ExploreCoursesScreen> {
   @override
   void initState() {
     super.initState();
+    if (IosCoursePolicy.isIOSPlatform) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.go(IosCoursePolicy.postLoginLocation);
+      });
+      return;
+    }
     _categorySlug = _normalizeCategorySlug(widget.initialCategorySlug);
     _loadInitial();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -53,6 +61,7 @@ class _ExploreCoursesScreenState extends ConsumerState<ExploreCoursesScreen> {
   @override
   void didUpdateWidget(ExploreCoursesScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (IosCoursePolicy.isIOSPlatform) return;
     final next = _normalizeCategorySlug(widget.initialCategorySlug);
     if (next == _categorySlug) return;
     setState(() => _categorySlug = next);

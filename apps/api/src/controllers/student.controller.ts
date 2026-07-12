@@ -757,7 +757,9 @@ export async function getStudentCourseAccess(
       progressPercent: enrollment?.progressPercent ?? 0,
       pendingPaymentRequest,
       canEnrollFree:
-        course.pricingType === PricingType.FREE && !isEnrolled,
+        !isIosAppClient(req) &&
+        course.pricingType === PricingType.FREE &&
+        !isEnrolled,
       appleProductId: course.appleProductId,
       iosPurchasable: course.iosPurchasable,
     },
@@ -768,6 +770,14 @@ export async function enrollStudentInFreeCourse(
   req: Request,
   res: Response,
 ): Promise<void> {
+  if (isIosAppClient(req)) {
+    throw new AppError(
+      "NOT_FOUND",
+      "التسجيل في الكورسات غير متاح داخل تطبيق iOS.",
+      404,
+    );
+  }
+
   const studentId = req.auth!.userId;
   const { courseSlug } = req.validatedParams as { courseSlug: string };
 

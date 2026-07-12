@@ -58,8 +58,14 @@ class HomeScreen extends ConsumerWidget {
   }
 
   String _statusLine(HomeData data) {
-    final n = data.dashboard.enrolledCoursesCount;
-    if (n == 0) return "ابدأ رحلتك التعليمية اليوم";
+    final n = data.myCoursesPreview.isEmpty
+        ? data.dashboard.enrolledCoursesCount
+        : data.dashboard.enrolledCoursesCount;
+    if (n == 0) {
+      return IosCoursePolicy.isIOSPlatform
+          ? "لا توجد كورسات في حسابك حاليًا"
+          : "ابدأ رحلتك التعليمية اليوم";
+    }
     if (PlatformPurchasePolicy.showExternalPaymentFlows &&
         data.pendingPayments > 0) {
       return "$n كورس • ${data.pendingPayments} طلب دفع";
@@ -70,6 +76,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(homeDataProvider);
+    final isIos = IosCoursePolicy.isIOSPlatform;
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
@@ -87,11 +94,9 @@ class HomeScreen extends ConsumerWidget {
           color: AppColors.orange,
           onRefresh: () async {
             ref.invalidate(homeDataProvider);
-            ref.invalidate(homeDiscoverProvider);
-            await Future.wait([
-              ref.read(homeDataProvider.future),
-              ref.read(homeDiscoverProvider.future),
-            ]);
+            if (!isIos) ref.invalidate(homeDiscoverProvider);
+            await ref.read(homeDataProvider.future);
+            if (!isIos) await ref.read(homeDiscoverProvider.future);
           },
           child: ListView(
             padding: EdgeInsets.zero,
@@ -103,7 +108,7 @@ class HomeScreen extends ConsumerWidget {
                 onRedeem: () => context.push("/redeem"),
                 onMyCourses: () => context.go("/my-courses"),
               ),
-              if (data.dashboard.continueLearning == null)
+              if (!isIos && data.dashboard.continueLearning == null)
                 HomePromoBanner(continueLearning: null),
               const HomeQuickActionsGrid(),
               const SizedBox(height: 8),
@@ -114,7 +119,11 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 10),
               if (data.myCoursesPreview.isEmpty)
-                const _EmptyHint(text: "لم تسجّل في أي كورس بعد.")
+                _EmptyHint(
+                  text: isIos
+                      ? IosCoursePolicy.emptyMyCoursesTitle
+                      : "لم تسجّل في أي كورس بعد.",
+                )
               else
                 ...data.myCoursesPreview.map(
                   (item) => Padding(
@@ -122,7 +131,7 @@ class HomeScreen extends ConsumerWidget {
                     child: MyCourseCard(item: item),
                   ),
                 ),
-              const HomeDiscoverSection(),
+              if (!isIos) const HomeDiscoverSection(),
               const SizedBox(height: 28),
             ],
           ),

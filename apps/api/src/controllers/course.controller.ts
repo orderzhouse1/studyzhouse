@@ -11,7 +11,6 @@ import {
 
 import { AppError } from "../lib/AppError.js";
 import {
-  assertIosCourseCatalogVisible,
   assertIosCourseDetailVisible,
   iosPublishedCourseListWhere,
 } from "../lib/iosCourseAccess.js";
@@ -242,7 +241,7 @@ export async function getCourseBySlugPublic(
     throw new AppError("NOT_FOUND", "الكورس غير موجود.", 404);
   }
 
-  if (isIosAppClient(req) && course.pricingType === PricingType.PAID) {
+  if (isIosAppClient(req)) {
     let isEnrolled = false;
     const userId = req.auth?.userId;
     if (userId) {
@@ -255,8 +254,6 @@ export async function getCourseBySlugPublic(
       isEnrolled = enrollment?.status === EnrollmentStatus.ACTIVE;
     }
     assertIosCourseDetailVisible(req, course, isEnrolled);
-  } else {
-    assertIosCourseCatalogVisible(req, course);
   }
 
   const { _count, ...rest } = course;

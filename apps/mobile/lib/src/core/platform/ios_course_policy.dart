@@ -5,18 +5,30 @@ import "../../features/courses/models/my_course_item.dart";
 import "../../features/courses/models/saved_course.dart";
 import "../../features/courses/models/student_dashboard.dart";
 
-/// iOS App Store compliance — learning companion (reader) model.
+/// iOS App Store compliance — strict Reader / Learning Companion mode.
 ///
-/// Catalog shows free courses only. Enrolled paid courses appear in
-/// My Courses / Continue Learning, not as purchasable marketplace items.
+/// No course marketplace on iOS. Students only continue learning from
+/// courses already enrolled in their account (including web/Android purchases).
 abstract final class IosCoursePolicy {
   static bool get isIOSPlatform =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+
+  /// Explore / catalog tab and marketplace UI are hidden on iOS.
+  static bool get showExploreCatalog => !isIOSPlatform;
+
+  /// Post-login / session restore landing route.
+  static String get postLoginLocation =>
+      isIOSPlatform ? "/my-courses" : "/home";
 
   static const String paidCourseBlockedMessage =
       "هذا الكورس غير متاح داخل تطبيق iOS.";
 
   static const String paidCourseBlockedTitle = "غير متاح حاليًا";
+
+  static const String emptyMyCoursesTitle = "لا توجد كورسات في حسابك حاليًا.";
+
+  static const String emptyMyCoursesDescription =
+      "عند توفّر كورسات في حسابك ستظهر هنا لمتابعة التعلّم.";
 
   static bool isPaidCoursePricingType(String pricingType) =>
       pricingType != "FREE";
@@ -25,40 +37,38 @@ abstract final class IosCoursePolicy {
 
   static bool isPaidSavedCourse(SavedCourseItem item) => !item.course.isFree;
 
-  /// Catalog / explore / home discover: free courses only on iOS.
-  static bool isCourseVisibleOnIosCatalog(Course course) {
-    return course.isFree;
-  }
+  /// Public catalog is not used on iOS (no marketplace).
+  static bool isCourseVisibleOnIosCatalog(Course course) => false;
 
-  /// Course detail / learn gate without enrollment context.
+  /// Course detail without enrollment: nothing from catalog on iOS.
   static bool isCourseAllowedOnIOS({
     Course? course,
     String? pricingType,
     bool? isFree,
   }) {
     if (!isIOSPlatform) return true;
-    if (course != null) return course.isFree;
-    if (isFree == true || pricingType == "FREE") return true;
+    // Free enroll from catalog is removed; only enrolled access via My Courses.
     return false;
   }
 
-  /// Course detail with enrollment: free always; paid only if enrolled.
+  /// Course detail with enrollment: enrolled courses only on iOS.
   static bool isCourseDetailAllowedOnIOS({
     required Course course,
     required bool isEnrolled,
   }) {
     if (!isIOSPlatform) return true;
-    if (course.isFree) return true;
     return isEnrolled;
   }
 
   static bool get showPricesOnPlatform => !isIOSPlatform;
 
+  static bool get showPurchaseOrPaymentUi => !isIOSPlatform;
+
   static List<Course> filterCoursesForPlatform(Iterable<Course> courses) {
     return filterCoursesForCatalog(courses);
   }
 
-  /// Force FREE list filter on iOS so the API never returns paid marketplace items.
+  /// iOS never requests a marketplace catalog (returns empty client-side).
   static String? effectiveListPricingType(String? pricingType) {
     if (!isIOSPlatform) return pricingType;
     return "FREE";
@@ -70,39 +80,32 @@ abstract final class IosCoursePolicy {
     bool apiIncludesIapFields = true,
   }) {
     if (!isIOSPlatform) {
-      var visible = courses;
       if (pricingType == "FREE") {
-        return visible.where((c) => c.isFree).toList(growable: false);
+        return courses.where((c) => c.isFree).toList(growable: false);
       }
       if (pricingType == "PAID") {
-        return visible.where((c) => !c.isFree).toList(growable: false);
+        return courses.where((c) => !c.isFree).toList(growable: false);
       }
-      return visible.toList(growable: false);
+      return courses.toList(growable: false);
     }
-
-    final freeOnly = courses.where((c) => c.isFree);
-    return freeOnly.toList(growable: false);
+    // Strict reader mode: no catalog items on iOS.
+    return const [];
   }
 
-  /// My Courses: enrolled free + enrolled paid; hide pending payment.
+  /// My Courses: enrolled only; hide pending payment.
   static List<MyCourseItem> filterMyCourseItemsForPlatform(
     Iterable<MyCourseItem> items,
   ) {
     if (!isIOSPlatform) return items.toList(growable: false);
-    return items
-        .where((i) {
-          if (i.isPendingPayment) return false;
-          return i.isEnrolled;
-        })
-        .toList(growable: false);
+    return items.where((i) => i.isEnrolled).toList(growable: false);
   }
 
-  /// Saved list: free courses only on iOS (paid are not marketplace items).
+  /// Saved: enrolled courses only on iOS (no marketplace bookmarks).
   static List<SavedCourseItem> filterSavedCoursesForPlatform(
     Iterable<SavedCourseItem> items,
   ) {
     if (!isIOSPlatform) return items.toList(growable: false);
-    return items.where((i) => i.course.isFree).toList(growable: false);
+    return items.where((i) => i.isEnrolled).toList(growable: false);
   }
 
   static StudentDashboard filterDashboardForPlatform(
@@ -116,8 +119,27 @@ abstract final class IosCoursePolicy {
     Map<String, String> pricingByCourseId,
   ) {
     if (!isIOSPlatform) return courseIds.toSet();
-    return courseIds
-        .where((id) => pricingByCourseId[id] == "FREE")
-        .toSet();
+    // Without enrollment map, keep none from pricing-only filter.
+    return <String>{};
+  }
+
+  /// Maps bottom-nav UI index → shell branch index on iOS (skips Courses).
+  static int shellBranchForNavIndex(int navIndex) {
+    if (!isIOSPlatform) return navIndex;
+    // UI: 0 Home, 1 My Courses, 2 Profile → branches 0, 1, 3
+    const map = [0, 1, 3];
+    if (navIndex < 0 || navIndex >= map.length) return 0;
+    return map[navIndex];
+  }
+
+  /// Maps shell branch index → bottom-nav UI index on iOS.
+  static int navIndexForShellBranch(int branchIndex) {
+    if (!isIOSPlatform) return branchIndex;
+    return switch (branchIndex) {
+      0 => 0,
+      1 => 1,
+      3 => 2,
+      _ => 1, // Courses branch or unknown → highlight My Courses
+    };
   }
 }

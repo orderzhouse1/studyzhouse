@@ -27,35 +27,22 @@ const _paidCourse = Course(
 );
 
 void main() {
-  group("IosCoursePolicy learning companion", () {
-    test("catalog shows free only", () {
-      expect(IosCoursePolicy.isCourseVisibleOnIosCatalog(_freeCourse), isTrue);
+  group("IosCoursePolicy strict reader mode", () {
+    test("catalog empty on iOS — no free marketplace either", () {
+      expect(IosCoursePolicy.isCourseVisibleOnIosCatalog(_freeCourse), isFalse);
       expect(IosCoursePolicy.isCourseVisibleOnIosCatalog(_paidCourse), isFalse);
-    });
-
-    test("effectiveListPricingType forces FREE on iOS host", () {
-      if (IosCoursePolicy.isIOSPlatform) {
-        expect(IosCoursePolicy.effectiveListPricingType(null), "FREE");
-        expect(IosCoursePolicy.effectiveListPricingType("PAID"), "FREE");
-      } else {
-        expect(IosCoursePolicy.effectiveListPricingType(null), isNull);
-        expect(IosCoursePolicy.effectiveListPricingType("PAID"), "PAID");
-      }
-    });
-
-    test("filterCoursesForCatalog keeps free only on iOS host", () {
       final filtered = IosCoursePolicy.filterCoursesForCatalog([
         _freeCourse,
         _paidCourse,
       ]);
       if (IosCoursePolicy.isIOSPlatform) {
-        expect(filtered, [_freeCourse]);
+        expect(filtered, isEmpty);
       } else {
         expect(filtered, [_freeCourse, _paidCourse]);
       }
     });
 
-    test("enrolled paid course allowed on detail", () {
+    test("enrolled paid course allowed on detail; non-enrolled blocked", () {
       expect(
         IosCoursePolicy.isCourseDetailAllowedOnIOS(
           course: _paidCourse,
@@ -101,11 +88,11 @@ void main() {
       }
     });
 
-    test("prices hidden on iOS host", () {
+    test("prices and IAP hidden", () {
+      expect(PlatformPurchasePolicy.iapEnabled, isFalse);
       if (IosCoursePolicy.isIOSPlatform) {
         expect(IosCoursePolicy.showPricesOnPlatform, isFalse);
-      } else {
-        expect(IosCoursePolicy.showPricesOnPlatform, isTrue);
+        expect(IosCoursePolicy.showPurchaseOrPaymentUi, isFalse);
       }
     });
   });

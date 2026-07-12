@@ -14,7 +14,7 @@ export type IosCourseIapFields = IosCourseFields & {
   appleProductId?: string | null;
 };
 
-/** Public catalog on iOS is free courses only (learning companion / reader model). */
+/** Public catalog on iOS returns free courses only (no paid marketplace). */
 export function iosPublishedCourseVisibilityWhere(): Prisma.CourseWhereInput {
   return { pricingType: PricingType.FREE };
 }
@@ -42,9 +42,8 @@ export function assertIosCourseCatalogVisible(
 }
 
 /**
- * Course detail / access on iOS:
- * - free courses: always allowed
- * - paid courses: only when the student has an active enrollment
+ * Course detail / access on iOS (reader mode):
+ * only enrolled courses (free or paid entitlements from web/Android).
  */
 export function assertIosCourseDetailVisible(
   req: Request,
@@ -52,18 +51,17 @@ export function assertIosCourseDetailVisible(
   isEnrolled: boolean,
 ): void {
   if (!isIosAppClient(req)) return;
-  if (course.pricingType === PricingType.FREE) return;
   if (isEnrolled) return;
   throw new AppError("NOT_FOUND", "الكورس غير موجود.", 404);
 }
 
+/** Learn on iOS: enrollment required. */
 export function assertIosCourseLearnable(
   req: Request,
   course: IosCourseFields,
   isEnrolled: boolean,
 ): void {
   if (!isIosAppClient(req)) return;
-  if (course.pricingType === PricingType.FREE) return;
   if (isEnrolled) return;
   throw new AppError("NOT_FOUND", "الكورس غير موجود أو غير منشور.", 404);
 }
