@@ -6,7 +6,7 @@ import "../core/theme/app_colors.dart";
 
 /// شريط تنقّل سفلي فاتح — أسلوب تطبيقات الموبايل.
 ///
-/// على iOS يُخفى تبويب «الدورات» (الكتالوج) بالكامل (Reader mode).
+/// Reader mode: Home / دوراتي / حسابي (لا كتالوج).
 class StudentShell extends StatelessWidget {
   const StudentShell({required this.navigationShell, super.key});
 
@@ -14,7 +14,6 @@ class StudentShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isIos = IosCoursePolicy.isIOSPlatform;
     final selectedIndex = IosCoursePolicy.navIndexForShellBranch(
       navigationShell.currentIndex,
     );
@@ -30,24 +29,18 @@ class StudentShell extends StatelessWidget {
           );
         },
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: [
-          const NavigationDestination(
+        destinations: const [
+          NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home_rounded),
             label: "الرئيسية",
           ),
-          const NavigationDestination(
+          NavigationDestination(
             icon: Icon(Icons.school_outlined),
             selectedIcon: Icon(Icons.school_rounded),
             label: "دوراتي",
           ),
-          if (!isIos)
-            const NavigationDestination(
-              icon: Icon(Icons.menu_book_outlined),
-              selectedIcon: Icon(Icons.menu_book_rounded),
-              label: "الدورات",
-            ),
-          const NavigationDestination(
+          NavigationDestination(
             icon: Icon(Icons.person_outline_rounded),
             selectedIcon: Icon(Icons.person_rounded),
             label: "حسابي",

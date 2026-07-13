@@ -5,23 +5,32 @@ import "../../features/courses/models/my_course_item.dart";
 import "../../features/courses/models/saved_course.dart";
 import "../../features/courses/models/student_dashboard.dart";
 
-/// iOS App Store compliance — strict Reader / Learning Companion mode.
+/// Mobile Reader / Learning Companion policy (iOS + Android).
 ///
-/// No course marketplace on iOS. Students only continue learning from
-/// courses already enrolled in their account (including web/Android purchases).
+/// No course marketplace. Students only continue learning from courses
+/// already enrolled in their account (including web purchases).
 abstract final class IosCoursePolicy {
-  static bool get isIOSPlatform =>
+  static bool get isIOS =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
-  /// Explore / catalog tab and marketplace UI are hidden on iOS.
-  static bool get showExploreCatalog => !isIOSPlatform;
+  static bool get isAndroid =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+  /// True on native iOS and Android builds.
+  static bool get isMobileReader => isIOS || isAndroid;
+
+  /// @deprecated Prefer [isMobileReader] — kept for call-site compatibility.
+  static bool get isIOSPlatform => isMobileReader;
+
+  /// Explore / catalog tab and marketplace UI are hidden on mobile.
+  static bool get showExploreCatalog => !isMobileReader;
 
   /// Post-login / session restore landing route.
   static String get postLoginLocation =>
-      isIOSPlatform ? "/my-courses" : "/home";
+      isMobileReader ? "/my-courses" : "/home";
 
   static const String paidCourseBlockedMessage =
-      "هذا الكورس غير متاح داخل تطبيق iOS.";
+      "هذا الكورس غير متاح داخل التطبيق.";
 
   static const String paidCourseBlockedTitle = "غير متاح حاليًا";
 
@@ -37,40 +46,39 @@ abstract final class IosCoursePolicy {
 
   static bool isPaidSavedCourse(SavedCourseItem item) => !item.course.isFree;
 
-  /// Public catalog is not used on iOS (no marketplace).
+  /// Public catalog is not used on mobile (no marketplace).
   static bool isCourseVisibleOnIosCatalog(Course course) => false;
 
-  /// Course detail without enrollment: nothing from catalog on iOS.
+  /// Course detail without enrollment: nothing from catalog on mobile.
   static bool isCourseAllowedOnIOS({
     Course? course,
     String? pricingType,
     bool? isFree,
   }) {
-    if (!isIOSPlatform) return true;
-    // Free enroll from catalog is removed; only enrolled access via My Courses.
+    if (!isMobileReader) return true;
     return false;
   }
 
-  /// Course detail with enrollment: enrolled courses only on iOS.
+  /// Course detail: enrolled courses only on mobile (paid or free).
   static bool isCourseDetailAllowedOnIOS({
     required Course course,
     required bool isEnrolled,
   }) {
-    if (!isIOSPlatform) return true;
+    if (!isMobileReader) return true;
     return isEnrolled;
   }
 
-  static bool get showPricesOnPlatform => !isIOSPlatform;
+  static bool get showPricesOnPlatform => !isMobileReader;
 
-  static bool get showPurchaseOrPaymentUi => !isIOSPlatform;
+  static bool get showPurchaseOrPaymentUi => !isMobileReader;
 
   static List<Course> filterCoursesForPlatform(Iterable<Course> courses) {
     return filterCoursesForCatalog(courses);
   }
 
-  /// iOS never requests a marketplace catalog (returns empty client-side).
+  /// Mobile never requests a marketplace catalog.
   static String? effectiveListPricingType(String? pricingType) {
-    if (!isIOSPlatform) return pricingType;
+    if (!isMobileReader) return pricingType;
     return "FREE";
   }
 
@@ -79,7 +87,7 @@ abstract final class IosCoursePolicy {
     String? pricingType,
     bool apiIncludesIapFields = true,
   }) {
-    if (!isIOSPlatform) {
+    if (!isMobileReader) {
       if (pricingType == "FREE") {
         return courses.where((c) => c.isFree).toList(growable: false);
       }
@@ -88,23 +96,23 @@ abstract final class IosCoursePolicy {
       }
       return courses.toList(growable: false);
     }
-    // Strict reader mode: no catalog items on iOS.
+    // Strict reader mode: no catalog items on mobile.
     return const [];
   }
 
-  /// My Courses: enrolled only; hide pending payment.
+  /// My Courses: enrolled only (paid + free); hide pending payment.
   static List<MyCourseItem> filterMyCourseItemsForPlatform(
     Iterable<MyCourseItem> items,
   ) {
-    if (!isIOSPlatform) return items.toList(growable: false);
+    if (!isMobileReader) return items.toList(growable: false);
     return items.where((i) => i.isEnrolled).toList(growable: false);
   }
 
-  /// Saved: enrolled courses only on iOS (no marketplace bookmarks).
+  /// Saved: enrolled courses only on mobile.
   static List<SavedCourseItem> filterSavedCoursesForPlatform(
     Iterable<SavedCourseItem> items,
   ) {
-    if (!isIOSPlatform) return items.toList(growable: false);
+    if (!isMobileReader) return items.toList(growable: false);
     return items.where((i) => i.isEnrolled).toList(growable: false);
   }
 
@@ -118,23 +126,22 @@ abstract final class IosCoursePolicy {
     Iterable<String> courseIds,
     Map<String, String> pricingByCourseId,
   ) {
-    if (!isIOSPlatform) return courseIds.toSet();
-    // Without enrollment map, keep none from pricing-only filter.
+    if (!isMobileReader) return courseIds.toSet();
     return <String>{};
   }
 
-  /// Maps bottom-nav UI index → shell branch index on iOS (skips Courses).
+  /// Maps bottom-nav UI index → shell branch index (skips Courses).
   static int shellBranchForNavIndex(int navIndex) {
-    if (!isIOSPlatform) return navIndex;
+    if (!isMobileReader) return navIndex;
     // UI: 0 Home, 1 My Courses, 2 Profile → branches 0, 1, 3
     const map = [0, 1, 3];
     if (navIndex < 0 || navIndex >= map.length) return 0;
     return map[navIndex];
   }
 
-  /// Maps shell branch index → bottom-nav UI index on iOS.
+  /// Maps shell branch index → bottom-nav UI index.
   static int navIndexForShellBranch(int branchIndex) {
-    if (!isIOSPlatform) return branchIndex;
+    if (!isMobileReader) return branchIndex;
     return switch (branchIndex) {
       0 => 0,
       1 => 1,

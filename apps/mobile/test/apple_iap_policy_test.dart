@@ -27,22 +27,18 @@ const _paidCourse = Course(
 );
 
 void main() {
-  group("IosCoursePolicy strict reader mode", () {
-    test("catalog empty on iOS — no free marketplace either", () {
+  group("strict reader mode (no IAP)", () {
+    test("catalog empty on mobile — no marketplace", () {
       expect(IosCoursePolicy.isCourseVisibleOnIosCatalog(_freeCourse), isFalse);
       expect(IosCoursePolicy.isCourseVisibleOnIosCatalog(_paidCourse), isFalse);
-      final filtered = IosCoursePolicy.filterCoursesForCatalog([
-        _freeCourse,
-        _paidCourse,
-      ]);
-      if (IosCoursePolicy.isIOSPlatform) {
-        expect(filtered, isEmpty);
-      } else {
-        expect(filtered, [_freeCourse, _paidCourse]);
-      }
+      if (!IosCoursePolicy.isMobileReader) return;
+      expect(
+        IosCoursePolicy.filterCoursesForCatalog([_freeCourse, _paidCourse]),
+        isEmpty,
+      );
     });
 
-    test("enrolled paid course allowed on detail; non-enrolled blocked", () {
+    test("enrolled paid allowed; non-enrolled blocked", () {
       expect(
         IosCoursePolicy.isCourseDetailAllowedOnIOS(
           course: _paidCourse,
@@ -50,15 +46,14 @@ void main() {
         ),
         isTrue,
       );
-      if (IosCoursePolicy.isIOSPlatform) {
-        expect(
-          IosCoursePolicy.isCourseDetailAllowedOnIOS(
-            course: _paidCourse,
-            isEnrolled: false,
-          ),
-          isFalse,
-        );
-      }
+      if (!IosCoursePolicy.isMobileReader) return;
+      expect(
+        IosCoursePolicy.isCourseDetailAllowedOnIOS(
+          course: _paidCourse,
+          isEnrolled: false,
+        ),
+        isFalse,
+      );
     });
 
     test("my courses keeps enrolled paid, drops pending", () {
@@ -80,48 +75,29 @@ void main() {
         ),
       ];
       final filtered = IosCoursePolicy.filterMyCourseItemsForPlatform(items);
-      if (IosCoursePolicy.isIOSPlatform) {
-        expect(filtered.length, 1);
-        expect(filtered.first.isEnrolled, isTrue);
-      } else {
-        expect(filtered.length, 2);
-      }
+      if (!IosCoursePolicy.isMobileReader) return;
+      expect(filtered.length, 1);
+      expect(filtered.first.isEnrolled, isTrue);
     });
 
-    test("prices and IAP hidden", () {
+    test("prices and IAP hidden on mobile", () {
       expect(PlatformPurchasePolicy.iapEnabled, isFalse);
-      if (IosCoursePolicy.isIOSPlatform) {
-        expect(IosCoursePolicy.showPricesOnPlatform, isFalse);
-        expect(IosCoursePolicy.showPurchaseOrPaymentUi, isFalse);
-      }
+      if (!IosCoursePolicy.isMobileReader) return;
+      expect(IosCoursePolicy.showPricesOnPlatform, isFalse);
+      expect(IosCoursePolicy.showPurchaseOrPaymentUi, isFalse);
     });
   });
 
   group("PurchaseCourseService", () {
     const service = PurchaseCourseService();
 
-    test("iapEnabled is false", () {
+    test("no IAP or CliQ on mobile", () {
       expect(PlatformPurchasePolicy.iapEnabled, isFalse);
       expect(service.canPurchaseInApp, isFalse);
-    });
-
-    test("Android behavior unchanged", () {
-      if (!PlatformPurchasePolicy.isIOS) {
-        expect(
-          service.paidCourseActionLabel(course: _paidCourse),
-          "طلب تفعيل عبر CliQ",
-        );
-        expect(service.canUseExternalPayment, isTrue);
-        expect(service.isPaidCourseActionEnabled(_paidCourse), isTrue);
-      }
-    });
-
-    test("iOS has no purchase action", () {
-      if (PlatformPurchasePolicy.isIOS) {
-        expect(service.canUseExternalPayment, isFalse);
-        expect(service.isPaidCourseActionEnabled(_paidCourse), isFalse);
-        expect(service.storeProductIdForCourse(_paidCourse), isNull);
-      }
+      if (!PlatformPurchasePolicy.isMobile) return;
+      expect(service.canUseExternalPayment, isFalse);
+      expect(service.isPaidCourseActionEnabled(_paidCourse), isFalse);
+      expect(service.storeProductIdForCourse(_paidCourse), isNull);
     });
   });
 }

@@ -14,7 +14,7 @@ import {
   assertIosCourseDetailVisible,
   iosPublishedCourseListWhere,
 } from "../lib/iosCourseAccess.js";
-import { isIosAppClient } from "../lib/clientPlatform.js";
+import { isMobileReaderClient } from "../lib/clientPlatform.js";
 import { assertCanManageCourse } from "../lib/courseAccess.js";
 import {
   mapCourseAdmin,
@@ -152,12 +152,12 @@ export async function listCoursesPublic(
     where.pricingType = query.pricingType;
   }
 
-  if (isIosAppClient(req)) {
+  if (isMobileReaderClient(req)) {
     where.AND = [
       ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
       iosPublishedCourseListWhere(),
     ];
-    // Marketplace catalog on iOS is free-only (learning companion).
+    // Mobile reader: no paid marketplace catalog.
     where.pricingType = PricingType.FREE;
   }
 
@@ -241,7 +241,7 @@ export async function getCourseBySlugPublic(
     throw new AppError("NOT_FOUND", "الكورس غير موجود.", 404);
   }
 
-  if (isIosAppClient(req)) {
+  if (isMobileReaderClient(req)) {
     let isEnrolled = false;
     const userId = req.auth?.userId;
     if (userId) {

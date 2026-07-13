@@ -5,8 +5,8 @@ import {
   assertIosCourseDetailVisible,
   isCourseVisibleOnIosCatalog,
   isIosPurchasablePaidCourse,
-} from "../lib/iosCourseAccess.js";
-import { AppError } from "../lib/AppError.js";
+} from "./iosCourseAccess.js";
+import { AppError } from "./AppError.js";
 
 function iosReq() {
   return {
@@ -22,7 +22,13 @@ function androidReq() {
   } as never;
 }
 
-describe("iosCourseAccess strict reader mode", () => {
+function webReq() {
+  return {
+    get: () => undefined,
+  } as never;
+}
+
+describe("iosCourseAccess mobile reader mode", () => {
   it("never treats paid courses as iOS purchasable", () => {
     expect(
       isIosPurchasablePaidCourse({
@@ -33,7 +39,7 @@ describe("iosCourseAccess strict reader mode", () => {
     ).toBe(false);
   });
 
-  it("blocks paid courses from iOS catalog", () => {
+  it("blocks paid courses from mobile catalog filter", () => {
     expect(
       isCourseVisibleOnIosCatalog({
         pricingType: PricingType.PAID,
@@ -41,7 +47,7 @@ describe("iosCourseAccess strict reader mode", () => {
     ).toBe(false);
   });
 
-  it("allows free courses in API catalog list filter (client hides Explore)", () => {
+  it("allows free courses in API catalog list filter", () => {
     expect(
       isCourseVisibleOnIosCatalog({
         pricingType: PricingType.FREE,
@@ -49,15 +55,7 @@ describe("iosCourseAccess strict reader mode", () => {
     ).toBe(true);
   });
 
-  it("blocks non-enrolled course detail on iOS including free", () => {
-    expect(() =>
-      assertIosCourseDetailVisible(
-        iosReq(),
-        { pricingType: PricingType.FREE },
-        false,
-      ),
-    ).toThrow(AppError);
-
+  it("blocks non-enrolled course detail on iOS", () => {
     expect(() =>
       assertIosCourseDetailVisible(
         iosReq(),
@@ -75,10 +73,28 @@ describe("iosCourseAccess strict reader mode", () => {
     ).not.toThrow();
   });
 
-  it("does not block Android course detail when not enrolled", () => {
+  it("blocks non-enrolled course detail on Android reader", () => {
     expect(() =>
       assertIosCourseDetailVisible(
         androidReq(),
+        { pricingType: PricingType.PAID },
+        false,
+      ),
+    ).toThrow(AppError);
+
+    expect(() =>
+      assertIosCourseDetailVisible(
+        androidReq(),
+        { pricingType: PricingType.PAID },
+        true,
+      ),
+    ).not.toThrow();
+  });
+
+  it("does not block web clients without platform header", () => {
+    expect(() =>
+      assertIosCourseDetailVisible(
+        webReq(),
         { pricingType: PricingType.PAID },
         false,
       ),

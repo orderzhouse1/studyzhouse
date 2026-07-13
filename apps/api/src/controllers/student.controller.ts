@@ -9,7 +9,7 @@ import {
 } from "@prisma/client";
 
 import { AppError } from "../lib/AppError.js";
-import { isIosAppClient } from "../lib/clientPlatform.js";
+import { isMobileReaderClient } from "../lib/clientPlatform.js";
 import {
   assertIosCourseDetailVisible,
 } from "../lib/iosCourseAccess.js";
@@ -188,7 +188,7 @@ export async function getStudentMyCourses(
       },
       orderBy: { updatedAt: "desc" },
     }),
-    isIosAppClient(req)
+    isMobileReaderClient(req)
       ? Promise.resolve([])
       : prisma.paymentRequest.findMany({
           where: {
@@ -736,7 +736,7 @@ export async function getStudentCourseAccess(
   const isEnrolled = enrollment?.status === EnrollmentStatus.ACTIVE;
   assertIosCourseDetailVisible(req, course, isEnrolled);
 
-  const pendingPaymentRequest = isIosAppClient(req)
+  const pendingPaymentRequest = isMobileReaderClient(req)
     ? null
     : await prisma.paymentRequest.findFirst({
         where: {
@@ -757,11 +757,11 @@ export async function getStudentCourseAccess(
       progressPercent: enrollment?.progressPercent ?? 0,
       pendingPaymentRequest,
       canEnrollFree:
-        !isIosAppClient(req) &&
+        !isMobileReaderClient(req) &&
         course.pricingType === PricingType.FREE &&
         !isEnrolled,
-      appleProductId: course.appleProductId,
-      iosPurchasable: course.iosPurchasable,
+      appleProductId: isMobileReaderClient(req) ? null : course.appleProductId,
+      iosPurchasable: isMobileReaderClient(req) ? false : course.iosPurchasable,
     },
   });
 }
@@ -770,10 +770,10 @@ export async function enrollStudentInFreeCourse(
   req: Request,
   res: Response,
 ): Promise<void> {
-  if (isIosAppClient(req)) {
+  if (isMobileReaderClient(req)) {
     throw new AppError(
       "NOT_FOUND",
-      "التسجيل في الكورسات غير متاح داخل تطبيق iOS.",
+      "التسجيل في الكورسات غير متاح داخل تطبيق الجوال.",
       404,
     );
   }

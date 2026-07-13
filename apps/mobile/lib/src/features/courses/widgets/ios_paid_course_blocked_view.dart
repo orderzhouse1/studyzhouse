@@ -1,12 +1,11 @@
 import "package:flutter/material.dart";
 
 import "../../../core/platform/ios_course_policy.dart";
-import "../../../core/platform/platform_purchase_policy.dart";
 import "../../../core/theme/app_colors.dart";
 import "../../../core/widgets/account_page_header.dart";
 import "../../../core/widgets/app_card.dart";
 
-/// Neutral block screen for courses unavailable on iOS (no payment or external links).
+/// Neutral block for courses unavailable on mobile reader builds.
 class IosPaidCourseBlockedView extends StatelessWidget {
   const IosPaidCourseBlockedView({super.key});
 
@@ -19,7 +18,8 @@ class IosPaidCourseBlockedView extends StatelessWidget {
         children: [
           const AccountPageHeader(
             title: IosCoursePolicy.paidCourseBlockedTitle,
-            description: PlatformPurchasePolicy.iosBlockedFeatureDescription,
+            description:
+                "التطبيق مخصّص لمتابعة التعلّم من الكورسات المتوفّرة في حسابك.",
           ),
           const SizedBox(height: 20),
           AppCard(
