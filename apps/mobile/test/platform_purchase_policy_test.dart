@@ -18,38 +18,25 @@ void main() {
     test("iapEnabled is false", () {
       expect(PlatformPurchasePolicy.iapEnabled, isFalse);
     });
+
+    test("mobile disables external payment flows", () {
+      if (!PlatformPurchasePolicy.isMobile) return;
+      expect(PlatformPurchasePolicy.showExternalPaymentFlows, isFalse);
+      expect(PlatformPurchasePolicy.mobileExternalPaymentsDisabled, isTrue);
+    });
   });
 
   group("PurchaseCourseService", () {
     const service = PurchaseCourseService();
 
-    test("external payment available when not on gated iOS", () {
-      if (PlatformPurchasePolicy.isIOS) {
-        expect(service.canUseExternalPayment, isFalse);
-      } else {
-        expect(service.canUseExternalPayment, isTrue);
-      }
-    });
-
-    test("paid course label on Android-style host", () {
-      if (!PlatformPurchasePolicy.isIOS) {
-        expect(
-          service.paidCourseActionLabel(course: _paidCourse),
-          "طلب تفعيل عبر CliQ",
-        );
-        expect(service.isPaidCourseActionEnabled(_paidCourse), isTrue);
-      }
-    });
-
-    test("paid course unavailable on iOS host", () {
-      if (PlatformPurchasePolicy.isIOS) {
-        expect(
-          service.paidCourseActionLabel(course: _paidCourse),
-          PlatformPurchasePolicy.paidCourseIosUnavailableLabel,
-        );
-        expect(service.isPaidCourseActionEnabled(_paidCourse), isFalse);
-        expect(service.canPurchaseInApp, isFalse);
-      }
+    test("no CliQ / IAP purchase on mobile host", () {
+      if (!PlatformPurchasePolicy.isMobile) return;
+      expect(service.canUseExternalPayment, isFalse);
+      expect(service.canPurchaseInApp, isFalse);
+      expect(service.isPaidCourseActionEnabled(_paidCourse), isFalse);
+      final label = service.paidCourseActionLabel(course: _paidCourse);
+      expect(label.contains("CliQ"), isFalse);
+      expect(label.contains("شراء"), isFalse);
     });
   });
 }

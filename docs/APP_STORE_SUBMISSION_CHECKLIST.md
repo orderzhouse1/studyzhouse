@@ -8,11 +8,11 @@ Primary category: **Education**
 
 ## Pre-submission code gates (done in app)
 
-- [x] iOS is a **learning companion**: free catalog only; no paid marketplace
-- [x] Enrolled paid courses accessible in My Courses / learn (web/Android entitlements)
-- [x] iOS hides prices and all purchase / redeem / CliQ / proof flows
+- [x] Mobile is a **learning companion** (iOS + Android): no marketplace catalog
+- [x] Enrolled paid courses accessible in My Courses / learn (web entitlements)
+- [x] Mobile hides prices and all purchase / redeem / CliQ / proof flows
 - [x] Non-enrolled paid deep links show neutral unavailable state
-- [x] Free enrollment + free course learning work on iOS
+- [x] Bottom nav: Home / دوراتي / حسابي only
 - [x] In-app account deletion in Settings (two-step, type «حذف»)
 - [x] Production API: `https://studyzhouse.com/api/v1` (HTTPS)
 - [x] Apple In-App Purchase — **disabled / not offered** in this build
@@ -33,7 +33,7 @@ Primary category: **Education**
 
 ### Paid courses (reviewer note)
 
-> On iOS, the app is a learning companion for existing students. There is no purchase flow. Catalog shows free courses only. Students can access courses they already enrolled in (including entitlements from web/Android) via My Courses. Payments are not offered inside the iOS app.
+> The mobile app is a learning companion for existing students. There is no purchase flow, prices, CliQ, redeem codes, or marketplace. Students access courses already in their account (including web purchases) via My Courses.
 
 ---
 

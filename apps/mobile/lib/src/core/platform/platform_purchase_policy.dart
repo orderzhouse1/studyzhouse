@@ -1,29 +1,51 @@
 import "package:flutter/foundation.dart";
 
-/// Platform rules for paid course access (App Store vs Play Store).
+/// Purchase / payment rules for the Flutter student app.
+///
+/// Mobile (iOS + Android) is a Reader / Learning Companion — no marketplace
+/// or in-app payment flows. Web marketplace behavior is separate.
 abstract final class PlatformPurchasePolicy {
   static bool get isIOS =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
-  /// When true, iOS must not surface CliQ, proof upload, or activation-code unlock.
-  static const bool iosExternalPaymentsDisabled = true;
+  static bool get isAndroid =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
-  /// Apple IAP / StoreKit is disabled — iOS is a learning companion only.
+  /// Native mobile builds (not web).
+  static bool get isMobile => isIOS || isAndroid;
+
+  /// External CliQ / proof / redeem are never shown in the mobile app.
+  static const bool mobileExternalPaymentsDisabled = true;
+
+  /// @deprecated Use [mobileExternalPaymentsDisabled].
+  static const bool iosExternalPaymentsDisabled = mobileExternalPaymentsDisabled;
+
+  /// Apple IAP / Play Billing are not implemented.
   static const bool iapEnabled = false;
 
   static bool get showExternalPaymentFlows =>
-      !(isIOS && iosExternalPaymentsDisabled);
+      !(isMobile && mobileExternalPaymentsDisabled);
 
+  static const String paidCourseUnavailableLabel =
+      "هذا الكورس غير متاح داخل التطبيق.";
+
+  /// @deprecated Use [paidCourseUnavailableLabel].
   static const String paidCourseIosUnavailableLabel =
-      "هذا الكورس غير متاح داخل iOS حاليًا";
+      paidCourseUnavailableLabel;
 
-  /// Neutral title for deep-linked routes that are disabled on iOS.
-  static const String iosBlockedFeatureTitle = "غير متاح حاليًا";
+  static const String blockedFeatureTitle = "غير متاح حاليًا";
 
+  /// @deprecated Use [blockedFeatureTitle].
+  static const String iosBlockedFeatureTitle = blockedFeatureTitle;
+
+  static const String blockedFeatureDescription =
+      "التطبيق مخصّص لمتابعة التعلّم من الكورسات المتوفّرة في حسابك.";
+
+  /// @deprecated Use [blockedFeatureDescription].
   static const String iosBlockedFeatureDescription =
-      "تطبيق iOS مخصّص لمتابعة التعلّم من الكورسات المتوفّرة في حسابك.";
+      blockedFeatureDescription;
 
-  /// Pending enrollment badge/filter — avoids «دفع» on iOS.
+  /// Pending badge — mobile never shows payment wording.
   static String get pendingEnrollmentStatusLabel =>
       showExternalPaymentFlows ? "بانتظار الدفع" : "قيد المراجعة";
 }

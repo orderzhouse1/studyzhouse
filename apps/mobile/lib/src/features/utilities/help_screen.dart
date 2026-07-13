@@ -2,7 +2,6 @@ import "package:flutter/material.dart";
 import "package:url_launcher/url_launcher.dart";
 
 import "../../core/constants/legal_urls.dart";
-import "../../core/platform/platform_purchase_policy.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/widgets/account_page_header.dart";
 import "../../core/widgets/app_screen.dart";
@@ -11,18 +10,15 @@ import "../../core/widgets/legal_link_row.dart";
 class HelpScreen extends StatelessWidget {
   const HelpScreen({super.key});
 
-  static const _allFaqs = [
-    (
-      "كيف أفعّل كورس بكود؟",
-      "من حسابي اختر «تفعيل كورس»، أدخل كود التفعيل، ثم اضغط «تفعيل الكورس». بعد النجاح يمكنك البدء من «ابدأ التعلّم».",
-    ),
-    (
-      "كيف أرسل طلب دفع عبر CliQ؟",
-      "من «مشترياتي وطلبات الدفع» اختر الكورس وأدخل المبلغ ورقم مرجع التحويل. تُراجع الطلبات يدويًا من الإدارة.",
-    ),
+  /// Reader / learning companion FAQs — no payment or marketplace copy.
+  static const _faqs = [
     (
       "لماذا لا يظهر الكورس في كورساتي؟",
-      "قد يكون طلب الدفع قيد المراجعة، أو الكود لم يُفعّل بعد، أو الكورس غير متاح. راجع الإشعارات وسجل المشتريات.",
+      "يظهر في «كورساتي» فقط ما هو مسجّل في حسابك. راجع الإشعارات أو تواصل مع الدعم إن كنت تتوقع كورسًا.",
+    ),
+    (
+      "كيف أتابع التعلّم؟",
+      "من «كورساتي» افتح الكورس ثم «متابعة التعلّم» لمشاهدة الدروس وتتبع التقدّم.",
     ),
     (
       "كيف أغيّر كلمة المرور؟",
@@ -37,29 +33,6 @@ class HelpScreen extends StatelessWidget {
       "راسلنا على support@studyhouse.app أو من خلال روابط المساعدة والسياسات أدناه.",
     ),
   ];
-
-  static const _iosSafeFaqs = [
-    (
-      "لماذا لا يظهر الكورس في كورساتي؟",
-      "قد يكون الكورس غير متاح أو لم يكتمل التسجيل. راجع «كورساتي» والإشعارات.",
-    ),
-    (
-      "كيف أغيّر كلمة المرور؟",
-      "من الإعدادات اختر «تغيير كلمة المرور» واتبع خطوات استعادة كلمة المرور عبر البريد.",
-    ),
-    (
-      "كيف أعدّل ملفي الشخصي؟",
-      "من حسابي اختر «الملف الشخصي» وعدّل الاهتمامات والأهداف وبيانات التواصل ثم احفظ.",
-    ),
-    (
-      "كيف أتواصل مع الإدارة؟",
-      "راسلنا على support@studyhouse.app أو من خلال روابط المساعدة والسياسات أدناه.",
-    ),
-  ];
-
-  List<(String, String)> get _faqs => PlatformPurchasePolicy.showExternalPaymentFlows
-      ? _allFaqs
-      : _iosSafeFaqs;
 
   Future<void> _emailSupport() async {
     final uri = Uri.parse(LegalUrls.supportEmail);

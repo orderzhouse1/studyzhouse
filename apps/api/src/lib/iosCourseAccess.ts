@@ -1,8 +1,8 @@
 import { PricingType, type Prisma } from "@prisma/client";
+import type { Request } from "express";
 
 import { AppError } from "./AppError.js";
-import { isIosAppClient } from "./clientPlatform.js";
-import type { Request } from "express";
+import { isMobileReaderClient } from "./clientPlatform.js";
 
 export type IosCourseFields = {
   pricingType: PricingType;
@@ -14,7 +14,10 @@ export type IosCourseIapFields = IosCourseFields & {
   appleProductId?: string | null;
 };
 
-/** Public catalog on iOS returns free courses only (no paid marketplace). */
+/**
+ * Public catalog for mobile reader clients.
+ * Catalog is unused in the app; API still returns FREE-only if hit.
+ */
 export function iosPublishedCourseVisibilityWhere(): Prisma.CourseWhereInput {
   return { pricingType: PricingType.FREE };
 }
@@ -27,8 +30,10 @@ export function isCourseVisibleOnIosCatalog(course: IosCourseFields): boolean {
   return course.pricingType === PricingType.FREE;
 }
 
-/** Always false — Apple IAP purchase is not offered in this build. */
-export function isIosPurchasablePaidCourse(_course: IosCourseIapFields): boolean {
+/** Always false — Apple IAP / Play Billing are not offered. */
+export function isIosPurchasablePaidCourse(
+  _course: IosCourseIapFields,
+): boolean {
   return false;
 }
 
@@ -36,32 +41,32 @@ export function assertIosCourseCatalogVisible(
   req: Request,
   course: IosCourseFields,
 ): void {
-  if (!isIosAppClient(req)) return;
+  if (!isMobileReaderClient(req)) return;
   if (course.pricingType === PricingType.FREE) return;
   throw new AppError("NOT_FOUND", "الكورس غير موجود.", 404);
 }
 
 /**
- * Course detail / access on iOS (reader mode):
- * only enrolled courses (free or paid entitlements from web/Android).
+ * Course detail / access on mobile reader:
+ * only enrolled courses (free or paid entitlements from web).
  */
 export function assertIosCourseDetailVisible(
   req: Request,
   course: IosCourseFields,
   isEnrolled: boolean,
 ): void {
-  if (!isIosAppClient(req)) return;
+  if (!isMobileReaderClient(req)) return;
   if (isEnrolled) return;
   throw new AppError("NOT_FOUND", "الكورس غير موجود.", 404);
 }
 
-/** Learn on iOS: enrollment required. */
+/** Learn on mobile: enrollment required. */
 export function assertIosCourseLearnable(
   req: Request,
   course: IosCourseFields,
   isEnrolled: boolean,
 ): void {
-  if (!isIosAppClient(req)) return;
+  if (!isMobileReaderClient(req)) return;
   if (isEnrolled) return;
   throw new AppError("NOT_FOUND", "الكورس غير موجود أو غير منشور.", 404);
 }

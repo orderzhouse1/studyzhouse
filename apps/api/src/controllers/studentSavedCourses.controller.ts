@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
+import { EnrollmentStatus } from "@prisma/client";
 
-import { isIosAppClient } from "../lib/clientPlatform.js";
-import { isCourseVisibleOnIosCatalog } from "../lib/iosCourseAccess.js";
+import { isMobileReaderClient } from "../lib/clientPlatform.js";
 import { prisma } from "../lib/prisma.js";
 import {
   listSavedCourseIdsForStudent,
@@ -10,25 +10,22 @@ import {
   unsaveCourseForStudent,
 } from "../services/studentSavedCourse.service.js";
 
-async function filterSavedCoursesForIosClient<T extends { courseId: string }>(
-  items: T[],
-): Promise<T[]> {
+/** Mobile reader: only saved courses the student is enrolled in. */
+async function filterSavedCoursesForMobileReader<
+  T extends { courseId: string },
+>(studentId: string, items: T[]): Promise<T[]> {
   if (items.length === 0) return items;
-  const courses = await prisma.course.findMany({
-    where: { id: { in: items.map((item) => item.courseId) } },
-    select: {
-      id: true,
-      pricingType: true,
-      iosPurchasable: true,
-      appleProductId: true,
+  const courseIds = items.map((item) => item.courseId);
+  const enrollments = await prisma.enrollment.findMany({
+    where: {
+      studentId,
+      courseId: { in: courseIds },
+      status: EnrollmentStatus.ACTIVE,
     },
+    select: { courseId: true },
   });
-  const visibleIds = new Set(
-    courses
-      .filter((course) => isCourseVisibleOnIosCatalog(course))
-      .map((course) => course.id),
-  );
-  return items.filter((item) => visibleIds.has(item.courseId));
+  const enrolledIds = new Set(enrollments.map((e) => e.courseId));
+  return items.filter((item) => enrolledIds.has(item.courseId));
 }
 
 export async function listStudentSavedCourses(
@@ -37,8 +34,8 @@ export async function listStudentSavedCourses(
 ): Promise<void> {
   const studentId = req.auth!.userId;
   let items = await listSavedCoursesForStudent(studentId);
-  if (isIosAppClient(req)) {
-    items = await filterSavedCoursesForIosClient(items);
+  if (isMobileReaderClient(req)) {
+    items = await filterSavedCoursesForMobileReader(studentId, items);
   }
   res.status(200).json({ success: true, data: { items } });
 }
@@ -49,9 +46,9 @@ export async function listStudentSavedCourseIds(
 ): Promise<void> {
   const studentId = req.auth!.userId;
   let courseIds = await listSavedCourseIdsForStudent(studentId);
-  if (isIosAppClient(req)) {
+  if (isMobileReaderClient(req)) {
     const items = await listSavedCoursesForStudent(studentId);
-    const filtered = await filterSavedCoursesForIosClient(items);
+    const filtered = await filterSavedCoursesForMobileReader(studentId, items);
     courseIds = filtered.map((item) => item.courseId);
   }
   res.status(200).json({ success: true, data: { courseIds } });

@@ -1,6 +1,8 @@
 # Google Play Release Checklist — STUDYZHOUSE (Android)
 
-Student-only Flutter app · Package **`com.studyzhouse.app`** · Display name **STUDYZHOUSE** · Version **1.0.0 (1)**
+Student-only Flutter app · Package **`com.studyzhouse.app`** · Display name **STUDYZHOUSE**
+
+**Reader / Learning Companion mode:** the Android app does **not** sell courses. Students sign in and continue learning from courses already in their account. No CliQ, redeem, prices, or Play Billing in-app. See `docs/GOOGLE_PLAY_READER_NOTES.md`.
 
 This is the consolidated release-candidate checklist. Mark each item as you complete it.
 **Do not commit keystores, passwords, or test credentials.** Fill secret/account values directly in Play Console, not in this repo.

@@ -1,7 +1,9 @@
 import "package:flutter_test/flutter_test.dart";
 import "package:studyzhouse_mobile/src/core/platform/ios_course_policy.dart";
+import "package:studyzhouse_mobile/src/core/platform/platform_purchase_policy.dart";
 import "package:studyzhouse_mobile/src/features/courses/models/course.dart";
 import "package:studyzhouse_mobile/src/features/courses/models/my_course_item.dart";
+import "package:studyzhouse_mobile/src/features/purchases/purchase_course_service.dart";
 
 const _freeCourse = Course(
   id: "c-free",
@@ -23,26 +25,26 @@ const _paidCourse = Course(
 );
 
 void main() {
-  test("isPaidCourse detects paid pricing", () {
-    expect(IosCoursePolicy.isPaidCourse(_paidCourse), isTrue);
-    expect(IosCoursePolicy.isPaidCourse(_freeCourse), isFalse);
+  test("mobile reader hides catalog and prices", () {
+    if (!IosCoursePolicy.isMobileReader) return;
+    expect(IosCoursePolicy.showExploreCatalog, isFalse);
+    expect(IosCoursePolicy.showPricesOnPlatform, isFalse);
+    expect(IosCoursePolicy.showPurchaseOrPaymentUi, isFalse);
+    expect(IosCoursePolicy.postLoginLocation, "/my-courses");
+    expect(IosCoursePolicy.filterCoursesForCatalog([_freeCourse, _paidCourse]), isEmpty);
+    expect(PlatformPurchasePolicy.showExternalPaymentFlows, isFalse);
   });
 
-  test("catalog is empty on iOS host (no marketplace)", () {
-    final input = [_freeCourse, _paidCourse];
-    final filtered = IosCoursePolicy.filterCoursesForCatalog(input);
-    if (IosCoursePolicy.isIOSPlatform) {
-      expect(filtered, isEmpty);
-      expect(IosCoursePolicy.showExploreCatalog, isFalse);
-      expect(IosCoursePolicy.postLoginLocation, "/my-courses");
-    } else {
-      expect(filtered, input);
-      expect(IosCoursePolicy.showExploreCatalog, isTrue);
-      expect(IosCoursePolicy.postLoginLocation, "/home");
-    }
+  test("nav skips Explore/Courses on mobile reader", () {
+    if (!IosCoursePolicy.isMobileReader) return;
+    expect(IosCoursePolicy.shellBranchForNavIndex(0), 0);
+    expect(IosCoursePolicy.shellBranchForNavIndex(1), 1);
+    expect(IosCoursePolicy.shellBranchForNavIndex(2), 3);
+    expect(IosCoursePolicy.navIndexForShellBranch(3), 2);
+    expect(IosCoursePolicy.navIndexForShellBranch(2), 1);
   });
 
-  test("filterMyCourseItemsForPlatform keeps enrolled paid on iOS host", () {
+  test("My Courses keeps enrolled paid and free; drops pending", () {
     final items = [
       MyCourseItem(
         kind: "enrolled",
@@ -68,15 +70,17 @@ void main() {
       ),
     ];
     final filtered = IosCoursePolicy.filterMyCourseItemsForPlatform(items);
-    if (IosCoursePolicy.isIOSPlatform) {
+    if (IosCoursePolicy.isMobileReader) {
       expect(filtered.length, 2);
       expect(filtered.every((i) => i.isEnrolled), isTrue);
+      expect(filtered.any((i) => i.course.isFree), isTrue);
+      expect(filtered.any((i) => !i.course.isFree), isTrue);
     } else {
       expect(filtered.length, 3);
     }
   });
 
-  test("non-enrolled paid course detail is blocked on iOS host", () {
+  test("non-enrolled paid course direct access blocked on mobile", () {
     expect(
       IosCoursePolicy.isCourseDetailAllowedOnIOS(
         course: _paidCourse,
@@ -84,7 +88,7 @@ void main() {
       ),
       isTrue,
     );
-    if (IosCoursePolicy.isIOSPlatform) {
+    if (IosCoursePolicy.isMobileReader) {
       expect(
         IosCoursePolicy.isCourseDetailAllowedOnIOS(
           course: _paidCourse,
@@ -92,23 +96,6 @@ void main() {
         ),
         isFalse,
       );
-      expect(
-        IosCoursePolicy.isCourseDetailAllowedOnIOS(
-          course: _freeCourse,
-          isEnrolled: false,
-        ),
-        isFalse,
-      );
-    }
-  });
-
-  test("prices and purchase UI hidden on iOS host", () {
-    if (IosCoursePolicy.isIOSPlatform) {
-      expect(IosCoursePolicy.showPricesOnPlatform, isFalse);
-      expect(IosCoursePolicy.showPurchaseOrPaymentUi, isFalse);
-    } else {
-      expect(IosCoursePolicy.showPricesOnPlatform, isTrue);
-      expect(IosCoursePolicy.showPurchaseOrPaymentUi, isTrue);
     }
   });
 
@@ -116,15 +103,24 @@ void main() {
     expect(IosCoursePolicy.emptyMyCoursesTitle, "لا توجد كورسات في حسابك حاليًا.");
     expect(IosCoursePolicy.emptyMyCoursesTitle.contains("شراء"), isFalse);
     expect(IosCoursePolicy.emptyMyCoursesDescription.contains("شراء"), isFalse);
-    expect(IosCoursePolicy.emptyMyCoursesDescription.contains("اشتر"), isFalse);
+    expect(IosCoursePolicy.emptyMyCoursesDescription.contains("ادفع"), isFalse);
+    expect(IosCoursePolicy.emptyMyCoursesDescription.contains("CliQ"), isFalse);
   });
 
-  test("iOS nav index skips Explore/Courses branch", () {
-    if (!IosCoursePolicy.isIOSPlatform) return;
-    expect(IosCoursePolicy.shellBranchForNavIndex(0), 0);
-    expect(IosCoursePolicy.shellBranchForNavIndex(1), 1);
-    expect(IosCoursePolicy.shellBranchForNavIndex(2), 3);
-    expect(IosCoursePolicy.navIndexForShellBranch(3), 2);
-    expect(IosCoursePolicy.navIndexForShellBranch(2), 1);
+  test("PurchaseCourseService disabled on mobile", () {
+    const service = PurchaseCourseService();
+    if (!PlatformPurchasePolicy.isMobile) return;
+    expect(service.canUseExternalPayment, isFalse);
+    expect(service.canPurchaseInApp, isFalse);
+    expect(service.isPaidCourseActionEnabled(_paidCourse), isFalse);
+    expect(
+      service.paidCourseActionLabel(course: _paidCourse),
+      PlatformPurchasePolicy.paidCourseUnavailableLabel,
+    );
+  });
+
+  test("isPaidCourse helper", () {
+    expect(IosCoursePolicy.isPaidCourse(_paidCourse), isTrue);
+    expect(IosCoursePolicy.isPaidCourse(_freeCourse), isFalse);
   });
 }

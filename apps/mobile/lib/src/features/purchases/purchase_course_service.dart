@@ -1,24 +1,24 @@
 import "../../core/platform/platform_purchase_policy.dart";
 import "../courses/models/course.dart";
 
-/// Abstraction for unlocking paid courses per platform.
+/// Purchase abstraction — disabled on mobile Reader builds.
 ///
-/// Android/web: external CliQ payment requests and activation codes.
-/// iOS: no purchase — learning companion for enrolled / free courses only.
+/// Web marketplace payments remain outside this Flutter app.
 class PurchaseCourseService {
   const PurchaseCourseService();
 
-  bool get canUseExternalPayment => PlatformPurchasePolicy.showExternalPaymentFlows;
+  bool get canUseExternalPayment =>
+      PlatformPurchasePolicy.showExternalPaymentFlows;
 
   bool get canPurchaseInApp => false;
 
   bool get showPaidCoursePurchaseUnavailable =>
-      PlatformPurchasePolicy.isIOS &&
-      PlatformPurchasePolicy.iosExternalPaymentsDisabled;
+      PlatformPurchasePolicy.isMobile &&
+      PlatformPurchasePolicy.mobileExternalPaymentsDisabled;
 
   String paidCourseActionLabel({Course? course}) {
     if (showPaidCoursePurchaseUnavailable) {
-      return PlatformPurchasePolicy.paidCourseIosUnavailableLabel;
+      return PlatformPurchasePolicy.paidCourseUnavailableLabel;
     }
     return "طلب تفعيل عبر CliQ";
   }
@@ -34,7 +34,6 @@ class PurchaseCourseService {
     required Course course,
   }) async {
     if (canUseExternalPayment) {
-      // Navigation to /purchases is handled by the UI layer on Android.
       return;
     }
     throw StateError("Paid course purchase is not available on this platform.");

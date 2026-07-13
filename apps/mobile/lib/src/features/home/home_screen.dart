@@ -4,7 +4,6 @@ import "package:go_router/go_router.dart";
 
 import "../../core/auth/current_user_provider.dart";
 import "../../core/platform/ios_course_policy.dart";
-import "../../core/platform/platform_purchase_policy.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/utils/friendly_error_message.dart";
 import "../../core/widgets/error_state.dart";
@@ -13,9 +12,6 @@ import "../courses/models/my_course_item.dart";
 import "../courses/models/student_dashboard.dart";
 import "../courses/repositories/student_courses_repository.dart";
 import "../courses/widgets/my_course_card.dart";
-import "providers/home_discover_provider.dart";
-import "widgets/home_discover_section.dart";
-import "widgets/home_promo_banner.dart";
 import "widgets/home_quick_actions.dart";
 import "widgets/home_section_title.dart";
 import "widgets/home_upper_section.dart";
@@ -30,9 +26,7 @@ final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
   return HomeData(
     dashboard: IosCoursePolicy.filterDashboardForPlatform(dashboard),
     myCoursesPreview: filteredItems.take(3).toList(),
-    pendingPayments: PlatformPurchasePolicy.showExternalPaymentFlows
-        ? myCourses.pendingPaymentsCount
-        : 0,
+    pendingPayments: 0,
   );
 });
 
@@ -58,17 +52,9 @@ class HomeScreen extends ConsumerWidget {
   }
 
   String _statusLine(HomeData data) {
-    final n = data.myCoursesPreview.isEmpty
-        ? data.dashboard.enrolledCoursesCount
-        : data.dashboard.enrolledCoursesCount;
+    final n = data.dashboard.enrolledCoursesCount;
     if (n == 0) {
-      return IosCoursePolicy.isIOSPlatform
-          ? "لا توجد كورسات في حسابك حاليًا"
-          : "ابدأ رحلتك التعليمية اليوم";
-    }
-    if (PlatformPurchasePolicy.showExternalPaymentFlows &&
-        data.pendingPayments > 0) {
-      return "$n كورس • ${data.pendingPayments} طلب دفع";
+      return IosCoursePolicy.emptyMyCoursesTitle;
     }
     return "$n كورس مسجّل • تابع تقدّمك";
   }
@@ -76,7 +62,6 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(homeDataProvider);
-    final isIos = IosCoursePolicy.isIOSPlatform;
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
@@ -94,9 +79,7 @@ class HomeScreen extends ConsumerWidget {
           color: AppColors.orange,
           onRefresh: () async {
             ref.invalidate(homeDataProvider);
-            if (!isIos) ref.invalidate(homeDiscoverProvider);
             await ref.read(homeDataProvider.future);
-            if (!isIos) await ref.read(homeDiscoverProvider.future);
           },
           child: ListView(
             padding: EdgeInsets.zero,
@@ -105,11 +88,9 @@ class HomeScreen extends ConsumerWidget {
                 userName: _greetingName(ref),
                 statusLine: _statusLine(data),
                 dashboard: data.dashboard,
-                onRedeem: () => context.push("/redeem"),
+                onRedeem: () => context.go("/my-courses"),
                 onMyCourses: () => context.go("/my-courses"),
               ),
-              if (!isIos && data.dashboard.continueLearning == null)
-                HomePromoBanner(continueLearning: null),
               const HomeQuickActionsGrid(),
               const SizedBox(height: 8),
               HomeSectionTitle(
@@ -119,11 +100,7 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 10),
               if (data.myCoursesPreview.isEmpty)
-                _EmptyHint(
-                  text: isIos
-                      ? IosCoursePolicy.emptyMyCoursesTitle
-                      : "لم تسجّل في أي كورس بعد.",
-                )
+                const _EmptyHint(text: IosCoursePolicy.emptyMyCoursesTitle)
               else
                 ...data.myCoursesPreview.map(
                   (item) => Padding(
@@ -131,7 +108,6 @@ class HomeScreen extends ConsumerWidget {
                     child: MyCourseCard(item: item),
                   ),
                 ),
-              if (!isIos) const HomeDiscoverSection(),
               const SizedBox(height: 28),
             ],
           ),
