@@ -13,6 +13,7 @@ import "../../core/widgets/error_state.dart";
 import "../../core/widgets/loading_view.dart";
 import "../learn/repositories/learning_repository.dart";
 import "../purchases/purchase_course_service.dart";
+import "../purchases/widgets/apple_iap_purchase_panel.dart";
 import "models/course.dart";
 import "providers/saved_course_ids_provider.dart";
 import "repositories/course_repository.dart";
@@ -51,7 +52,7 @@ class CourseDetailScreen extends ConsumerWidget {
         child: async.when(
           loading: () => const LoadingView(message: "جاري التحميل…"),
           error: (e, _) {
-            if (IosCoursePolicy.isIOSPlatform &&
+            if ((IosCoursePolicy.isIOS || IosCoursePolicy.isAndroid) &&
                 e is ApiException &&
                 (e.statusCode == 404 ||
                     e.code == "NOT_FOUND" ||
@@ -64,21 +65,30 @@ class CourseDetailScreen extends ConsumerWidget {
             );
           },
           data: (course) {
-            if (!IosCoursePolicy.isIOSPlatform) {
+            if (IosCoursePolicy.isAndroid) {
+              final accessAsync = ref.watch(courseAccessProvider(slug));
+              return accessAsync.when(
+                loading: () => const LoadingView(message: "جاري التحميل…"),
+                error: (_, _) => const IosPaidCourseBlockedView(),
+                data: (access) {
+                  if (access?.isEnrolled == true) {
+                    return _CourseDetailBody(course: course, slug: slug);
+                  }
+                  return const IosPaidCourseBlockedView();
+                },
+              );
+            }
+            if (IosCoursePolicy.isIOS) {
+              final allowed = IosCoursePolicy.isCourseDetailAllowedOnIOS(
+                course: course,
+                isEnrolled: false,
+              );
+              if (!allowed && !course.isFree && !course.isIosIapPurchasable) {
+                return const IosPaidCourseBlockedView();
+              }
               return _CourseDetailBody(course: course, slug: slug);
             }
-            // iOS reader: enrolled courses only (free or paid).
-            final accessAsync = ref.watch(courseAccessProvider(slug));
-            return accessAsync.when(
-              loading: () => const LoadingView(message: "جاري التحميل…"),
-              error: (_, _) => const IosPaidCourseBlockedView(),
-              data: (access) {
-                if (access?.isEnrolled == true) {
-                  return _CourseDetailBody(course: course, slug: slug);
-                }
-                return const IosPaidCourseBlockedView();
-              },
-            );
+            return _CourseDetailBody(course: course, slug: slug);
           },
         ),
       ),
@@ -195,11 +205,23 @@ class _CourseDetailBodyState extends ConsumerState<_CourseDetailBody> {
             label: "متابعة التعلّم",
             onPressed: () => context.push("/learn/$slug"),
           )
-        else if (course.isFree && IosCoursePolicy.showExploreCatalog)
+        else if (course.isFree &&
+            (IosCoursePolicy.showExploreCatalog ||
+                accessAsync.value?.canEnrollFree == true))
           AppButton(
             label: "التسجيل مجانًا",
             isLoading: _enrolling,
             onPressed: _enrolling ? null : _enrollFree,
+          )
+        else if (!course.isFree &&
+            IosCoursePolicy.showAppleIapPurchaseUi &&
+            course.isIosIapPurchasable)
+          AppleIapPurchasePanel(
+            course: course,
+            onUnlocked: () {
+              ref.invalidate(courseAccessProvider(slug));
+              ref.invalidate(courseDetailProvider(slug));
+            },
           )
         else if (!course.isFree &&
             PlatformPurchasePolicy.showExternalPaymentFlows)
@@ -208,7 +230,9 @@ class _CourseDetailBodyState extends ConsumerState<_CourseDetailBody> {
             onPressed: _purchaseService.isPaidCourseActionEnabled(course)
                 ? _openPurchases
                 : null,
-          ),
+          )
+        else if (!course.isFree && IosCoursePolicy.isAndroid)
+          const IosPaidCourseBlockedView(),
         if (!course.isFree &&
             PlatformPurchasePolicy.showExternalPaymentFlows) ...[
           const SizedBox(height: 8),

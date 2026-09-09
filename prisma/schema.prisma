@@ -578,17 +578,26 @@ model CourseRecommendationDismissal {
   @@index([studentId, createdAt])
 }
 
+enum AppleIapPurchaseStatus {
+  ACTIVE
+  REVOKED
+}
+
 model AppleIapPurchase {
-  id                    String   @id @default(cuid())
+  id                    String                 @id @default(cuid())
   studentId             String
   courseId              String
   appleProductId        String
-  transactionId         String   @unique
+  transactionId         String                 @unique
   originalTransactionId String?
   purchaseDate          DateTime
   environment           String
-  verificationPayload   String?  @db.Text
-  createdAt             DateTime @default(now())
+  status                AppleIapPurchaseStatus @default(ACTIVE)
+  revokedAt             DateTime?
+  rawSignedTransaction  String?                @db.Text
+  verificationPayload   String?                @db.Text
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
 
   student User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
   course  Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -596,6 +605,8 @@ model AppleIapPurchase {
   @@index([studentId])
   @@index([courseId])
   @@index([appleProductId])
+  @@index([status])
+  @@index([originalTransactionId])
 }
 
 model WebPushSubscription {

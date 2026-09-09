@@ -2,8 +2,9 @@ import "package:flutter/foundation.dart";
 
 /// Purchase / payment rules for the Flutter student app.
 ///
-/// Mobile (iOS + Android) is a Reader / Learning Companion — no marketplace
-/// or in-app payment flows. Web marketplace behavior is separate.
+/// - iOS: Apple IAP only for paid digital courses (no CliQ/Stripe/external).
+/// - Android: Reader companion — no marketplace payment flows (unchanged).
+/// - Web marketplace remains outside this Flutter app.
 abstract final class PlatformPurchasePolicy {
   static bool get isIOS =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
@@ -20,8 +21,8 @@ abstract final class PlatformPurchasePolicy {
   /// @deprecated Use [mobileExternalPaymentsDisabled].
   static const bool iosExternalPaymentsDisabled = mobileExternalPaymentsDisabled;
 
-  /// Apple IAP / Play Billing are not implemented.
-  static const bool iapEnabled = false;
+  /// Apple IAP enabled on iOS only.
+  static bool get iapEnabled => isIOS;
 
   static bool get showExternalPaymentFlows =>
       !(isMobile && mobileExternalPaymentsDisabled);
@@ -44,6 +45,11 @@ abstract final class PlatformPurchasePolicy {
   /// @deprecated Use [blockedFeatureDescription].
   static const String iosBlockedFeatureDescription =
       blockedFeatureDescription;
+
+  static const String applePurchaseButtonLabel = "شراء الكورس عبر Apple";
+  static const String appleRestoreButtonLabel = "استعادة المشتريات";
+  static const String applePurchaseDisclaimer =
+      "هذا الشراء يفتح الوصول إلى هذا الكورس داخل تطبيق STUDYZHOUSE";
 
   /// Pending badge — mobile never shows payment wording.
   static String get pendingEnrollmentStatusLabel =>

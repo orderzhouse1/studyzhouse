@@ -14,7 +14,7 @@ const _freeCourse = Course(
   level: "BEGINNER",
 );
 
-const _paidCourse = Course(
+const _paidIapCourse = Course(
   id: "c-paid",
   title: "مدفوع",
   slug: "paid-course",
@@ -22,48 +22,74 @@ const _paidCourse = Course(
   priceAmount: "10",
   currency: "JOD",
   level: "BEGINNER",
-  appleProductId: "com.studyzhouse.app.course.test1",
+  appleProductId: "studyzhouse_course_mswdh_kwrs_17",
   iosPurchasable: true,
 );
 
+const _paidUnmapped = Course(
+  id: "c-paid-unmapped",
+  title: "مدفوع بدون IAP",
+  slug: "paid-unmapped",
+  pricingType: "PAID",
+  priceAmount: "10",
+  currency: "JOD",
+  level: "BEGINNER",
+  iosPurchasable: false,
+);
+
 void main() {
-  group("strict reader mode (no IAP)", () {
-    test("catalog empty on mobile — no marketplace", () {
-      expect(IosCoursePolicy.isCourseVisibleOnIosCatalog(_freeCourse), isFalse);
-      expect(IosCoursePolicy.isCourseVisibleOnIosCatalog(_paidCourse), isFalse);
-      if (!IosCoursePolicy.isMobileReader) return;
+  group("iOS Apple IAP marketplace policy", () {
+    test("IAP-mapped paid courses are purchasable", () {
+      expect(_paidIapCourse.isIosIapPurchasable, isTrue);
+      expect(_paidUnmapped.isIosIapPurchasable, isFalse);
+    });
+
+    test("catalog visibility helpers", () {
+      if (!IosCoursePolicy.isIOS) return;
+      expect(IosCoursePolicy.isCourseVisibleOnIosCatalog(_freeCourse), isTrue);
       expect(
-        IosCoursePolicy.filterCoursesForCatalog([_freeCourse, _paidCourse]),
-        isEmpty,
+        IosCoursePolicy.isCourseVisibleOnIosCatalog(_paidIapCourse),
+        isTrue,
+      );
+      expect(
+        IosCoursePolicy.isCourseVisibleOnIosCatalog(_paidUnmapped),
+        isFalse,
       );
     });
 
-    test("enrolled paid allowed; non-enrolled blocked", () {
+    test("detail allows IAP paid without enrollment on iOS", () {
+      if (!IosCoursePolicy.isIOS) return;
       expect(
         IosCoursePolicy.isCourseDetailAllowedOnIOS(
-          course: _paidCourse,
-          isEnrolled: true,
+          course: _paidIapCourse,
+          isEnrolled: false,
         ),
         isTrue,
       );
-      if (!IosCoursePolicy.isMobileReader) return;
       expect(
         IosCoursePolicy.isCourseDetailAllowedOnIOS(
-          course: _paidCourse,
-          isEnrolled: false,
+          course: _paidUnmapped,
+          isEnrolled: true,
         ),
         isFalse,
       );
     });
 
-    test("my courses keeps enrolled paid, drops pending", () {
+    test("my courses drops unmapped paid", () {
       final items = [
         MyCourseItem(
           kind: "enrolled",
           progressPercent: 10,
           completedLessons: 1,
           totalLessons: 5,
-          course: _paidCourse,
+          course: _paidIapCourse,
+        ),
+        MyCourseItem(
+          kind: "enrolled",
+          progressPercent: 0,
+          completedLessons: 0,
+          totalLessons: 5,
+          course: _paidUnmapped,
         ),
         MyCourseItem(
           kind: "pending_payment",
@@ -71,33 +97,49 @@ void main() {
           progressPercent: 0,
           completedLessons: 0,
           totalLessons: 5,
-          course: _paidCourse,
+          course: _paidIapCourse,
         ),
       ];
       final filtered = IosCoursePolicy.filterMyCourseItemsForPlatform(items);
       if (!IosCoursePolicy.isMobileReader) return;
-      expect(filtered.length, 1);
-      expect(filtered.first.isEnrolled, isTrue);
+      expect(filtered.every((i) => i.isEnrolled), isTrue);
+      if (IosCoursePolicy.isIOS) {
+        expect(
+          filtered.every(
+            (i) => i.course.isFree || i.course.isIosIapPurchasable,
+          ),
+          isTrue,
+        );
+      }
+    });
+  });
+
+  group("PlatformPurchasePolicy", () {
+    test("external payments stay disabled on mobile", () {
+      if (!PlatformPurchasePolicy.isMobile) return;
+      expect(PlatformPurchasePolicy.showExternalPaymentFlows, isFalse);
     });
 
-    test("prices and IAP hidden on mobile", () {
-      expect(PlatformPurchasePolicy.iapEnabled, isFalse);
-      if (!IosCoursePolicy.isMobileReader) return;
-      expect(IosCoursePolicy.showPricesOnPlatform, isFalse);
-      expect(IosCoursePolicy.showPurchaseOrPaymentUi, isFalse);
+    test("IAP enabled only on iOS", () {
+      expect(
+        PlatformPurchasePolicy.iapEnabled,
+        PlatformPurchasePolicy.isIOS,
+      );
     });
   });
 
   group("PurchaseCourseService", () {
     const service = PurchaseCourseService();
 
-    test("no IAP or CliQ on mobile", () {
-      expect(PlatformPurchasePolicy.iapEnabled, isFalse);
-      expect(service.canPurchaseInApp, isFalse);
-      if (!PlatformPurchasePolicy.isMobile) return;
+    test("store product id for IAP courses", () {
+      if (!PlatformPurchasePolicy.isIOS) return;
+      expect(service.canPurchaseInApp, isTrue);
+      expect(
+        service.storeProductIdForCourse(_paidIapCourse),
+        "studyzhouse_course_mswdh_kwrs_17",
+      );
+      expect(service.storeProductIdForCourse(_paidUnmapped), isNull);
       expect(service.canUseExternalPayment, isFalse);
-      expect(service.isPaidCourseActionEnabled(_paidCourse), isFalse);
-      expect(service.storeProductIdForCourse(_paidCourse), isNull);
     });
   });
 }

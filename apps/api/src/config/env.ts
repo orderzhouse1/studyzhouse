@@ -25,6 +25,13 @@ const envSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().min(1).optional(),
   CLOUDINARY_API_KEY: z.string().min(1).optional(),
   CLOUDINARY_API_SECRET: z.string().min(1).optional(),
+  /** Apple IAP — optional so the API boots without them; verify fails safely when missing. */
+  APPLE_BUNDLE_ID: z.string().min(1).optional(),
+  APPLE_APP_APPLE_ID: z.string().min(1).optional(),
+  APPLE_IAP_ISSUER_ID: z.string().min(1).optional(),
+  APPLE_IAP_KEY_ID: z.string().min(1).optional(),
+  APPLE_IAP_PRIVATE_KEY: z.string().min(1).optional(),
+  APPLE_IAP_ENVIRONMENT: z.enum(["sandbox", "production"]).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

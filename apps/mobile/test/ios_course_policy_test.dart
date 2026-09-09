@@ -22,29 +22,43 @@ const _paidCourse = Course(
   priceAmount: "10",
   currency: "JOD",
   level: "BEGINNER",
+  appleProductId: "studyzhouse_course_mswdh_kwrs_17",
+  iosPurchasable: true,
 );
 
 void main() {
-  test("mobile reader hides catalog and prices", () {
-    if (!IosCoursePolicy.isMobileReader) return;
+  test("Android reader hides catalog and prices", () {
+    if (!IosCoursePolicy.isAndroid) return;
     expect(IosCoursePolicy.showExploreCatalog, isFalse);
     expect(IosCoursePolicy.showPricesOnPlatform, isFalse);
     expect(IosCoursePolicy.showPurchaseOrPaymentUi, isFalse);
     expect(IosCoursePolicy.postLoginLocation, "/my-courses");
-    expect(IosCoursePolicy.filterCoursesForCatalog([_freeCourse, _paidCourse]), isEmpty);
+    expect(
+      IosCoursePolicy.filterCoursesForCatalog([_freeCourse, _paidCourse]),
+      isEmpty,
+    );
     expect(PlatformPurchasePolicy.showExternalPaymentFlows, isFalse);
   });
 
-  test("nav skips Explore/Courses on mobile reader", () {
-    if (!IosCoursePolicy.isMobileReader) return;
+  test("iOS marketplace shows explore catalog", () {
+    if (!IosCoursePolicy.isIOS) return;
+    expect(IosCoursePolicy.showExploreCatalog, isTrue);
+    expect(IosCoursePolicy.showAppleIapPurchaseUi, isTrue);
+    expect(
+      IosCoursePolicy.filterCoursesForCatalog([_freeCourse, _paidCourse]),
+      isNotEmpty,
+    );
+  });
+
+  test("nav mapping for Android reader", () {
+    if (!IosCoursePolicy.isAndroid) return;
     expect(IosCoursePolicy.shellBranchForNavIndex(0), 0);
     expect(IosCoursePolicy.shellBranchForNavIndex(1), 1);
     expect(IosCoursePolicy.shellBranchForNavIndex(2), 3);
     expect(IosCoursePolicy.navIndexForShellBranch(3), 2);
-    expect(IosCoursePolicy.navIndexForShellBranch(2), 1);
   });
 
-  test("My Courses keeps enrolled paid and free; drops pending", () {
+  test("My Courses keeps enrolled; drops pending", () {
     final items = [
       MyCourseItem(
         kind: "enrolled",
@@ -73,54 +87,20 @@ void main() {
     if (IosCoursePolicy.isMobileReader) {
       expect(filtered.length, 2);
       expect(filtered.every((i) => i.isEnrolled), isTrue);
-      expect(filtered.any((i) => i.course.isFree), isTrue);
-      expect(filtered.any((i) => !i.course.isFree), isTrue);
     } else {
       expect(filtered.length, 3);
     }
   });
 
-  test("non-enrolled paid course direct access blocked on mobile", () {
-    expect(
-      IosCoursePolicy.isCourseDetailAllowedOnIOS(
-        course: _paidCourse,
-        isEnrolled: true,
-      ),
-      isTrue,
-    );
-    if (IosCoursePolicy.isMobileReader) {
-      expect(
-        IosCoursePolicy.isCourseDetailAllowedOnIOS(
-          course: _paidCourse,
-          isEnrolled: false,
-        ),
-        isFalse,
-      );
-    }
-  });
-
-  test("empty My Courses copy has no purchase CTA", () {
+  test("empty My Courses copy has no CliQ CTA", () {
     expect(IosCoursePolicy.emptyMyCoursesTitle, "لا توجد كورسات في حسابك حاليًا.");
-    expect(IosCoursePolicy.emptyMyCoursesTitle.contains("شراء"), isFalse);
-    expect(IosCoursePolicy.emptyMyCoursesDescription.contains("شراء"), isFalse);
-    expect(IosCoursePolicy.emptyMyCoursesDescription.contains("ادفع"), isFalse);
     expect(IosCoursePolicy.emptyMyCoursesDescription.contains("CliQ"), isFalse);
   });
 
-  test("PurchaseCourseService disabled on mobile", () {
+  test("PurchaseCourseService: no external CliQ on mobile", () {
     const service = PurchaseCourseService();
     if (!PlatformPurchasePolicy.isMobile) return;
     expect(service.canUseExternalPayment, isFalse);
-    expect(service.canPurchaseInApp, isFalse);
-    expect(service.isPaidCourseActionEnabled(_paidCourse), isFalse);
-    expect(
-      service.paidCourseActionLabel(course: _paidCourse),
-      PlatformPurchasePolicy.paidCourseUnavailableLabel,
-    );
-  });
-
-  test("isPaidCourse helper", () {
-    expect(IosCoursePolicy.isPaidCourse(_paidCourse), isTrue);
-    expect(IosCoursePolicy.isPaidCourse(_freeCourse), isFalse);
+    expect(service.paidCourseActionLabel(course: _paidCourse).contains("CliQ"), isFalse);
   });
 }

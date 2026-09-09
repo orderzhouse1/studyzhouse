@@ -1,4 +1,5 @@
 import {
+  AppleIapPurchaseStatus,
   CourseStatus,
   EnrollmentSource,
   EnrollmentStatus,
@@ -6,8 +7,14 @@ import {
 } from "@prisma/client";
 
 import { AppError } from "../lib/AppError.js";
-import { prisma } from "../lib/prisma.js";
+import {
+  assertAppleIapConfigured,
+  decodeAppleNotificationPayload,
+  decodeAppleSignedTransactionForNotification,
+  verifyAppleTransactionWithServerApi,
+} from "../lib/appleAppStoreServer.js";
 import { isIosPurchasablePaidCourse } from "../lib/iosCourseAccess.js";
+import { prisma } from "../lib/prisma.js";
 
 export type AppleIapPurchaseInput = {
   productId: string;
@@ -16,15 +23,6 @@ export type AppleIapPurchaseInput = {
   verificationData?: string;
   environment?: "Sandbox" | "Production";
 };
-
-function parsePurchaseDate(value?: string): Date {
-  if (!value) return new Date();
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    throw new AppError("VALIDATION_ERROR", "تاريخ الشراء غير صالح.", 400);
-  }
-  return parsed;
-}
 
 async function findIosPurchasableCourseByProductId(productId: string) {
   return prisma.course.findFirst({
@@ -70,13 +68,20 @@ async function unlockCourseFromApplePurchase(params: {
   courseId: string;
   appleProductId: string;
   transactionId: string;
+  originalTransactionId?: string | null;
   purchaseDate: Date;
   environment: string;
   verificationPayload?: string;
+  rawSignedTransaction?: string;
 }) {
   const existingPurchase = await prisma.appleIapPurchase.findUnique({
     where: { transactionId: params.transactionId },
-    select: { id: true, studentId: true, courseId: true },
+    select: {
+      id: true,
+      studentId: true,
+      courseId: true,
+      status: true,
+    },
   });
 
   if (existingPurchase) {
@@ -88,6 +93,14 @@ async function unlockCourseFromApplePurchase(params: {
         "IAP_TRANSACTION_CONFLICT",
         "معاملة Apple هذه مرتبطة بحساب أو كورس آخر.",
         409,
+      );
+    }
+
+    if (existingPurchase.status === AppleIapPurchaseStatus.REVOKED) {
+      throw new AppError(
+        "IAP_TRANSACTION_REVOKED",
+        "تم إلغاء عملية الشراء من Apple.",
+        400,
       );
     }
 
@@ -142,9 +155,23 @@ async function unlockCourseFromApplePurchase(params: {
           courseId: params.courseId,
           appleProductId: params.appleProductId,
           transactionId: params.transactionId,
+          originalTransactionId: params.originalTransactionId ?? null,
           purchaseDate: params.purchaseDate,
           environment: params.environment,
+          status: AppleIapPurchaseStatus.ACTIVE,
           verificationPayload: params.verificationPayload ?? null,
+          rawSignedTransaction: params.rawSignedTransaction ?? null,
+        },
+      });
+    } else {
+      await tx.appleIapPurchase.update({
+        where: { id: existingPurchase.id },
+        data: {
+          status: AppleIapPurchaseStatus.ACTIVE,
+          revokedAt: null,
+          originalTransactionId: params.originalTransactionId ?? undefined,
+          rawSignedTransaction: params.rawSignedTransaction ?? undefined,
+          verificationPayload: params.verificationPayload ?? undefined,
         },
       });
     }
@@ -158,9 +185,20 @@ export async function verifyApplePurchaseForCourse(
   courseId: string | undefined,
   purchase: AppleIapPurchaseInput,
 ) {
+  assertAppleIapConfigured();
+
+  if (!purchase.verificationData?.trim()) {
+    throw new AppError(
+      "IAP_VERIFICATION_DATA_REQUIRED",
+      "بيانات التحقق من Apple مطلوبة.",
+      400,
+    );
+  }
+
   const course = courseId
     ? await findIosPurchasableCourseById(courseId)
     : await findIosPurchasableCourseByProductId(purchase.productId);
+
   if (!course || !isIosPurchasablePaidCourse(course)) {
     throw new AppError(
       "COURSE_NOT_IAP",
@@ -177,20 +215,38 @@ export async function verifyApplePurchaseForCourse(
     );
   }
 
+  const verified = await verifyAppleTransactionWithServerApi({
+    transactionId: purchase.transactionId,
+    expectedProductId: purchase.productId,
+    clientSignedTransaction: purchase.verificationData,
+  });
+
+  if (verified.productId !== course.appleProductId) {
+    throw new AppError(
+      "IAP_PRODUCT_MISMATCH",
+      "معرّف منتج Apple لا يطابق هذا الكورس.",
+      400,
+    );
+  }
+
   const result = await unlockCourseFromApplePurchase({
     studentId,
     courseId: course.id,
-    appleProductId: purchase.productId,
-    transactionId: purchase.transactionId,
-    purchaseDate: parsePurchaseDate(purchase.purchaseDate),
-    environment: purchase.environment ?? "Sandbox",
+    appleProductId: verified.productId,
+    transactionId: verified.transactionId,
+    originalTransactionId: verified.originalTransactionId,
+    purchaseDate: verified.purchaseDate,
+    environment: verified.environment,
     verificationPayload: purchase.verificationData,
+    rawSignedTransaction: verified.rawSignedTransaction,
   });
 
   return {
     courseId: course.id,
     courseSlug: course.slug,
     alreadyUnlocked: result.alreadyUnlocked,
+    productId: verified.productId,
+    transactionId: verified.transactionId,
   };
 }
 
@@ -198,30 +254,220 @@ export async function restoreApplePurchasesForStudent(
   studentId: string,
   purchases: AppleIapPurchaseInput[],
 ) {
+  assertAppleIapConfigured();
+
   const restoredCourseIds: string[] = [];
-  const skipped: string[] = [];
+  const skippedProductIds: string[] = [];
+  const errors: Array<{ productId: string; code: string }> = [];
 
   for (const purchase of purchases) {
-    const course = await findIosPurchasableCourseByProductId(purchase.productId);
-    if (!course) {
-      skipped.push(purchase.productId);
+    if (!purchase.verificationData?.trim()) {
+      skippedProductIds.push(purchase.productId);
       continue;
     }
 
-    const result = await unlockCourseFromApplePurchase({
-      studentId,
-      courseId: course.id,
-      appleProductId: purchase.productId,
-      transactionId: purchase.transactionId,
-      purchaseDate: parsePurchaseDate(purchase.purchaseDate),
-      environment: purchase.environment ?? "Sandbox",
-      verificationPayload: purchase.verificationData,
-    });
+    const course = await findIosPurchasableCourseByProductId(purchase.productId);
+    if (!course || !isIosPurchasablePaidCourse(course)) {
+      skippedProductIds.push(purchase.productId);
+      continue;
+    }
 
-    if (!restoredCourseIds.includes(result.courseId)) {
-      restoredCourseIds.push(result.courseId);
+    try {
+      const verified = await verifyAppleTransactionWithServerApi({
+        transactionId: purchase.transactionId,
+        expectedProductId: purchase.productId,
+        clientSignedTransaction: purchase.verificationData,
+      });
+
+      const result = await unlockCourseFromApplePurchase({
+        studentId,
+        courseId: course.id,
+        appleProductId: verified.productId,
+        transactionId: verified.transactionId,
+        originalTransactionId: verified.originalTransactionId,
+        purchaseDate: verified.purchaseDate,
+        environment: verified.environment,
+        verificationPayload: purchase.verificationData,
+        rawSignedTransaction: verified.rawSignedTransaction,
+      });
+
+      if (!restoredCourseIds.includes(result.courseId)) {
+        restoredCourseIds.push(result.courseId);
+      }
+    } catch (err) {
+      const code = err instanceof AppError ? err.code : "IAP_RESTORE_FAILED";
+      errors.push({ productId: purchase.productId, code });
     }
   }
 
-  return { restoredCourseIds, skippedProductIds: skipped };
+  return { restoredCourseIds, skippedProductIds, errors };
+}
+
+export async function listStudentCourseEntitlements(studentId: string) {
+  const enrollments = await prisma.enrollment.findMany({
+    where: {
+      studentId,
+      status: EnrollmentStatus.ACTIVE,
+    },
+    select: {
+      id: true,
+      courseId: true,
+      source: true,
+      progressPercent: true,
+      course: {
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          pricingType: true,
+          appleProductId: true,
+          iosPurchasable: true,
+          status: true,
+        },
+      },
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  const purchases = await prisma.appleIapPurchase.findMany({
+    where: {
+      studentId,
+      status: AppleIapPurchaseStatus.ACTIVE,
+    },
+    select: {
+      courseId: true,
+      appleProductId: true,
+      transactionId: true,
+      originalTransactionId: true,
+      purchaseDate: true,
+      environment: true,
+    },
+  });
+
+  const purchaseByCourse = new Map(purchases.map((p) => [p.courseId, p]));
+
+  return {
+    entitlements: enrollments.map((e) => ({
+      enrollmentId: e.id,
+      courseId: e.courseId,
+      courseSlug: e.course.slug,
+      title: e.course.title,
+      pricingType: e.course.pricingType,
+      source: e.source,
+      progressPercent: e.progressPercent,
+      appleProductId: e.course.appleProductId,
+      iosPurchasable: e.course.iosPurchasable,
+      applePurchase: purchaseByCourse.get(e.courseId) ?? null,
+    })),
+  };
+}
+
+async function revokeApplePurchaseAccess(params: {
+  transactionId: string;
+  originalTransactionId?: string | null;
+  productId: string;
+}) {
+  const purchase =
+    (await prisma.appleIapPurchase.findUnique({
+      where: { transactionId: params.transactionId },
+    })) ??
+    (params.originalTransactionId
+      ? await prisma.appleIapPurchase.findFirst({
+          where: { originalTransactionId: params.originalTransactionId },
+          orderBy: { createdAt: "desc" },
+        })
+      : null);
+
+  if (!purchase) {
+    return { revoked: false, reason: "PURCHASE_NOT_FOUND" as const };
+  }
+
+  if (purchase.appleProductId !== params.productId) {
+    return { revoked: false, reason: "PRODUCT_MISMATCH" as const };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.appleIapPurchase.update({
+      where: { id: purchase.id },
+      data: {
+        status: AppleIapPurchaseStatus.REVOKED,
+        revokedAt: new Date(),
+      },
+    });
+
+    const enrollment = await tx.enrollment.findUnique({
+      where: {
+        studentId_courseId: {
+          studentId: purchase.studentId,
+          courseId: purchase.courseId,
+        },
+      },
+    });
+
+    if (
+      enrollment &&
+      enrollment.source === EnrollmentSource.APPLE_IAP &&
+      enrollment.status === EnrollmentStatus.ACTIVE
+    ) {
+      await tx.enrollment.update({
+        where: { id: enrollment.id },
+        data: { status: EnrollmentStatus.REVOKED },
+      });
+    }
+  });
+
+  return { revoked: true, reason: "OK" as const };
+}
+
+/**
+ * App Store Server Notifications V2 handler (refund / revoke).
+ * Requires Apple IAP env; verifies signed payload structure lightly via decode.
+ */
+export async function handleAppleIapServerNotification(signedPayload: string) {
+  const config = assertAppleIapConfigured();
+  const notification = decodeAppleNotificationPayload(signedPayload);
+  const type = (notification.notificationType ?? "").toUpperCase();
+  const signedTxn = notification.data?.signedTransactionInfo?.trim();
+
+  if (!signedTxn) {
+    return {
+      handled: false,
+      notificationType: type || null,
+      reason: "NO_TRANSACTION" as const,
+    };
+  }
+
+  const txn = decodeAppleSignedTransactionForNotification(
+    signedTxn,
+    config.bundleId,
+  );
+
+  const revokeTypes = new Set([
+    "REFUND",
+    "REVOKE",
+    "ONE_TIME_CHARGE_REFUNDED",
+  ]);
+
+  if (!revokeTypes.has(type) && !txn.revocationDate) {
+    return {
+      handled: true,
+      notificationType: type,
+      reason: "IGNORED_TYPE" as const,
+      productId: txn.productId,
+    };
+  }
+
+  const result = await revokeApplePurchaseAccess({
+    transactionId: txn.transactionId,
+    originalTransactionId: txn.originalTransactionId,
+    productId: txn.productId,
+  });
+
+  return {
+    handled: true,
+    notificationType: type,
+    productId: txn.productId,
+    transactionId: txn.transactionId,
+    ...result,
+  };
 }

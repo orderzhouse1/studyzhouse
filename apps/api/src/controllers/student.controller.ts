@@ -9,9 +9,15 @@ import {
 } from "@prisma/client";
 
 import { AppError } from "../lib/AppError.js";
-import { isMobileReaderClient } from "../lib/clientPlatform.js";
+import {
+  isAndroidAppClient,
+  isIosAppClient,
+  isMobileReaderClient,
+} from "../lib/clientPlatform.js";
 import {
   assertIosCourseDetailVisible,
+  assertIosCourseLearnable,
+  iosPublishedCourseVisibilityWhere,
 } from "../lib/iosCourseAccess.js";
 import { mapCoursePublic } from "../lib/courseMapper.js";
 import { prisma } from "../lib/prisma.js";
@@ -27,7 +33,13 @@ import {
 
 const DESCRIPTION_MAX = 8000;
 
-function publishedEnrollmentCourseScopeForClient(_req: Request) {
+function publishedEnrollmentCourseScopeForClient(req: Request) {
+  if (isIosAppClient(req)) {
+    return {
+      status: CourseStatus.PUBLISHED,
+      AND: [iosPublishedCourseVisibilityWhere()],
+    };
+  }
   return {
     status: CourseStatus.PUBLISHED,
   };
@@ -252,6 +264,8 @@ export async function getStudentMyCourses(
           pricingType: dto.pricingType,
           level: dto.level,
           estimatedDurationMinutes: dto.estimatedDurationMinutes,
+          appleProductId: dto.appleProductId,
+          iosPurchasable: dto.iosPurchasable,
         },
       };
     }),
@@ -280,6 +294,8 @@ export async function getStudentMyCourses(
           pricingType: dto.pricingType,
           level: dto.level,
           estimatedDurationMinutes: dto.estimatedDurationMinutes,
+          appleProductId: dto.appleProductId,
+          iosPurchasable: dto.iosPurchasable,
         },
       };
     });
@@ -345,6 +361,7 @@ export async function getStudentCourseLearn(
     studentId,
     course.id,
   );
+  assertIosCourseLearnable(req, course, true);
 
   const orphanLessons = await prisma.lesson.findMany({
     where: {
@@ -757,11 +774,11 @@ export async function getStudentCourseAccess(
       progressPercent: enrollment?.progressPercent ?? 0,
       pendingPaymentRequest,
       canEnrollFree:
-        !isMobileReaderClient(req) &&
+        !isAndroidAppClient(req) &&
         course.pricingType === PricingType.FREE &&
         !isEnrolled,
-      appleProductId: isMobileReaderClient(req) ? null : course.appleProductId,
-      iosPurchasable: isMobileReaderClient(req) ? false : course.iosPurchasable,
+      appleProductId: isAndroidAppClient(req) ? null : course.appleProductId,
+      iosPurchasable: isAndroidAppClient(req) ? false : course.iosPurchasable,
     },
   });
 }
@@ -770,7 +787,7 @@ export async function enrollStudentInFreeCourse(
   req: Request,
   res: Response,
 ): Promise<void> {
-  if (isMobileReaderClient(req)) {
+  if (isAndroidAppClient(req)) {
     throw new AppError(
       "NOT_FOUND",
       "التسجيل في الكورسات غير متاح داخل تطبيق الجوال.",

@@ -11,12 +11,17 @@ const _paidCourse = Course(
   priceAmount: "10",
   currency: "JOD",
   level: "BEGINNER",
+  appleProductId: "studyzhouse_course_test",
+  iosPurchasable: true,
 );
 
 void main() {
   group("PlatformPurchasePolicy", () {
-    test("iapEnabled is false", () {
-      expect(PlatformPurchasePolicy.iapEnabled, isFalse);
+    test("iapEnabled matches iOS only", () {
+      expect(
+        PlatformPurchasePolicy.iapEnabled,
+        PlatformPurchasePolicy.isIOS,
+      );
     });
 
     test("mobile disables external payment flows", () {
@@ -29,14 +34,10 @@ void main() {
   group("PurchaseCourseService", () {
     const service = PurchaseCourseService();
 
-    test("no CliQ / IAP purchase on mobile host", () {
+    test("no CliQ on mobile", () {
       if (!PlatformPurchasePolicy.isMobile) return;
       expect(service.canUseExternalPayment, isFalse);
-      expect(service.canPurchaseInApp, isFalse);
-      expect(service.isPaidCourseActionEnabled(_paidCourse), isFalse);
-      final label = service.paidCourseActionLabel(course: _paidCourse);
-      expect(label.contains("CliQ"), isFalse);
-      expect(label.contains("شراء"), isFalse);
+      expect(service.paidCourseActionLabel(course: _paidCourse).contains("CliQ"), isFalse);
     });
   });
 }
