@@ -31,6 +31,7 @@ const SOURCE_LABELS: Record<StudentPurchaseItem["source"], string> = {
   MANUAL_ADMIN: "تسجيل إداري",
   FREE: "مجاني",
   MANUAL: "يدوي",
+  APPLE_IAP: "شراء Apple",
   UNKNOWN: "أخرى",
 };
 
