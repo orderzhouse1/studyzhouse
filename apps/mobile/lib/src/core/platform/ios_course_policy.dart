@@ -4,11 +4,12 @@ import "../../features/courses/models/course.dart";
 import "../../features/courses/models/my_course_item.dart";
 import "../../features/courses/models/saved_course.dart";
 import "../../features/courses/models/student_dashboard.dart";
+import "platform_purchase_policy.dart";
 
-/// Mobile Reader / Learning Companion policy (iOS + Android).
+/// Course visibility / navigation policy.
 ///
-/// No course marketplace. Students only continue learning from courses
-/// already enrolled in their account (including web purchases).
+/// - **iOS:** marketplace of free + Apple-IAP mapped paid courses.
+/// - **Android:** Reader / Learning Companion (enrolled-only; no marketplace).
 abstract final class IosCoursePolicy {
   static bool get isIOS =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
@@ -19,15 +20,15 @@ abstract final class IosCoursePolicy {
   /// True on native iOS and Android builds.
   static bool get isMobileReader => isIOS || isAndroid;
 
-  /// @deprecated Prefer [isMobileReader] — kept for call-site compatibility.
+  /// @deprecated Prefer [isIOS] / [isAndroid] / [isMobileReader].
   static bool get isIOSPlatform => isMobileReader;
 
-  /// Explore / catalog tab and marketplace UI are hidden on mobile.
-  static bool get showExploreCatalog => !isMobileReader;
+  /// Explore / catalog: enabled on iOS (IAP marketplace), hidden on Android.
+  static bool get showExploreCatalog => isIOS || !isMobileReader;
 
   /// Post-login / session restore landing route.
   static String get postLoginLocation =>
-      isMobileReader ? "/my-courses" : "/home";
+      isAndroid ? "/my-courses" : "/home";
 
   static const String paidCourseBlockedMessage =
       "هذا الكورس غير متاح داخل التطبيق.";
@@ -46,40 +47,60 @@ abstract final class IosCoursePolicy {
 
   static bool isPaidSavedCourse(SavedCourseItem item) => !item.course.isFree;
 
-  /// Public catalog is not used on mobile (no marketplace).
-  static bool isCourseVisibleOnIosCatalog(Course course) => false;
+  static bool isCourseVisibleOnIosCatalog(Course course) {
+    if (!isIOS) {
+      // Non-iOS mobile (Android): no catalog marketplace.
+      if (isAndroid) return false;
+      return true;
+    }
+    if (course.isFree) return true;
+    return course.isIosIapPurchasable;
+  }
 
-  /// Course detail without enrollment: nothing from catalog on mobile.
+  /// Course detail without enrollment: iOS allows IAP-mapped paid; Android none.
   static bool isCourseAllowedOnIOS({
     Course? course,
     String? pricingType,
     bool? isFree,
   }) {
-    if (!isMobileReader) return true;
+    if (isAndroid) return false;
+    if (!isIOS) return true;
+    if (course != null) {
+      if (course.isFree) return true;
+      return course.isIosIapPurchasable;
+    }
+    if (isFree == true) return true;
+    if (pricingType == "FREE") return true;
     return false;
   }
 
-  /// Course detail: enrolled courses only on mobile (paid or free).
+  /// Course detail: iOS enrolled OR IAP-purchasable; Android enrolled-only.
   static bool isCourseDetailAllowedOnIOS({
     required Course course,
     required bool isEnrolled,
   }) {
-    if (!isMobileReader) return true;
-    return isEnrolled;
+    if (isAndroid) return isEnrolled;
+    if (!isIOS) return true;
+    if (course.isFree) return true;
+    if (course.isIosIapPurchasable) return true;
+    return false;
   }
 
+  /// Show DB price chips only off mobile; iOS shows StoreKit price in IAP UI.
   static bool get showPricesOnPlatform => !isMobileReader;
 
-  static bool get showPurchaseOrPaymentUi => !isMobileReader;
+  static bool get showPurchaseOrPaymentUi =>
+      PlatformPurchasePolicy.showExternalPaymentFlows;
+
+  static bool get showAppleIapPurchaseUi => PlatformPurchasePolicy.iapEnabled;
 
   static List<Course> filterCoursesForPlatform(Iterable<Course> courses) {
     return filterCoursesForCatalog(courses);
   }
 
-  /// Mobile never requests a marketplace catalog.
   static String? effectiveListPricingType(String? pricingType) {
-    if (!isMobileReader) return pricingType;
-    return "FREE";
+    if (isAndroid) return "FREE";
+    return pricingType;
   }
 
   static List<Course> filterCoursesForCatalog(
@@ -87,7 +108,8 @@ abstract final class IosCoursePolicy {
     String? pricingType,
     bool apiIncludesIapFields = true,
   }) {
-    if (!isMobileReader) {
+    if (isAndroid) return const [];
+    if (!isIOS) {
       if (pricingType == "FREE") {
         return courses.where((c) => c.isFree).toList(growable: false);
       }
@@ -96,24 +118,42 @@ abstract final class IosCoursePolicy {
       }
       return courses.toList(growable: false);
     }
-    // Strict reader mode: no catalog items on mobile.
-    return const [];
+
+    var list = courses.where(isCourseVisibleOnIosCatalog);
+    if (pricingType == "FREE") {
+      list = list.where((c) => c.isFree);
+    } else if (pricingType == "PAID") {
+      list = list.where((c) => !c.isFree && c.isIosIapPurchasable);
+    }
+    return list.toList(growable: false);
   }
 
-  /// My Courses: enrolled only (paid + free); hide pending payment.
+  /// My Courses: enrolled only; hide pending payment on mobile.
   static List<MyCourseItem> filterMyCourseItemsForPlatform(
     Iterable<MyCourseItem> items,
   ) {
     if (!isMobileReader) return items.toList(growable: false);
-    return items.where((i) => i.isEnrolled).toList(growable: false);
+    return items.where((i) {
+      if (!i.isEnrolled) return false;
+      // iOS: paid courses must also be Apple-IAP mapped to appear/learn.
+      if (isIOS && !i.course.isFree && !i.course.isIosIapPurchasable) {
+        return false;
+      }
+      return true;
+    }).toList(growable: false);
   }
 
-  /// Saved: enrolled courses only on mobile.
   static List<SavedCourseItem> filterSavedCoursesForPlatform(
     Iterable<SavedCourseItem> items,
   ) {
-    if (!isMobileReader) return items.toList(growable: false);
-    return items.where((i) => i.isEnrolled).toList(growable: false);
+    if (isAndroid) {
+      return items.where((i) => i.isEnrolled).toList(growable: false);
+    }
+    if (!isIOS) return items.toList(growable: false);
+    return items.where((i) {
+      if (i.course.isFree) return true;
+      return i.course.isIosIapPurchasable;
+    }).toList(growable: false);
   }
 
   static StudentDashboard filterDashboardForPlatform(
@@ -126,27 +166,42 @@ abstract final class IosCoursePolicy {
     Iterable<String> courseIds,
     Map<String, String> pricingByCourseId,
   ) {
-    if (!isMobileReader) return courseIds.toSet();
-    return <String>{};
+    if (isAndroid) return <String>{};
+    return courseIds.toSet();
   }
 
-  /// Maps bottom-nav UI index → shell branch index (skips Courses).
+  /// Maps bottom-nav UI index → shell branch index.
+  /// iOS UI: Home / Courses / My Courses / Profile → branches 0, 2, 1, 3
+  /// Android UI: Home / My Courses / Profile → branches 0, 1, 3
   static int shellBranchForNavIndex(int navIndex) {
     if (!isMobileReader) return navIndex;
-    // UI: 0 Home, 1 My Courses, 2 Profile → branches 0, 1, 3
+    if (isIOS) {
+      const map = [0, 2, 1, 3];
+      if (navIndex < 0 || navIndex >= map.length) return 0;
+      return map[navIndex];
+    }
+    // Android
     const map = [0, 1, 3];
     if (navIndex < 0 || navIndex >= map.length) return 0;
     return map[navIndex];
   }
 
-  /// Maps shell branch index → bottom-nav UI index.
   static int navIndexForShellBranch(int branchIndex) {
     if (!isMobileReader) return branchIndex;
+    if (isIOS) {
+      return switch (branchIndex) {
+        0 => 0,
+        2 => 1,
+        1 => 2,
+        3 => 3,
+        _ => 0,
+      };
+    }
     return switch (branchIndex) {
       0 => 0,
       1 => 1,
       3 => 2,
-      _ => 1, // Courses branch or unknown → highlight My Courses
+      _ => 1,
     };
   }
 }

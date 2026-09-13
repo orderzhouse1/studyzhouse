@@ -45,6 +45,8 @@ class SavedCourseSummary {
     required this.currency,
     required this.level,
     this.category,
+    this.appleProductId,
+    this.iosPurchasable = false,
   });
 
   final String id;
@@ -56,8 +58,15 @@ class SavedCourseSummary {
   final String currency;
   final String level;
   final Category? category;
+  final String? appleProductId;
+  final bool iosPurchasable;
 
   bool get isFree => pricingType == "FREE";
+
+  bool get isIosIapPurchasable =>
+      !isFree &&
+      iosPurchasable &&
+      (appleProductId?.trim().isNotEmpty ?? false);
 
   factory SavedCourseSummary.fromJson(Map<String, dynamic> json) {
     final cat = json["category"];
@@ -71,6 +80,8 @@ class SavedCourseSummary {
       currency: json["currency"] as String? ?? "JOD",
       level: json["level"] as String? ?? "ALL_LEVELS",
       category: cat is Map<String, dynamic> ? Category.fromJson(cat) : null,
+      appleProductId: json["appleProductId"] as String?,
+      iosPurchasable: json["iosPurchasable"] as bool? ?? false,
     );
   }
 }

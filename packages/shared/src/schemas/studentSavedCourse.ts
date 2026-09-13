@@ -20,6 +20,8 @@ export const studentSavedCourseItemSchema = z.object({
         slug: z.string(),
       })
       .nullable(),
+    appleProductId: z.string().nullable().optional(),
+    iosPurchasable: z.boolean().optional(),
   }),
   isEnrolled: z.boolean(),
   canLearn: z.boolean(),

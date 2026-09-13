@@ -21,6 +21,7 @@ import { coursesPublicRouter } from "./coursesPublic.routes.js";
 import { healthRouter } from "./health.routes.js";
 import { marketingPublicRouter } from "./marketingPublic.routes.js";
 import { adminHomepageHeroStatsRouter } from "./adminHomepageHeroStats.routes.js";
+import { mobileAppleIapRouter } from "./mobileAppleIap.routes.js";
 import { studentRouter } from "./student.routes.js";
 import { mobilePushRouter } from "./mobilePush.routes.js";
 import { superAdminRouter } from "./superAdmin.routes.js";
@@ -122,6 +123,8 @@ export function createApiRouter(): Router {
     requireRole(STUDENT_ONLY),
     studentRouter,
   );
+
+  router.use(`${base}/mobile/iap/apple`, mobileAppleIapRouter);
 
   router.use(
     `${base}/mobile`,

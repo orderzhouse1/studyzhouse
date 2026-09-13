@@ -29,6 +29,8 @@ function mapSavedRow(row: {
     price: import("@prisma/client").Prisma.Decimal | null;
     currency: string;
     level: CourseLevel;
+    appleProductId: string | null;
+    iosPurchasable: boolean;
     category: { id: string; name: string; slug: string } | null;
   };
   enrollment: { status: EnrollmentStatus } | null;
@@ -49,6 +51,8 @@ function mapSavedRow(row: {
       currency: row.course.currency,
       level: row.course.level,
       category: row.course.category,
+      appleProductId: row.course.appleProductId,
+      iosPurchasable: row.course.iosPurchasable,
     },
     isEnrolled: Boolean(row.enrollment),
     canLearn: active,

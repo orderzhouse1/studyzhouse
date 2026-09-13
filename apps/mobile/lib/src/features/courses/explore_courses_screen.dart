@@ -44,7 +44,7 @@ class _ExploreCoursesScreenState extends ConsumerState<ExploreCoursesScreen> {
   @override
   void initState() {
     super.initState();
-    if (IosCoursePolicy.isIOSPlatform) {
+    if (IosCoursePolicy.isAndroid) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         context.go(IosCoursePolicy.postLoginLocation);
@@ -61,7 +61,7 @@ class _ExploreCoursesScreenState extends ConsumerState<ExploreCoursesScreen> {
   @override
   void didUpdateWidget(ExploreCoursesScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (IosCoursePolicy.isIOSPlatform) return;
+    if (IosCoursePolicy.isAndroid) return;
     final next = _normalizeCategorySlug(widget.initialCategorySlug);
     if (next == _categorySlug) return;
     setState(() => _categorySlug = next);

@@ -11,11 +11,17 @@ class CourseAccessInfo {
     required this.courseId,
     required this.isEnrolled,
     required this.progressPercent,
+    this.appleProductId,
+    this.iosPurchasable = false,
+    this.canEnrollFree = false,
   });
 
   final String courseId;
   final bool isEnrolled;
   final int progressPercent;
+  final String? appleProductId;
+  final bool iosPurchasable;
+  final bool canEnrollFree;
 
   factory CourseAccessInfo.fromEnvelope(Map<String, dynamic> json) {
     if (json["success"] != true) {
@@ -26,6 +32,9 @@ class CourseAccessInfo {
       courseId: data["courseId"] as String,
       isEnrolled: data["isEnrolled"] as bool? ?? false,
       progressPercent: (data["progressPercent"] as num?)?.toInt() ?? 0,
+      appleProductId: data["appleProductId"] as String?,
+      iosPurchasable: data["iosPurchasable"] as bool? ?? false,
+      canEnrollFree: data["canEnrollFree"] as bool? ?? false,
     );
   }
 }

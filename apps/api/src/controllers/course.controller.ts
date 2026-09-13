@@ -12,9 +12,14 @@ import {
 import { AppError } from "../lib/AppError.js";
 import {
   assertIosCourseDetailVisible,
+  androidReaderCourseListWhere,
   iosPublishedCourseListWhere,
 } from "../lib/iosCourseAccess.js";
-import { isMobileReaderClient } from "../lib/clientPlatform.js";
+import {
+  isAndroidAppClient,
+  isIosAppClient,
+  isMobileReaderClient,
+} from "../lib/clientPlatform.js";
 import { assertCanManageCourse } from "../lib/courseAccess.js";
 import {
   mapCourseAdmin,
@@ -152,12 +157,24 @@ export async function listCoursesPublic(
     where.pricingType = query.pricingType;
   }
 
-  if (isMobileReaderClient(req)) {
+  if (isIosAppClient(req)) {
     where.AND = [
       ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
       iosPublishedCourseListWhere(),
     ];
-    // Mobile reader: no paid marketplace catalog.
+    // iOS marketplace: free + Apple-IAP mapped paid only (ignore client paid filter for unmapped).
+    if (query.pricingType === PricingType.PAID) {
+      where.pricingType = PricingType.PAID;
+    } else if (query.pricingType === PricingType.FREE) {
+      where.pricingType = PricingType.FREE;
+    } else {
+      delete where.pricingType;
+    }
+  } else if (isAndroidAppClient(req)) {
+    where.AND = [
+      ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+      androidReaderCourseListWhere(),
+    ];
     where.pricingType = PricingType.FREE;
   }
 

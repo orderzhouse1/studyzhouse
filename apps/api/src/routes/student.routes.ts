@@ -275,6 +275,11 @@ studentRouter.post(
 );
 
 studentRouter.get(
+  "/course-entitlements",
+  asyncHandler(studentAppleIapController.getStudentCourseEntitlements),
+);
+
+studentRouter.get(
   "/web-push/public-key",
   asyncHandler(studentWebPushController.getStudentWebPushPublicKey),
 );
