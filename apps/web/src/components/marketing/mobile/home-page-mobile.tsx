@@ -12,6 +12,7 @@ import {
   HomeMobilePopularSection,
   HomeMobileQuickCta,
 } from "@/components/marketing/mobile/home-mobile-popular-section";
+import { HomeSuccessPartnersSection } from "@/components/marketing/home-success-partners";
 
 export type HomePageMobileProps = {
   featured: CourseCardCourse[];
@@ -56,6 +57,8 @@ export function HomePageMobile({
         {featured.length > 0 ? (
           <HomeMobileLatestList courses={featured} />
         ) : null}
+
+        <HomeSuccessPartnersSection />
 
         <HomeMobileFaq />
       </main>

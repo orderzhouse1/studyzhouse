@@ -205,6 +205,7 @@ model User {
   courseReviews                CourseReview[]
   recommendationDismissals     CourseRecommendationDismissal[]
   webPushSubscriptions         WebPushSubscription[]
+  mobilePushTokens             MobilePushToken[]
   appleIapPurchases            AppleIapPurchase[]
 }
 
@@ -613,4 +614,22 @@ model WebPushSubscription {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isActive])
+}
+
+/// FCM device tokens for the Flutter mobile app (Android / iOS).
+model MobilePushToken {
+  id         String   @id @default(cuid())
+  userId     String
+  token      String   @unique
+  platform   String
+  deviceInfo String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lastSeenAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@index([userId, platform])
 }

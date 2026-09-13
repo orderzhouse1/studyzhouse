@@ -6,6 +6,7 @@ import type {
   PaginationQuery,
 } from "@studyhouse/shared";
 import { sendWebPushToUser } from "./webPushDelivery.service.js";
+import { sendMobilePushToUser } from "./mobilePushDelivery.service.js";
 
 export async function createNotification(input: {
   userId: string;
@@ -39,6 +40,17 @@ export async function createNotification(input: {
       });
     });
   }
+
+  void sendMobilePushToUser(input.userId, {
+    title: input.title,
+    body: input.body,
+    url: input.actionUrl ?? "/notifications",
+  }).catch((err) => {
+    console.warn("[mobile-push] createNotification hook failed", {
+      userId: input.userId,
+      message: err instanceof Error ? err.message : "unknown",
+    });
+  });
 }
 
 function mapNotification(row: {

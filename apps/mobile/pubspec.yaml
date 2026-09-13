@@ -2,7 +2,7 @@ name: studyzhouse_mobile
 description: STUDYZHOUSE student mobile app .
 publish_to: "none"
 
-version: 1.0.5+6
+version: 1.0.6+7
 
 
 environment:
@@ -28,6 +28,10 @@ dependencies:
   webview_flutter: ^4.13.1
   flutter_dotenv: ^5.2.1
   image_picker: ^1.1.2
+  firebase_core: ^4.12.1
+  firebase_messaging: ^16.4.3
+  flutter_local_notifications: ^22.2.0
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:

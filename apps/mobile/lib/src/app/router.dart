@@ -19,6 +19,7 @@ import "../features/utilities/profile_edit_screen.dart";
 import "../features/utilities/purchases_screen.dart";
 import "../features/utilities/redeem_screen.dart";
 import "../features/utilities/settings_screen.dart";
+import "../features/utilities/push_diagnostics_screen.dart";
 import "student_shell.dart";
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -84,6 +85,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: "/settings",
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: "/settings/push-diagnostics",
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const PushDiagnosticsScreen(),
       ),
       GoRoute(
         path: "/help",

@@ -9,6 +9,7 @@ import "../../core/widgets/brand_loading_indicator.dart";
 import "../../core/widgets/error_state.dart";
 import "../auth/auth_session_repository.dart";
 import "../auth/models/session_validation_result.dart";
+import "../../core/notifications/push_bootstrap.dart";
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -39,6 +40,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     switch (result) {
       case SessionValid(:final user):
         ref.read(currentUserProvider.notifier).state = user;
+        await bootstrapMobilePush(ref);
+        if (!mounted) return;
         context.go(IosCoursePolicy.postLoginLocation);
       case SessionNoToken():
         context.go("/login");

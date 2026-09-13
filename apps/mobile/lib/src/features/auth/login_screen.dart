@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../core/platform/ios_course_policy.dart";
+import "../../core/notifications/push_bootstrap.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/theme/app_gradients.dart";
 import "../../core/widgets/app_button.dart";
@@ -42,6 +43,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
 
     if (ok && mounted) {
+      await bootstrapMobilePush(ref);
+      if (!mounted) return;
       context.go(IosCoursePolicy.postLoginLocation);
     }
   }

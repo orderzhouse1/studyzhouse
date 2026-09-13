@@ -42,3 +42,12 @@ apps/mobile/android/upload-keystore.jks
 apps/mobile/android/**/*.jks
 apps/mobile/android/**/*.keystore
 apps/mobile/.env
+
+# Firebase mobile config (download from Console; do not commit service accounts)
+apps/mobile/android/app/google-services.json
+apps/mobile/ios/Runner/GoogleService-Info.plist
+**/firebase-service-account*.json
+*firebase-adminsdk*.json
+
+# Partner logo source backups (black-background originals)
+apps/web/public/partners/*.original-black-bg.png

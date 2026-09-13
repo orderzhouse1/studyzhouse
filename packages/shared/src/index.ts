@@ -25,6 +25,7 @@ export * from "./schemas/courseReview";
 export * from "./schemas/auditLog";
 export * from "./schemas/adminAnalytics";
 export * from "./schemas/webPush";
+export * from "./schemas/mobilePush";
 export * from "./schemas/adminNotification";
 export * from "./schemas/appleIap";
 export * from "./schemas/homepageHeroStats";

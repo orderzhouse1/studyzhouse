@@ -6,6 +6,7 @@ import "package:url_launcher/url_launcher.dart";
 import "../../core/auth/current_user_provider.dart";
 import "../../core/constants/legal_urls.dart";
 import "../../core/network/api_exception.dart";
+import "../../core/notifications/push_bootstrap.dart";
 import "../../core/theme/app_colors.dart";
 import "../../core/widgets/account_page_header.dart";
 import "../../core/widgets/app_button.dart";
@@ -33,6 +34,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _logout(BuildContext context) async {
+    await unregisterMobilePushOnLogout(ref);
     await ref.read(authRepositoryProvider).logout();
     if (context.mounted) context.go("/login");
   }
@@ -119,6 +121,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await ref
           .read(studentUtilitiesRepositoryProvider)
           .deactivateAccount();
+      await unregisterMobilePushOnLogout(ref);
       await ref.read(authRepositoryProvider).logout();
       if (!mounted) return;
       await showDialog<void>(
@@ -196,6 +199,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: const Text("تغيير كلمة المرور"),
             trailing: const Icon(Icons.chevron_left),
             onTap: () => context.push("/forgot-password"),
+          ),
+          const SizedBox(height: 12),
+          ListTile(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: const BorderSide(color: AppColors.border),
+            ),
+            tileColor: AppColors.surface,
+            leading: const Icon(
+              Icons.notifications_active_outlined,
+              color: AppColors.orange,
+            ),
+            title: const Text("تشخيص الإشعارات"),
+            trailing: const Icon(Icons.chevron_left),
+            onTap: () => context.push("/settings/push-diagnostics"),
           ),
           const SizedBox(height: 16),
           AppCard(

@@ -21,6 +21,10 @@ const envSchema = z.object({
   WEB_PUSH_PUBLIC_KEY: z.string().min(1).optional(),
   WEB_PUSH_PRIVATE_KEY: z.string().min(1).optional(),
   WEB_PUSH_SUBJECT: z.string().min(3).optional(),
+  /** Firebase Admin: full service-account JSON string (preferred for hosts without files). */
+  FIREBASE_SERVICE_ACCOUNT_JSON: z.string().min(1).optional(),
+  /** Firebase Admin: absolute or repo-relative path to service-account JSON file. */
+  FIREBASE_SERVICE_ACCOUNT_PATH: z.string().min(1).optional(),
   UPLOAD_PROVIDER: z.enum(["local", "cloudinary"]).optional(),
   CLOUDINARY_CLOUD_NAME: z.string().min(1).optional(),
   CLOUDINARY_API_KEY: z.string().min(1).optional(),

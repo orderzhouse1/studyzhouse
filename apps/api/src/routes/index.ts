@@ -22,6 +22,7 @@ import { healthRouter } from "./health.routes.js";
 import { marketingPublicRouter } from "./marketingPublic.routes.js";
 import { adminHomepageHeroStatsRouter } from "./adminHomepageHeroStats.routes.js";
 import { studentRouter } from "./student.routes.js";
+import { mobilePushRouter } from "./mobilePush.routes.js";
 import { superAdminRouter } from "./superAdmin.routes.js";
 
 const ADMIN_ACCESS_ROLES = [UserRole.ADMIN, UserRole.SUPER_ADMIN] as const;
@@ -120,6 +121,13 @@ export function createApiRouter(): Router {
     requireAuth,
     requireRole(STUDENT_ONLY),
     studentRouter,
+  );
+
+  router.use(
+    `${base}/mobile`,
+    requireAuth,
+    requireRole(STUDENT_ONLY),
+    mobilePushRouter,
   );
 
   router.use(

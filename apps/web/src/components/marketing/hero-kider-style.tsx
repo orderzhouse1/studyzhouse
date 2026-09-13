@@ -97,8 +97,7 @@ export function HeroKiderStyle({
             <span className="mt-0.5 block text-primary max-sm:inline max-sm:mt-0"> من اليوم الأول.</span>
           </h1>
           <p className="relative mt-1 text-start text-pretty text-[0.8125rem] leading-snug text-slate-300 max-sm:line-clamp-1 sm:mt-3.5 sm:text-sm sm:leading-relaxed sm:text-[0.9375rem]">
-            كورسات منظمة، تقدّم واضح، وتجربة عربية مريحة — خطوة بخطوة حتى تصل إلى
-            هدفك دون تعقيد.
+            منصة تعليمية عربية لتعلّم أسهل، ومتابعة أوضح، وتجربة دراسية مريحة.
           </p>
           <HomeHeroStatsLive
             initialStats={stats}

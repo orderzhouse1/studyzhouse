@@ -17,6 +17,7 @@ import { HeroKiderStyle } from "@/components/marketing/hero-kider-style";
 import { HomepageVisitRecorder } from "@/components/marketing/homepage-visit-recorder";
 import { HomeFaqSection } from "@/components/marketing/home-faq";
 import { HomeLatestCoursesFeed } from "@/components/marketing/home-latest-courses-feed";
+import { HomeSuccessPartnersSection } from "@/components/marketing/home-success-partners";
 import { HomePageMobile } from "@/components/marketing/mobile/home-page-mobile";
 import { PopularByCategorySection } from "@/components/marketing/popular-by-category";
 import { SiteFooter } from "@/components/layout/site-footer";
@@ -112,6 +113,8 @@ export default async function HomePage(): Promise<React.ReactElement> {
         ) : null}
 
         {featured.length > 0 ? <HomeLatestCoursesFeed courses={featured} /> : null}
+
+        <HomeSuccessPartnersSection />
 
         <HomeFaqSection />
       </main>
